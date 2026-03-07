@@ -156,7 +156,7 @@ The EXP, Weibull, and Gumbel penalties are not arbitrary constructions — they 
 | Weibull | $1 - e^{-(\lvert x\rvert/\gamma)^k}$ | $\dfrac{k}{\gamma} \left(\dfrac{\lvert x\rvert}{\gamma}\right)^{k-1} e^{-(\lvert x\rvert/\gamma)^k}$ |
 | Weibull $\to$ Exponential | $k = 1$ | $k = 1$ |
 | Gumbel $(\mu = 0)$ | $e^{-e^{-\lvert x\rvert/\gamma}}$ | $\dfrac{1}{\gamma}\, e^{-\lvert x\rvert/\gamma - e^{-\lvert x\rvert/\gamma}}$ |
-| Gumbel $\to$ Weibull | $1 - Gumbel(x; \gamma) = \\ Weibull\left(e^{-x}, k = \tfrac{1}{\gamma}, \gamma = 1\right)$ | $Gumbel(x; \gamma) = \\ Weibull\left(e^{-x}, k = \tfrac{1}{\gamma}, \gamma = 1\right) \cdot e^{-x}$ |
+| Gumbel $\to$ Weibull | $1 - Gumbel(x; \gamma) = \\ Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}, \gamma = 1\right)$ | $Gumbel(x; \gamma) = \\ Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}, \gamma = 1\right) \cdot e^{-x}$ |
 
 **The Weibull as the general case.** The EXP penalty is the exact special case $k = 1$ of the Weibull — its derivative, its adaptive scale estimation, and its convergence behavior are all inherited from the Weibull family. The Weibull strictly generalizes EXP across the full range $k \in (0, \infty)$.
 
