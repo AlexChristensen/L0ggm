@@ -1,0 +1,25 @@
+Package: L0ggm
+Title: L0 Norm Regularization Penalties for Gaussian Graphical Models
+Version: 0.0.1
+Date: 2026-03-07
+Authors@R: c(person("Alexander", "Christensen", email = "alexpaulchristensen@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9798-7037")))
+Maintainer: Alexander P. Christensen <alexpaulchristensen@gmail.com>
+Description: Implements the Exploratory Graph Analysis (EGA) framework for dimensionality
+             and psychometric assessment. EGA estimates the number of dimensions in
+	     	 psychological data using network estimation methods and community detection
+             algorithms. A bootstrap method is provided to assess the stability of dimensions
+	     	 and items. Fit is evaluated using the Entropy Fit family of indices. Unique 
+             Variable Analysis evaluates the extent to which items are locally dependent (or
+             redundant). Network loadings provide similar information to factor loadings and
+	     	 can be used to compute network scores. A bootstrap and permutation approach are
+             available to assess configural and metric invariance. Hierarchical structures
+             can be detected using Hierarchical EGA. Time series and intensive longitudinal 
+	     	 data can be analyzed using Dynamic EGA, supporting individual, group, and 
+             population level assessments.
+Depends: R (>= 3.5.0)
+License: AGPL (>= 3.0)
+Encoding: UTF-8
+LazyData: true
+Imports: glasso, glassoFast, methods, stats
+BugReports: https://github.com/AlexChristensen/adaptGGM/issues
+RoxygenNote: 7.3.3

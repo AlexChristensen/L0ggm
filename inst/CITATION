@@ -1,0 +1,20 @@
+citHeader("To cite {EGAnet} in publications use:")
+
+bibentry(
+	bibtype	= "manual",
+	key	= "EGAnet",
+	title	= "EGAnet: Exploratory Graph Analysis – A framework for estimating the number of dimensions in multivariate data using network psychometrics",
+	author	= c(
+	   person("Golino,", "Hudson"),
+	   person("Christensen,", "Alexander")
+	),
+	year = "2026",
+	url	= "https://r-ega.net",
+	doi = "10.32614/CRAN.package.EGAnet",
+	note = "R package version 2.4.1",
+
+  textVersion  =
+  paste0("Golino, H., & Christensen, A. P. (2026). ",
+        "EGAnet: Exploratory Graph Analysis – A framework for estimating the number of dimensions in multivariate data using network psychometrics. ",
+	"https://doi.org/10.32614/CRAN.package.EGAnet")
+)
