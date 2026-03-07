@@ -1,6 +1,6 @@
 <table style="border: none; border-collapse: collapse;">
 <tr style="border: none;">
-<td style="border: none; vertical-align: middle; padding-right: 24px;">
+<td style="border: none; vertical-align: middle; padding-right: 200px;">
 <img src="inst/L0ggm_hex_transparent.png" width="200" />
 </td>
 <td style="border: none; vertical-align: middle;">
