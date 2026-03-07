@@ -130,13 +130,13 @@ $$\hat{\lambda}_W = \left(\frac{1}{n}\sum_i |p_i|^{\hat{k}}\right)^{1/\hat{k}}$$
 
 **Step 2 — Cap shape.** To guarantee that the penalty is at least as concave as EXP (a necessary condition for the $L_0$ approximation quality), the shape is capped:
 
-$$k = \min\!\left(\hat{k},\, 1\right)$$
+$$k = \min\left(\hat{k},\, 1\right)$$
 
 If $k$ is capped at 1, $\hat{\lambda}_W$ is replaced by the sample mean of $|p_{ij}|$.
 
 **Step 3 — Set adaptive scale.** The scale parameter $\gamma$ is set to the standard deviation of the fitted Weibull distribution, normalized by $\sqrt{n}$:
 
-$$\gamma = \frac{\hat{\lambda}_W \sqrt{\Gamma\!\left(1 + \tfrac{2}{k}\right) - \Gamma\!\left(1 + \tfrac{1}{k}\right)^2}}{\sqrt{n}}$$
+$$\gamma = \frac{\hat{\lambda}_W \sqrt{\Gamma\left(1 + \tfrac{2}{k}\right) - \Gamma\left(1 + \tfrac{1}{k}\right)^2}}{\sqrt{n}}$$
 
 This is the standard error of the Weibull scale, which shrinks with larger samples — an appropriate regularization of $\gamma$ that reduces bias as $n$ grows. The resulting $\gamma$ is small when the partial correlations are tightly concentrated (sparse true network), driving the penalty closer to $L_0$, and larger when correlations are more diffuse.
 
@@ -155,7 +155,7 @@ The EXP, Weibull, and Gumbel penalties are not arbitrary constructions — they 
 | Exponential | $1 - e^{-\lvert x\rvert/\gamma}$ | $\dfrac{1}{\gamma}\, e^{-\lvert x\rvert/\gamma}$ |
 | Weibull | $1 - e^{-(\lvert x\rvert/\gamma)^k}$ | $\dfrac{k}{\gamma} \left(\dfrac{\lvert x\rvert}{\gamma}\right)^{k-1} e^{-(\lvert x\rvert/\gamma)^k}$ |
 | Weibull $\to$ Exponential | $k = 1$ | $k = 1$ |
-| Gumbel $(\mu = 0)$ | $e^{-e^{-\lvert x\rvert/\gamma}}$ | $\dfrac{1}{\gamma}\, e^{-\lvert x\rvert/\gamma\; -\; e^{-\lvert x\rvert/\gamma}}$ |
+| Gumbel $(\mu = 0)$ | $e^{-e^{-\lvert x\rvert/\gamma}}$ | $\dfrac{1}{\gamma}\, e^{-\lvert x\rvert/\gamma - e^{-\lvert x\rvert/\gamma}}$ |
 | Gumbel $\to$ Weibull | $1 - Gumbel(x, \gamma) = \\ Weibull\left(e^{-x}, k = \tfrac{1}{\gamma}, \gamma = 1\right)$ | $Gumbel(x, \gamma) = \\ Weibull\left(e^{-x}, k = \tfrac{1}{\gamma}, \gamma = 1\right) \cdot e^{-x}$ |
 
 **The Weibull as the general case.** The EXP penalty is the exact special case $k = 1$ of the Weibull — its derivative, its adaptive scale estimation, and its convergence behavior are all inherited from the Weibull family. The Weibull strictly generalizes EXP across the full range $k \in (0, \infty)$.
@@ -164,11 +164,11 @@ The EXP, Weibull, and Gumbel penalties are not arbitrary constructions — they 
 
 **Generalized extreme value (GEV) distribution.** The reason these distributions co-occur is the **Fisher–Tippett–Gnedenko theorem** (Fisher & Tippett, 1928; Gnedenko, 1943): the normalized maximum of $n$ i.i.d. random variables converges in distribution, as $n \to \infty$, to the generalized extreme value (GEV) family:
 
-$$G(x;\, \mu, \sigma, \xi) = \exp\left\lbrace -\left[1 + \xi\left(\frac{x - \mu}{\sigma}\right)\right]^{-1/\xi}\right\rbrace$$
+$$G(x, \mu, \sigma, \xi) = \exp\left\lbrace -\left[1 + \xi\left(\frac{x - \mu}{\sigma}\right)\right]^{-1/\xi}\right\rbrace$$
 
 The tail index $\xi$ selects among three qualitatively distinct limiting types:
 
-- **$\xi = 0$ (Gumbel, Type I)**: the limit of exponential-class tails; $G(x) = \exp\!\left(-e^{-(x-\mu)/\sigma}\right)$
+- **$\xi = 0$ (Gumbel, Type I)**: the limit of exponential-class tails; $G(x) = \exp\left(-e^{-(x-\mu)/\sigma}\right)$
 - **$\xi > 0$ (Fréchet, Type II)**: heavy-tailed, unbounded support
 - **$\xi < 0$ (Weibull, Type III)**: bounded support, arising from distributions with a finite right endpoint
 
@@ -226,20 +226,20 @@ exp_network <- network_estimation(
 
 ## References
 
-Fisher, R. A., & Tippett, L. H. C. (1928). Limiting forms of the frequency distribution of the largest or smallest member of a sample. *Mathematical Proceedings of the Cambridge Philosophical Society*, *24*(2), 180--190.
+Fisher, R. A., & Tippett, L. H. C. (1928). Limiting forms of the frequency distribution of the largest or smallest member of a sample. *Mathematical Proceedings of the Cambridge Philosophical Society*, *24*(2), 180--190. https://doi.org/10.1017/S0305004100015681
 
-Gnedenko, B. (1943). Sur la distribution limite du terme maximum d'une série aléatoire. *Annals of Mathematics*, *44*(3), 423--453.
+Gnedenko, B. (1943). Sur la distribution limite du terme maximum d'une série aléatoire. *Annals of Mathematics*, *44*(3), 423--453. https://doi.org/10.2307/1968974
 
-Dicker, L., Huang, B., & Lin, X. (2013). Variable selection and estimation with the seamless-$L_0$ penalty. *Statistica Sinica*, *23*(2), 929--962.
+Dicker, L., Huang, B., & Lin, X. (2013). Variable selection and estimation with the seamless-L0 penalty. *Statistica Sinica*, *23*(2), 929--962. https://doi.org/10.5705/ss.2011.074
 
-Fan, J., & Li, R. (2001). Variable selection via nonconcave penalized likelihood and its oracle properties. *Journal of the American Statistical Association*, *96*(456), 1348--1360.
+Fan, J., & Li, R. (2001). Variable selection via nonconcave penalized likelihood and its oracle properties. *Journal of the American Statistical Association*, *96*(456), 1348--1360. https://doi.org/10.1198/016214501753382273
 
-Friedman, J., Hastie, T., & Tibshirani, R. (2008). Sparse inverse covariance estimation with the graphical lasso. *Biostatistics*, *9*(3), 432--441.
+Friedman, J., Hastie, T., & Tibshirani, R. (2008). Sparse inverse covariance estimation with the graphical lasso. *Biostatistics*, *9*(3), 432--441. https://doi.org/10.1093/biostatistics/kxm045
 
-Wang, Y., Fan, Q., & Zhu, L. (2018). Variable selection and estimation using a continuous approximation to the $L_0$ penalty. *Annals of the Institute of Statistical Mathematics*, *70*(1), 191--214.
+Wang, Y., Fan, Q., & Zhu, L. (2018). Variable selection and estimation using a continuous approximation to the $L_0$ penalty. *Annals of the Institute of Statistical Mathematics*, *70*(1), 191--214. https://doi.org/10.1007/s10463-016-0588-3
 
-Wang, Y., & Zhu, L. (2016). Variable selection and parameter estimation with the Atan regularization method. *Journal of Probability and Statistics*, *2016*, 1--12.
+Wang, Y., & Zhu, L. (2016). Variable selection and parameter estimation with the Atan regularization method. *Journal of Probability and Statistics*, *2016*, 1--12. https://doi.org/10.1155/2016/6495417
 
-Williams, D. R. (2020). Beyond lasso: A survey of nonconvex regularization in Gaussian graphical models. *PsyArXiv*.
+Williams, D. R. (2020). Beyond lasso: A survey of nonconvex regularization in Gaussian graphical models. *PsyArXiv*. https://doi.org/10.31234/osf.io/ad57p
 
-Zou, H., & Li, R. (2008). One-step sparse estimates in nonconcave penalized likelihood models. *Annals of Statistics*, *36*(4), 1509--1533.
+Zou, H., & Li, R. (2008). One-step sparse estimates in nonconcave penalized likelihood models. *Annals of Statistics*, *36*(4), 1509--1533. https://doi.org/10.1198/016214506000000735
