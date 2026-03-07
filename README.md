@@ -1,7 +1,7 @@
 <table style="border: none; border-collapse: collapse;">
 <tr style="border: none;">
-<td style="border: none; vertical-align: middle; padding-right: 200px;">
-<img src="inst/L0ggm_hex_transparent.png" width="200" />
+<td style="border: none; vertical-align: middle; padding-right: 24px;">
+<img src="inst/L0ggm_hex_transparent.png" width="250" />
 </td>
 <td style="border: none; vertical-align: middle;">
 
@@ -75,11 +75,11 @@ Unlike $L_1$, the $L_0$ penalty imposes **no shrinkage on nonzero coefficients**
 
 Direct $L_0$ minimization requires searching over all $2^{p(p-1)/2}$ subsets of candidate edges. For even modest network sizes (e.g., $p = 20$ implies 190 candidate edges), this combinatorial search is computationally intractable.
 
-{L0ggm} addresses this through **continuous smooth approximations** $\rho(x;\, \lambda, \gamma)$ that closely mimic the $L_0$ indicator and satisfy three key properties:
+{L0ggm} addresses this through **continuous smooth approximations** $\rho(x; \lambda, \gamma)$ that closely mimic the $L_0$ indicator and satisfy three key properties:
 
-1. $\rho(0;\, \lambda, \gamma) = 0$ — zero penalty at zero
-2. $\rho(x;\, \lambda, \gamma) \to \lambda$ as $|x| \to \infty$ — bounded, like $L_0$
-3. $\rho(x;\, \lambda, \gamma) \to \lambda \cdot \mathbf{1}(x \neq 0)$ as $\gamma \to 0$ — converges to the $L_0$ step function
+1. $\rho(0; \lambda, \gamma) = 0$ — zero penalty at zero
+2. $\rho(x; \lambda, \gamma) \to \lambda$ as $|x| \to \infty$ — bounded, like $L_0$
+3. $\rho(x; \lambda, \gamma) \to \lambda \cdot \mathbf{1}(x \neq 0)$ as $\gamma \to 0$ — converges to the $L_0$ step function
 
 Because the approximations are differentiable, their derivatives can be used as adaptive, element-wise GLASSO penalty weights via the **Local Linear Approximation** (LLA; Fan & Li, 2001; Zou & Li, 2008). At iteration $t$, the penalty is linearized around the current estimate $\mathbf{K}^{(t)}$:
 
@@ -101,8 +101,8 @@ The four penalties available in {L0ggm} are:
 <p align="center">
 <img src="images/penalty.png" width = 700 />
 </p>
-<br>
-<em><strong>Figure 1.</strong></em> \(L_0\) <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> \(L_0\) <em>norm (step function). Dashed lines:</em> \(L_1\) <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>.</em>
+
+<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>.</em>
 
 ---
 
@@ -130,9 +130,9 @@ $$\hat{\lambda}_W = \left(\frac{1}{n}\sum_i |p_i|^{\hat{k}}\right)^{1/\hat{k}}$$
 
 **Step 2 — Cap shape.** To guarantee that the penalty is at least as concave as EXP (a necessary condition for the $L_0$ approximation quality), the shape is capped:
 
-$$k = \min\left(\hat{k},\, 1\right)$$
+$$k = \min\left(\hat{k}, 1\right)$$
 
-If $k$ is capped at 1, $\hat{\lambda}_W$ is replaced by the sample mean of $|p_{ij}|$.
+If $k$ is capped at 1, $\hat{\lambda_W}$ is replaced by the sample mean of $|p_{ij}|$.
 
 **Step 3 — Set adaptive scale.** The scale parameter $\gamma$ is set to the standard deviation of the fitted Weibull distribution, normalized by $\sqrt{n}$:
 
@@ -152,15 +152,15 @@ The EXP, Weibull, and Gumbel penalties are not arbitrary constructions — they 
 
 | Distribution | Penalty (CDF) | Derivative (PDF) |
 |:---|:---|:---|
-| Exponential | $1 - e^{-\lvert x\rvert/\gamma}$ | $\dfrac{1}{\gamma}\, e^{-\lvert x\rvert/\gamma}$ |
+| Exponential | $1 - e^{-\lvert x\rvert/\gamma}$ | $\dfrac{1}{\gamma} e^{-\lvert x\rvert/\gamma}$ |
 | Weibull | $1 - e^{-(\lvert x\rvert/\gamma)^k}$ | $\dfrac{k}{\gamma} \left(\dfrac{\lvert x\rvert}{\gamma}\right)^{k-1} e^{-(\lvert x\rvert/\gamma)^k}$ |
 | Weibull $\to$ Exponential | $k = 1$ | $k = 1$ |
-| Gumbel $(\mu = 0)$ | $e^{-e^{-\lvert x\rvert/\gamma}}$ | $\dfrac{1}{\gamma}\, e^{-\lvert x\rvert/\gamma - e^{-\lvert x\rvert/\gamma}}$ |
-| Gumbel $\to$ Weibull | $1 - Gumbel(x; \gamma) = \\ Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}, \gamma = 1\right)$ | $Gumbel(x; \gamma) = \\ Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}, \gamma = 1\right) \cdot e^{-x}$ |
+| Gumbel $(\mu = 0)$ | $e^{-e^{-\lvert x\rvert/\gamma}}$ | $\dfrac{1}{\gamma} e^{-\lvert x\rvert/\gamma - e^{-\lvert x\rvert/\gamma}}$ |
+| Gumbel $\to$ Weibull | $1 - Gumbel(x; \gamma) = Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}, \gamma = 1\right)$ | $Gumbel(x; \gamma) = Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}, \gamma = 1\right) \cdot e^{-x}$ |
 
 **The Weibull as the general case.** The EXP penalty is the exact special case $k = 1$ of the Weibull — its derivative, its adaptive scale estimation, and its convergence behavior are all inherited from the Weibull family. The Weibull strictly generalizes EXP across the full range $k \in (0, \infty)$.
 
-**The Gumbel–Weibull connection.** Less obviously, the Gumbel and Weibull are also deeply related. The table shows that the Gumbel survival function $1 - G(x;\,\gamma)$ equals the Weibull CDF evaluated at the log-transformed argument $e^{-x}$, with shape $k = 1/\gamma$. Equivalently, if $X$ follows a Weibull distribution, then $-\log X$ follows a Gumbel distribution. This log-linear relationship is the classical link between the Type I and Type III extreme value families, and it means the Gumbel penalty is a reparametrized Weibull penalty under a change of variable — a further instance of Weibull's generality.
+**The Gumbel–Weibull connection.** Less obviously, the Gumbel and Weibull are also deeply related. The table shows that the Gumbel survival function $1 - G(x; \gamma)$ equals the Weibull CDF evaluated at the log-transformed argument $e^{-x}$, with shape $k = 1/\gamma$. Equivalently, if $X$ follows a Weibull distribution, then $-\log X$ follows a Gumbel distribution. This log-linear relationship is the classical link between the Type I and Type III extreme value families, and it means the Gumbel penalty is a reparametrized Weibull penalty under a change of variable — a further instance of Weibull's generality.
 
 **Generalized extreme value (GEV) distribution.** The reason these distributions co-occur is the **Fisher–Tippett–Gnedenko theorem** (Fisher & Tippett, 1928; Gnedenko, 1943): the normalized maximum of $n$ i.i.d. random variables converges in distribution, as $n \to \infty$, to the generalized extreme value (GEV) family:
 
