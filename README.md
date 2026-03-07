@@ -63,7 +63,7 @@ However, $L_1$ regularization carries an inherent statistical cost. Because the 
 
 ### $L_0$ regularization
 
-The $L_0$ norm counts the number of nonzero elements, $\|x\|_0 = \#\{i : x_i \neq 0\}$, and the $L_0$ penalty applies a fixed cost $\lambda$ to each nonzero edge regardless of its magnitude:
+The $L_0$ norm counts the number of nonzero elements, $\|x\|_0 = |\{i : x_i \neq 0\}|$, and the $L_0$ penalty applies a fixed cost $\lambda$ to each nonzero edge regardless of its magnitude:
 
 $$\rho_0(x) = \lambda \cdot \mathbf{1}(x \neq 0)$$
 
@@ -154,7 +154,7 @@ The EXP, Weibull, and Gumbel penalties are not arbitrary constructions — they 
 | Weibull | $1 - e^{-(\lvert x\rvert/\gamma)^k}$ | $\dfrac{k}{\gamma} \left(\dfrac{\lvert x\rvert}{\gamma}\right)^{k-1} e^{-(\lvert x\rvert/\gamma)^k}$ |
 | Weibull $\to$ Exponential | $k = 1$ | $k = 1$ |
 | Gumbel $(\mu = 0)$ | $e^{-e^{-\lvert x\rvert/\gamma}}$ | $\dfrac{1}{\gamma}\, e^{-\lvert x\rvert/\gamma\; -\; e^{-\lvert x\rvert/\gamma}}$ |
-| Gumbel $\to$ Weibull | $1 - G(x;\,\gamma) = W\!\left(e^{-x};\; k = \tfrac{1}{\gamma},\; \gamma = 1\right)$ | $g(x;\,\gamma) = w\!\left(e^{-x};\; k = \tfrac{1}{\gamma},\; \gamma = 1\right) \cdot e^{-x}$ |
+| Gumbel $\to$ Weibull | $1 - Gumbel(x; \gamma) = Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}; \gamma = 1\right)$ | $Gumbel(x; \gamma) = Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}; \gamma = 1\right) \cdot e^{-x}$ |
 
 **The Weibull as the general case.** The EXP penalty is the exact special case $k = 1$ of the Weibull — its derivative, its adaptive scale estimation, and its convergence behavior are all inherited from the Weibull family. The Weibull strictly generalizes EXP across the full range $k \in (0, \infty)$.
 
@@ -162,7 +162,7 @@ The EXP, Weibull, and Gumbel penalties are not arbitrary constructions — they 
 
 **Generalized extreme value (GEV) distribution.** The reason these distributions co-occur is the **Fisher–Tippett–Gnedenko theorem** (Fisher & Tippett, 1928; Gnedenko, 1943): the normalized maximum of $n$ i.i.d. random variables converges in distribution, as $n \to \infty$, to the generalized extreme value (GEV) family:
 
-$$G(x;\, \mu, \sigma, \xi) = \exp\!\left\{-\left[1 + \xi\!\left(\frac{x - \mu}{\sigma}\right)\right]^{-1/\xi}\right\}$$
+$$G(x;\, \mu, \sigma, \xi) = \exp\left\{-\left[1 + \xi\left(\frac{x - \mu}{\sigma}\right)\right]^{-1/\xi}\right\}$$
 
 The tail index $\xi$ selects among three qualitatively distinct limiting types:
 
