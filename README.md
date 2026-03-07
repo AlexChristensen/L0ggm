@@ -91,10 +91,12 @@ The four penalties available in {L0ggm} are:
 
 | Penalty | Formula |
 |---------|---------|
-| `"atan"` (Wang & Zhu, 2016) | $\lambda \left(\gamma + \dfrac{2}{\pi}\right) \arctan \left(\dfrac{|x|}{\gamma}\right)$ |
-| `"exp"` (Wang, Fan, & Zhu, 2018) | $\lambda \left(1 - e^{-\dfrac{|x|}{\gamma}}\right)$ |
-| `"gumbel"` | $\dfrac{\lambda}{1 - e^{-1}} \left(e^{-e^{-\dfrac{|x|}{\gamma}}} - e^{-1}\right)$ |
-| `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\dfrac{|x|}{\gamma}\right)^k}\right)$ |
+| `"atan"` (Wang & Zhu, 2016) | $\lambda \left(\gamma + \dfrac{2}{\pi}\right) \arctan \left(\dfrac{\lvert x \rvert}{\gamma}\right)$ |
+| `"exp"` (Wang, Fan, & Zhu, 2018) | $\lambda \left(1 - e^{-\lvert x \rvert / \gamma}\right)$ |
+| `"gumbel"` | $\lambda \left(e^{-e^{-\lvert x \rvert / \gamma}}\right)$ |
+| `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\lvert x \rvert / \gamma\right)^k}\right)$ |
+
+<em><strong>Note.</strong> Gumbel adjusts $\lambda = \dfrac{\lambda}{1 - e^{-1}}$ to scale consistently with other penalties and subtracts $e^{-1}$ from the penalty (prior to lambda) to adjust the y-intercept to zero.</em>
 
 <p align="center">
 <img src="images/penalty.png" width = 700 />
@@ -162,11 +164,11 @@ The EXP, Weibull, and Gumbel penalties are not arbitrary constructions — they 
 
 **Generalized extreme value (GEV) distribution.** The reason these distributions co-occur is the **Fisher–Tippett–Gnedenko theorem** (Fisher & Tippett, 1928; Gnedenko, 1943): the normalized maximum of $n$ i.i.d. random variables converges in distribution, as $n \to \infty$, to the generalized extreme value (GEV) family:
 
-$$G(x, \mu, \sigma, \xi) = \exp \left\{- \left[1 + \xi \left(\frac{x - \mu}{\sigma} \right) \right]^{-1/\xi} \right\}$$
+$$G(x;\, \mu, \sigma, \xi) = \exp\left\lbrace -\left[1 + \xi\left(\frac{x - \mu}{\sigma}\right)\right]^{-1/\xi}\right\rbrace$$
 
 The tail index $\xi$ selects among three qualitatively distinct limiting types:
 
-- **$\xi = 0$ (Gumbel, Type I)**: the limit of exponential-class tails; $G(x) = \exp\{-e^{-(x-\mu)/\sigma}\}$
+- **$\xi = 0$ (Gumbel, Type I)**: the limit of exponential-class tails; $G(x) = \exp\!\left(-e^{-(x-\mu)/\sigma}\right)$
 - **$\xi > 0$ (Fréchet, Type II)**: heavy-tailed, unbounded support
 - **$\xi < 0$ (Weibull, Type III)**: bounded support, arising from distributions with a finite right endpoint
 
