@@ -91,10 +91,10 @@ The four penalties available in {L0ggm} are:
 
 | Penalty | Formula |
 |---------|---------|
-| `"atan"` (Wang & Zhu, 2016) | $\lambda \left(\gamma + \dfrac{2}{\pi}\right) \arctan\!\left(\dfrac{\|x\|}{\gamma}\right)$ |
-| `"exp"` (Wang, Fan, & Zhu, 2018) | $\lambda \left(1 - e^{-\|x\|/\gamma}\right)$ |
-| `"gumbel"` | $\dfrac{\lambda}{1 - e^{-1}} \left(e^{-e^{-\|x\|/\gamma}} - e^{-1}\right)$ |
-| `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\|x\|/\gamma\right)^k}\right)$ |
+| `"atan"` (Wang & Zhu, 2016) | $\lambda \left(\gamma + \dfrac{2}{\pi}\right) \arctan \left(\dfrac{|x|}{\gamma}\right)$ |
+| `"exp"` (Wang, Fan, & Zhu, 2018) | $\lambda \left(1 - e^{-\dfrac{|x|}{\gamma}}\right)$ |
+| `"gumbel"` | $\dfrac{\lambda}{1 - e^{-1}} \left(e^{-e^{-\dfrac{|x|}{\gamma}}} - e^{-1}\right)$ |
+| `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\dfrac{|x|}{\gamma}\right)^k}\right)$ |
 
 <p align="center">
 <img src="images/penalty.png" width = 700 />
@@ -140,7 +140,7 @@ This is the standard error of the Weibull scale, which shrinks with larger sampl
 
 The derivative used in the LLA is:
 
-$$\rho'(x;\, \lambda, \gamma, k) = \lambda \cdot \frac{k}{\gamma} \left(\frac{|x|}{\gamma}\right)^{k-1} e^{-(|x|/\gamma)^k}$$
+$$\rho'(x, \lambda, \gamma, k) = \lambda \cdot \frac{k}{\gamma} \left(\frac{|x|}{\gamma}\right)^{k-1} e^{-(\dfrac{|x|}{\gamma})^k}$$
 
 Note that as $|x|$ grows, the derivative decays to zero — large true edges receive vanishingly small additional penalization, directly addressing the magnitude bias of $L_1$ methods.
 
@@ -154,7 +154,7 @@ The EXP, Weibull, and Gumbel penalties are not arbitrary constructions — they 
 | Weibull | $1 - e^{-(\lvert x\rvert/\gamma)^k}$ | $\dfrac{k}{\gamma} \left(\dfrac{\lvert x\rvert}{\gamma}\right)^{k-1} e^{-(\lvert x\rvert/\gamma)^k}$ |
 | Weibull $\to$ Exponential | $k = 1$ | $k = 1$ |
 | Gumbel $(\mu = 0)$ | $e^{-e^{-\lvert x\rvert/\gamma}}$ | $\dfrac{1}{\gamma}\, e^{-\lvert x\rvert/\gamma\; -\; e^{-\lvert x\rvert/\gamma}}$ |
-| Gumbel $\to$ Weibull | $1 - Gumbel(x; \gamma) = Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}; \gamma = 1\right)$ | $Gumbel(x; \gamma) = Weibull\left(e^{-x}; k = \tfrac{1}{\gamma}; \gamma = 1\right) \cdot e^{-x}$ |
+| Gumbel $\to$ Weibull | $1 - Gumbel(x, \gamma) = \\ Weibull\left(e^{-x}, k = \tfrac{1}{\gamma}, \gamma = 1\right)$ | $Gumbel(x, \gamma) = \\ Weibull\left(e^{-x}, k = \tfrac{1}{\gamma}, \gamma = 1\right) \cdot e^{-x}$ |
 
 **The Weibull as the general case.** The EXP penalty is the exact special case $k = 1$ of the Weibull — its derivative, its adaptive scale estimation, and its convergence behavior are all inherited from the Weibull family. The Weibull strictly generalizes EXP across the full range $k \in (0, \infty)$.
 
@@ -162,7 +162,7 @@ The EXP, Weibull, and Gumbel penalties are not arbitrary constructions — they 
 
 **Generalized extreme value (GEV) distribution.** The reason these distributions co-occur is the **Fisher–Tippett–Gnedenko theorem** (Fisher & Tippett, 1928; Gnedenko, 1943): the normalized maximum of $n$ i.i.d. random variables converges in distribution, as $n \to \infty$, to the generalized extreme value (GEV) family:
 
-$$G(x;\, \mu, \sigma, \xi) = \exp\left\{-\left[1 + \xi\left(\frac{x - \mu}{\sigma}\right)\right]^{-1/\xi}\right\}$$
+$$G(x, \mu, \sigma, \xi) = \exp \left\{- \left[1 + \xi \left(\frac{x - \mu}{\sigma} \right) \right]^{-1/\xi} \right\}$$
 
 The tail index $\xi$ selects among three qualitatively distinct limiting types:
 
