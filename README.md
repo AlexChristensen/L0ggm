@@ -102,7 +102,7 @@ The four penalties available in {L0ggm} are:
 <img src="images/penalty.png" width = 700 />
 </p>
 <br>
-<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>.</em>
+<em><strong>Figure 1.</strong></em> \(L_0\) <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> \(L_0\) <em>norm (step function). Dashed lines:</em> \(L_1\) <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>.</em>
 
 ---
 
