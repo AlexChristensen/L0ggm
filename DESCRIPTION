@@ -20,6 +20,6 @@ Depends: R (>= 3.5.0)
 License: AGPL (>= 3.0)
 Encoding: UTF-8
 LazyData: true
-Imports: glasso, glassoFast, methods, stats
+Imports: glasso, glassoFast, Matrix, methods, stats
 BugReports: https://github.com/AlexChristensen/adaptGGM/issues
 RoxygenNote: 7.3.3

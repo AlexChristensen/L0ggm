@@ -1,9 +1,8 @@
 #' @title Automatic correlations
 #'
-#' @description This wrapper is similar to \code{\link[qgraph]{cor_auto}}. There
-#' are some minor adjustments that make this function simpler and to
-#' function within \code{\link{EGAnet}}. \code{NA} values are not treated
-#' as categories (this behavior differs from \code{\link[qgraph]{cor_auto}})
+#' @description Automatically computes the proper correlations between
+#' continuous and categorical variables. \code{NA} values are not treated
+#' as categories
 #'
 #' @param data Matrix or data frame.
 #' Should consist only of variables to be used in the analysis
@@ -15,9 +14,9 @@
 #' and biserial correlations for categorical and categorical/continuous correlations
 #' by default. To obtain \code{"pearson"} correlations regardless, use \code{\link{cor}}.
 #' Other options of \code{"kendall"} and \code{"spearman"} are provided for
-#' completeness and use \code{\link{cor}}. \code{\link[EGAnet]{cosine}} is also available
+#' completeness and use \code{\link{cor}}
 #'
-#' @param ordinal.categories Numeric (length = 1).
+#' @param ordinal_categories Numeric (length = 1).
 #' \emph{Up to} the number of categories \emph{before} a variable is considered continuous.
 #' Defaults to \code{7} categories before \code{8} is considered continuous
 #'
@@ -25,7 +24,7 @@
 #' Whether positive definite matrix should be enforced.
 #' Defaults to \code{TRUE}
 #'
-#' @param na.data Character (length = 1).
+#' @param na_data Character (length = 1).
 #' How should missing data be handled?
 #' Defaults to \code{"pairwise"}.
 #' Available options:
@@ -40,26 +39,26 @@
 #'
 #' }
 #'
-#' @param empty.method Character (length = 1).
-#' Method for empty cell correction in \code{\link[EGAnet]{polychoric.matrix}}.
+#' @param empty_method Character (length = 1).
+#' Method for empty cell correction in \code{\link[L0ggm]{polychoric_matrix}}.
 #' Defaults to \code{"none"}
 #' Available options:
 #'
 #' \itemize{
 #'
-#' \item \code{"none"} --- Adds no value (\code{empty.value = "none"})
+#' \item \code{"none"} --- Adds no value (\code{empty_value = "none"})
 #' to the empirical joint frequency table between two variables
 #'
-#' \item \code{"zero"} --- Adds \code{empty.value} to the cells with
+#' \item \code{"zero"} --- Adds \code{empty_value} to the cells with
 #' zero in the joint frequency table between two variables
 #'
-#' \item \code{"all"} --- Adds \code{empty.value} to all
+#' \item \code{"all"} --- Adds \code{empty_value} to all
 #' in the joint frequency table between two variables
 #'
 #' }
 #'
-#' @param empty.value Character (length = 1).
-#' Value to add to the joint frequency table cells in \code{\link[EGAnet]{polychoric.matrix}}.
+#' @param empty_value Character (length = 1).
+#' Value to add to the joint frequency table cells in \code{\link[L0ggm]{polychoric_matrix}}.
 #' Defaults to \code{"none"}.
 #' Accepts numeric values between 0 and 1 or specific methods:
 #'
@@ -69,11 +68,11 @@
 #' joint  frequency table between two variables
 #'
 #' \item \code{"point_five"} --- Adds \code{0.5} to the cells
-#' defined by \code{empty.method}
+#' defined by \code{empty_method}
 #'
 #' \item \code{"one_over"} --- Adds \code{1 / n} where \code{n} equals the
-#' number of cells based on \code{empty.method}. For
-#' \code{empty.method = "zero"}, \code{n} equals the number of zero cells
+#' number of cells based on \code{empty_method}. For
+#' \code{empty_method = "zero"}, \code{n} equals the number of zero cells
 #'
 #' }
 #'
@@ -97,20 +96,20 @@
 #' wmt <- wmt2[,7:24]
 #'
 #' # Obtain correlations
-#' wmt_corr <- auto.correlate(wmt)
+#' wmt_corr <- auto_correlate(wmt)
 #'
 #' @export
 #'
 # Automatic correlations ----
-# Updated 29.11.2025
-auto.correlate <- function(
+# Updated 07.03.2026
+auto_correlate <- function(
     data, # Matrix or data frame
-    corr = c("cosine", "kendall", "pearson", "spearman"), # allow changes to standard correlations
-    ordinal.categories = 7, # consider ordinal up to 7 categories
+    corr = c("kendall", "pearson", "spearman"), # allow changes to standard correlations
+    ordinal_categories = 7, # consider ordinal up to 7 categories
     forcePD = TRUE, # ensure result is positive definite
-    na.data = c("pairwise", "listwise"), # use available or complete values
-    empty.method = c("none", "zero", "all"), # zero frequencies in categorical correlations
-    empty.value = c("none", "point_five", "one_over"), # value to use in zero cells
+    na_data = c("pairwise", "listwise"), # use available or complete values
+    empty_method = c("none", "zero", "all"), # zero frequencies in categorical correlations
+    empty_value = c("none", "point_five", "one_over"), # value to use in zero cells
     forceReturn = FALSE, # return even if bad correlation matrix
     verbose = FALSE, # don't print messages
     ... # not actually used
@@ -118,13 +117,13 @@ auto.correlate <- function(
 {
 
   # Argument errors (return data in case of tibble)
-  data <- auto.correlate_errors(data, ordinal.categories, forcePD, forceReturn, verbose, ...)
+  data <- auto_correlate_errors(data, ordinal_categories, forcePD, forceReturn, verbose, ...)
 
   # Check for missing arguments (argument, default, function)
-  corr <- set_default(corr, "pearson", auto.correlate)
-  na.data <- set_default(na.data, "pairwise", auto.correlate)
-  empty.method <- set_default(empty.method, "none", auto.correlate)
-  empty.value <- set_default(empty.value, "none", auto.correlate)
+  corr <- set_default(corr, "pearson", auto_correlate)
+  na_data <- set_default(na_data, "pairwise", auto_correlate)
+  empty_method <- set_default(empty_method, "none", auto_correlate)
+  empty_value <- set_default(empty_value, "none", auto_correlate)
 
   # Ensure matrix
   data <- as.matrix(data)
@@ -141,18 +140,13 @@ auto.correlate <- function(
   # Assumes some preprocessing has taken place
   # to only select for appropriate variables
 
-  # Separate return for cosine similarity
-  if(corr == "cosine"){
-
-    # Return cosine matrix
-    return(cosine(data))
-
-  }else if(corr != "pearson"){ # Determine whether categorical correlations are necessary
+  # Determine whether categorical correlations are necessary
+  if(corr != "pearson"){
 
     # Obtain correlation matrix
     correlation_matrix <- cor(
       x = data, use = swiftelse(
-        na.data == "pairwise",
+        na_data == "pairwise",
         "pairwise.complete.obs",
         "complete.obs"
       ), method = corr
@@ -164,7 +158,7 @@ auto.correlate <- function(
     categories <- data_categories(data)
 
     # Determine categorical variables
-    categorical_variables <- categories <= ordinal.categories
+    categorical_variables <- categories <= ordinal_categories
 
     # Determine number of categorical variables
     categorical_number <- sum(categorical_variables)
@@ -188,9 +182,9 @@ auto.correlate <- function(
         # Add correlations to correlation matrix
         correlation_matrix[
           categorical_variables, categorical_variables # ensure proper indexing
-        ] <- polychoric.matrix(
-          data = data[,categorical_variables], na.data = na.data,
-          empty.method = empty.method, empty.value = empty.value,
+        ] <- polychoric_matrix(
+          data = data[,categorical_variables], na_data = na_data,
+          empty_method = empty_method, empty_value = empty_value,
           needs_usable = FALSE # skip usable data check
         )
 
@@ -206,7 +200,7 @@ auto.correlate <- function(
         ] <- cor(
           x = data[,continuous_variables],
           use = swiftelse(
-            na.data == "pairwise",
+            na_data == "pairwise",
             "pairwise.complete.obs",
             "complete.obs"
           ), method = corr
@@ -226,10 +220,10 @@ auto.correlate <- function(
           # Fill matrix
           correlation_matrix[continuous_variables, i] <-
             correlation_matrix[i, continuous_variables] <-
-            polyserial.vector( # computes polyserial vector
+            polyserial_vector( # computes polyserial vector
               categorical_variable = data[,i], # drops to vector
               continuous_variables = continuous_data,
-              na.data = na.data
+              na_data = na_data
             )
 
         }
@@ -241,7 +235,7 @@ auto.correlate <- function(
       # Compute Pearson's correlations
       correlation_matrix <- cor(
         x = data, use = swiftelse(
-          na.data == "pairwise",
+          na_data == "pairwise",
           "pairwise.complete.obs",
           "complete.obs"
         ), method = corr
@@ -301,14 +295,14 @@ auto.correlate <- function(
 #     rep(7, 4), rep(Inf, 4)
 #   )
 # )$data
-# ordinal.categories = 7
+# ordinal_categories = 7
 # corr = "pearson"; forcePD = TRUE
-# na.data = "pairwise"; empty.method = "none"
-# empty.value = "none"; verbose = FALSE
+# na_data = "pairwise"; empty_method = "none"
+# empty_value = "none"; verbose = FALSE
 #
 # # Compare against {qgraph}'s `cor_auto`
 # qgraph_correlations <- qgraph::cor_auto(data)
-# EGAnet_correlations <- auto.correlate(data)
+# EGAnet_correlations <- auto_correlate(data)
 #
 # # Difference
 # max(abs(EGAnet_correlations - qgraph_correlations))
@@ -322,7 +316,7 @@ auto.correlate <- function(
 #   ordinalLevelMax = 8
 #   # Needs to have 8 levels to account for missing data!!
 # )
-# EGAnet_correlations <- auto.correlate(data)
+# EGAnet_correlations <- auto_correlate(data)
 #
 # # Difference
 # max(abs(EGAnet_correlations - qgraph_correlations))
@@ -332,10 +326,10 @@ auto.correlate <- function(
 # data <- cbind(
 #   c(0, 1, 2, 3, 4, 1, 2, 3, 1),
 #   c(0, 1, 2, 2, 1, 2, 2, 4, 2)
-# ); ordinal.categories = 7;
+# ); ordinal_categories = 7;
 # corr = "pearson"; forcePD = TRUE;
-# na.data = "pairwise"; empty.method = "none";
-# empty.value = "none"; verbose = FALSE;
+# na_data = "pairwise"; empty_method = "none";
+# empty_value = "none"; verbose = FALSE;
 #
 # The above bug checks for categorical data
 # have been verified to match the output
@@ -346,33 +340,33 @@ auto.correlate <- function(
 #' @noRd
 # Errors ----
 # Updated 29.11.2025
-auto.correlate_errors <- function(data, ordinal.categories, forcePD, forceReturn, verbose, ...)
+auto_correlate_errors <- function(data, ordinal_categories, forcePD, forceReturn, verbose, ...)
 {
 
   # 'data' errors
-  object_error(data, c("matrix", "data.frame", "tibble"), "auto.correlate")
+  object_error(data, c("matrix", "data.frame", "tibble"), "auto_correlate")
 
   # Check for tibble
   if(get_object_type(data) == "tibble"){
     data <- as.data.frame(data)
   }
 
-  # 'ordinal.categories' errors
-  length_error(ordinal.categories, 1, "auto.correlate")
-  typeof_error(ordinal.categories, "numeric", "auto.correlate")
-  range_error(ordinal.categories, c(2, 11), "auto.correlate")
+  # 'ordinal_categories' errors
+  length_error(ordinal_categories, 1, "auto_correlate")
+  typeof_error(ordinal_categories, "numeric", "auto_correlate")
+  range_error(ordinal_categories, c(2, 11), "auto_correlate")
 
   # 'forcePD' errors
-  length_error(forcePD, 1, "auto.correlate")
-  typeof_error(forcePD, "logical", "auto.correlate")
+  length_error(forcePD, 1, "auto_correlate")
+  typeof_error(forcePD, "logical", "auto_correlate")
 
   # 'verbose' errors
-  length_error(verbose, 1, "auto.correlate")
-  typeof_error(verbose, "logical", "auto.correlate")
+  length_error(verbose, 1, "auto_correlate")
+  typeof_error(verbose, "logical", "auto_correlate")
 
   # 'forceReturn' errors
-  length_error(forceReturn, 1, "auto.correlate")
-  typeof_error(forceReturn, "logical", "auto.correlate")
+  length_error(forceReturn, 1, "auto_correlate")
+  typeof_error(forceReturn, "logical", "auto_correlate")
 
   # Check for usable data
   if(needs_usable(list(...))){
@@ -392,14 +386,14 @@ auto.correlate_errors <- function(data, ordinal.categories, forcePD, forceReturn
 #'
 #' @noRd
 # Updated 16.03.2024
-polyserial.vector <- function(
+polyserial_vector <- function(
     categorical_variable, continuous_variables,
-    na.data = c("pairwise", "listwise")
+    na_data = c("pairwise", "listwise")
 )
 {
 
-  # Determine cases based on `na.data` argument
-  if(na.data == "pairwise"){
+  # Determine cases based on `na_data` argument
+  if(na_data == "pairwise"){
 
     # Pairwise cases
     categorical_cases <- colSums(
@@ -407,7 +401,7 @@ polyserial.vector <- function(
       !is.na(continuous_variables)
     )
 
-  }else if(na.data == "listwise"){
+  }else if(na_data == "listwise"){
 
     # Complete cases
     complete_cases <- complete.cases(cbind(categorical_variable, continuous_variables))
@@ -425,7 +419,7 @@ polyserial.vector <- function(
       cor(
         categorical_variable, scale(continuous_variables),
         use = swiftelse(
-          na.data == "pairwise",
+          na_data == "pairwise",
           "pairwise.complete.obs",
           "complete.obs"
         )

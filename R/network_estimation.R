@@ -1,8 +1,8 @@
-#' @title Regularized Networks with Convex and Non-convex Penalties
+#' @title L0 Norm Regularized Network Estimation
 #'
 #' @description A general function to estimate Gaussian graphical models using
-#' regularization penalties. All non-convex penalties are implemented using
-#' the Local Linear Approximation (LLA: Fan & Li, 2001; Zou & Li, 2008)
+#' L0 norm regularization penalties. All penalties are implemented using
+#' either single-pass or full Local Linear Approximation (LLA: Fan & Li, 2001; Zou & Li, 2008)
 #'
 #' @param data Matrix or data frame.
 #' Should consist only of variables to be used in the analysis
@@ -21,13 +21,8 @@
 #' the data using Pearson's for continuous, polychoric for ordinal,
 #' tetrachoric for binary, and polyserial/biserial for ordinal/binary with
 #' continuous. To change the number of categories that are considered
-#' ordinal, use \code{ordinal.categories}
-#' (see \code{\link[EGAnet]{polychoric.matrix}} for more details)
-#'
-#' \item \code{"cor_auto"} --- Uses \code{\link[qgraph]{cor_auto}} to compute correlations.
-#' Arguments can be passed along to the function
-#'
-#' \item \code{"cosine"} --- Uses \code{\link[EGAnet]{cosine}} to compute cosine similarity
+#' ordinal, use \code{ordinal_categories}
+#' (see \code{\link[L0ggm]{polychoric_matrix}} for more details)
 #'
 #' \item \code{"pearson"} --- Pearson's correlation is computed for all
 #' variables regardless of categories
@@ -40,7 +35,7 @@
 #' For other similarity measures, compute them first and input them
 #' into \code{data} with the sample size (\code{n})
 #'
-#' @param na.data Character (length = 1).
+#' @param na_data Character (length = 1).
 #' How should missing data be handled?
 #' Defaults to \code{"pairwise"}.
 #' Available options:
@@ -62,33 +57,11 @@
 #' \item \code{"atan"} --- Arctangent (Wang & Zhu, 2016)
 #' \deqn{\lambda \cdot (\gamma + 2 \pi) \cdot \arctan(\frac{|x|}{\gamma})}
 #'
-#' \item \code{"bridge"} --- Bridge (Fu, 1998)
-#' \deqn{\lambda \cdot |x|^\gamma}
-#'
 #' \item \code{"exp"} --- EXP (Wang, Fan, & Zhu, 2018)
 #' \deqn{\lambda \cdot (1 - e^{-\frac{|x|}{\gamma}})}
 #'
 #' \item \code{"gumbel"} --- Gumbel
 #' \deqn{\lambda \cdot e^{-e^{\frac{|x|}{\gamma}}}}
-#'
-#' \item \code{"mcp"} --- Minimax Concave Penalty (Zhang, 2010)
-#' \deqn{
-#' P(x; \lambda, \gamma) =
-#' \begin{cases}
-#' \lambda |x| - \frac{x^2}{2\gamma} & \text{if } |x| \leq \gamma\lambda \\
-#' \frac{\gamma \lambda^2}{2} & \text{if } |x| > \gamma\lambda
-#' \end{cases}
-#' }
-#'
-#' \item \code{"scad"} --- Smoothly Clipped Absolute Deviation (Fan & Li, 2001)
-#' \deqn{
-#' P(x; \lambda, \gamma) =
-#' \begin{cases}
-#' \lambda |x| & \text{if } |x| \leq \lambda \\
-#' -\frac{|x|^2 - 2\gamma\lambda|x| + \lambda^2}{2(\gamma - 1)} & \text{if } \lambda < |x| \leq \gamma\lambda \\
-#' \frac{(\gamma + 1)\lambda^2}{2} & \text{if } |x| > \gamma\lambda
-#' \end{cases}
-#' }
 #'
 #' \item \code{"weibull"} --- Weibull
 #' \deqn{\lambda \cdot (1 - e^{\large(-\frac{|x|}{\gamma}\large)^k})}
@@ -103,21 +76,15 @@
 #'
 #' \item \code{"atan"} = 0.01
 #'
-#' \item \code{"bridge"} = 1
-#'
 #' \item \code{"exp"} = 0.01
 #'
 #' \item \code{"gumbel"} = 0.01
-#'
-#' \item \code{"mcp"} = 3
-#'
-#' \item \code{"scad"} = 3.7
 #'
 #' \item \code{"weibull"} = 0.01
 #'
 #' }
 #'
-#' @param adaptive.gamma Boolean (length = 1).
+#' @param adaptive Boolean (length = 1).
 #' Whether data-adaptive (gamma) parameters should be used.
 #' Defaults to \code{TRUE}.
 #' Set to \code{FALSE} to apply default gamma parameters for
@@ -126,7 +93,7 @@
 #'
 #' \itemize{
 #'
-#' \item \code{"exp"} =  uses median of distribution for the scale parameter (\eqn{\frac{\log{(2)}}{\lambda}})
+#' \item \code{"exp"} = uses median of distribution for the scale parameter (\eqn{\frac{\log{(2)}}{\lambda}})
 #'
 #' \item \code{"gumbel"} = uses the mean of the distribution for the scale parameter (\eqn{\gamma \cdot \beta} where \eqn{beta} is the Euler-Mascheroni constant)
 #'
@@ -138,11 +105,11 @@
 #' Number of lambda values to test.
 #' Defaults to \code{50}
 #'
-#' @param lambda.min.ratio Numeric (length = 1).
+#' @param lambda_min_ratio Numeric (length = 1).
 #' Ratio of lowest lambda value compared to maximal lambda.
 #' Defaults to \code{0.01}
 #'
-#' @param penalize.diagonal Boolean (length = 1).
+#' @param penalize_diagonal Boolean (length = 1).
 #' Should the diagonal be penalized?
 #' Defaults to \code{TRUE}
 #'
@@ -188,7 +155,7 @@
 #'
 #' Defaults to \code{"BIC"}
 #'
-#' @param ebic.gamma Numeric (length = 1)
+#' @param ebic_gamma Numeric (length = 1)
 #' Value to set gamma parameter in EBIC (see above).
 #' Defaults to \code{0.50}
 #'
@@ -206,18 +173,18 @@
 #' Should Local Linear Approximation be used to find optimal minimum?
 #' Defaults to \code{FALSE} or a single-pass approximation, which can be
 #' significantly faster (Zou & Li, 2008).
-#' Set to \code{TRUE} to find global minimum based on convergence (\code{LLA.threshold})
+#' Set to \code{TRUE} to find global minimum based on convergence (\code{LLA_threshold})
 #'
-#' @param LLA.threshold Numeric (length = 1).
+#' @param LLA_threshold Numeric (length = 1).
 #' When performing the Local Linear Approximation, the maximum threshold
 #' until convergence is met.
 #' Defaults to \code{1e-04}
 #'
-#' @param LLA.iter Numeric (length = 1).
+#' @param LLA_iter Numeric (length = 1).
 #' Maximum number of iterations to perform to reach convergence.
 #' Defaults to \code{10000}
 #'
-#' @param network.only Boolean (length = 1).
+#' @param network_only Boolean (length = 1).
 #' Whether the network only should be output.
 #' Defaults to \code{TRUE}.
 #' Set to \code{FALSE} to obtain all output for the
@@ -232,8 +199,7 @@
 #'
 #' @return A network matrix
 #'
-#' @author Alexander P. Christensen <alexpaulchristensen at gmail.com> and
-#' Hudson Golino <hfg9s at virginia.edu>
+#' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @references
 #'
@@ -242,15 +208,10 @@
 #' Variable selection and estimation with the seamless-L0 penalty.
 #' \emph{Statistica Sinica}, \emph{23}(2), 929--962.
 #'
-#' \strong{SCAD penalty and Local Linear Approximation} \cr
+#' \strong{Local Linear Approximation} \cr
 #' Fan, J., & Li, R. (2001).
 #' Variable selection via nonconcave penalized likelihood and its oracle properties.
 #' \emph{Journal of the American Statistical Association}, \emph{96}(456), 1348--1360.
-#'
-#' \strong{Bridge penalty} \cr
-#' Fu, W. J. (1998).
-#' Penalized regressions: The bridge versus the lasso.
-#' \emph{Journal of Computational and Graphical Statistics}, \emph{7}(3), 397--416.
 #'
 #' \strong{EXP penalty} \cr
 #' Wang, Y., Fan, Q., & Zhu, L. (2018).
@@ -262,15 +223,10 @@
 #' Variable selection and parameter estimation with the Atan regularization method.
 #' \emph{Journal of Probability and Statistics}, \emph{2016}, 1--12.
 #'
-#' \strong{Original simulation in psychometric networks} \cr
+#' \strong{Seminal simulation in network psychometrics} \cr
 #' Williams, D. R. (2020).
 #' Beyond lasso: A survey of nonconvex regularization in Gaussian graphical models.
 #' \emph{PsyArXiv}.
-#'
-#' \strong{MCP penalty} \cr
-#' Zhang, C.-H. (2010).
-#' Nearly unbiased variable selection under minimax concave penalty.
-#' \emph{Annals of Statistics}, \emph{38}(2), 894--942.
 #'
 #' \strong{One-step Local Linear Approximation} \cr
 #' Zou, H., & Li, R. (2008).
@@ -281,55 +237,55 @@
 #' # Obtain data
 #' wmt <- wmt2[,7:24]
 #'
-#' # Obtain network
-#' weibull_network <- network.regularization(data = wmt)
+#' # Obtain default estimator (adaptive Weibull)
+#' weibull_network <- network_estimation(data = wmt)
 #'
 #' # Obtain Atan network
-#' atan_network <- network.regularization(data = wmt, penalty = "atan")
+#' atan_network <- network_estimation(data = wmt, penalty = "atan")
 #'
-#' # Obtain data-adaptive EXP network
-#' exp_network <- network.regularization(data = wmt, penalty = "exp", adaptive.gamma = TRUE)
+#' # Obtain static EXP network
+#' exp_network <- network_estimation(data = wmt, penalty = "exp", adaptive = FALSE)
 #'
 #' @export
 #'
 # Apply non-convex regularization ----
-# Updated 06.03.2026
-network.regularization <- function(
+# Updated 07.03.2026
+network_estimation <- function(
     data, n = NULL,
-    corr = c("auto", "cor_auto", "cosine", "pearson", "spearman"),
-    na.data = c("pairwise", "listwise"),
-    penalty = c("atan", "bridge", "exp", "gumbel", "mcp", "scad", "weibull"),
-    gamma = NULL, adaptive.gamma = TRUE,
-    nlambda = 50, lambda.min.ratio = 0.01, penalize.diagonal = TRUE,
-    ic = c("AIC", "AICc", "BIC", "BIC0", "EBIC", "MBIC"), ebic.gamma = 0.50,
-    fast = TRUE, LLA = FALSE, LLA.threshold = 1e-03, LLA.iter = 10000,
-    network.only = TRUE, verbose = FALSE, ...
+    corr = c("auto", "pearson", "spearman"),
+    na_data = c("pairwise", "listwise"),
+    penalty = c("atan", "exp", "gumbel", "weibull"),
+    gamma = NULL, adaptive = TRUE,
+    nlambda = 50, lambda_min_ratio = 0.01, penalize_diagonal = TRUE,
+    ic = c("AIC", "AICc", "BIC", "BIC0", "EBIC", "MBIC"), ebic_gamma = 0.50,
+    fast = TRUE, LLA = FALSE, LLA_threshold = 1e-03, LLA_iter = 10000,
+    network_only = TRUE, verbose = FALSE, ...
 )
 {
 
   # Check for missing arguments (argument, default, function)
   # Uses actual function they will be used in
   # (keeping non-function choices for `cor_auto`)
-  corr <- set_default(corr, "auto", network.regularization)
-  na.data <- set_default(na.data, "pairwise", network.regularization)
-  penalty <- set_default(penalty, "weibull", network.regularization)
-  ic <- set_default(ic, "bic", network.regularization)
+  corr <- set_default(corr, "auto", network_estimation)
+  na_data <- set_default(na_data, "pairwise", network_estimation)
+  penalty <- set_default(penalty, "weibull", network_estimation)
+  ic <- set_default(ic, "bic", network_estimation)
 
   # Argument errors (return data in case of tibble)
-  data <- network.regularization_errors(
-    data, n, gamma, adaptive.gamma, nlambda,
-    lambda.min.ratio, penalize.diagonal, ebic.gamma,
-    fast, LLA, LLA.threshold, network.only, verbose, ...
+  data <- network_regularization_errors(
+    data, n, gamma, adaptive, nlambda,
+    lambda_min_ratio, penalize_diagonal, ebic_gamma,
+    fast, LLA, LLA_threshold, network_only, verbose, ...
   )
 
   # Check whether penalty is adaptive option
   adaptive_option <- c("exp", "gumbel", "weibull")
-  adaptive_flag <- adaptive.gamma & (penalty %in% adaptive_option)
+  adaptive_flag <- adaptive & (penalty %in% adaptive_option)
 
   # Get necessary inputs
   output <- obtain_sample_correlations(
     data = data, n = n,
-    corr = corr, na.data = na.data,
+    corr = corr, na_data = na_data,
     verbose = verbose, needs_usable = FALSE, # skips usable data check
     ...
   )
@@ -357,11 +313,8 @@ network.regularization <- function(
   derivative_FUN <- switch(
     penalty,
     "atan" = atan_derivative,
-    "bridge" = bridge_derivative,
     "exp" = exp_derivative,
     "gumbel" = gumbel_derivative,
-    "mcp" = mcp_derivative,
-    "scad" = scad_derivative,
     "weibull" = weibull_derivative
   )
 
@@ -375,11 +328,8 @@ network.regularization <- function(
     gamma <- switch(
       penalty,
       "atan" = 0.01,
-      "bridge" = 1,
       "exp" = 0.01,
       "gumbel" = 0.01,
-      "mcp" = 3,
-      "scad" = 3.7,
       "weibull" = 0.01
     )
 
@@ -395,17 +345,17 @@ network.regularization <- function(
     P <- cor2pcor(S); lower_P <- abs(P[lower_triangle])
 
     # Compute for standard error
-    base <- sqrt(n)
+    scaling <- sqrt(n)
 
     if(penalty == "exp"){
 
       # Set gamma to standard error
-      gamma <- mean(lower_P) / base
+      gamma <- mean(lower_P) / scaling
 
     }else if(penalty == "gumbel"){
 
       # Set gamma to standard error
-      gamma <- gumbel_mle(lower_P) * (pi / sqrt(6)) / base
+      gamma <- gumbel_mle(lower_P) * (pi / sqrt(6)) / scaling
 
     }else if(penalty == "weibull"){
 
@@ -414,11 +364,10 @@ network.regularization <- function(
 
       # Set parameters
       shape <- min(estimates[["shape"]], 1) # cap at EXP
+      scale <- swiftelse(shape == 1, mean(lower_P), estimates[["scale"]])
 
       # Set gamma to standard error
-      gamma <- estimates[["scale"]] * sqrt(
-        gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2
-      ) / base
+      gamma <- scale * sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2) / scaling
 
     }
 
@@ -429,9 +378,9 @@ network.regularization <- function(
 
   # Simplify source for fewer computations (minimal improvement)
   S_zero_diagonal <- S - diag(nodes) # makes diagonal zero
-  lambda.max <- max(abs(S_zero_diagonal)) # uses absolute rather than inverse
-  lambda.min <- lambda.max * lambda.min.ratio
-  lambda_sequence <- exp(seq.int(log(lambda.min), log(lambda.max), length.out = nlambda))
+  lambda_max <- max(abs(S_zero_diagonal)) # uses absolute rather than inverse
+  lambda_min <- lambda_max * lambda_min_ratio
+  lambda_sequence <- exp(seq.int(log(lambda_min), log(lambda_max), length.out = nlambda))
 
   # Get GLASSO output
   glasso_list <- lapply(lambda_sequence, function(lambda){
@@ -452,7 +401,7 @@ network.regularization <- function(
       convergence <- Inf; iterations <- 0
 
       # Loop over to convergence
-      while((convergence > LLA.threshold) & (iterations < LLA.iter)){
+      while((convergence > LLA_threshold) & (iterations < LLA_iter)){
 
         # Set old K
         old_K <- new_K
@@ -461,7 +410,7 @@ network.regularization <- function(
         lambda_matrix[] <- derivative_FUN(x = old_K, lambda = lambda, gamma = gamma, shape = shape)
 
         # Check for diagonal penalization
-        if(!penalize.diagonal){
+        if(!penalize_diagonal){
           diag(lambda_matrix) <- 0
         }
 
@@ -488,7 +437,7 @@ network.regularization <- function(
       lambda_matrix[] <- derivative_FUN(x = estimate$wi, lambda = lambda, gamma = gamma, shape = shape)
 
       # Check for diagonal penalization
-      if(!penalize.diagonal){
+      if(!penalize_diagonal){
         diag(lambda_matrix) <- 0
       }
 
@@ -509,7 +458,7 @@ network.regularization <- function(
   ICs <- nvapply(glasso_list, function(element){
     information_crtierion(
       S = S, K = element$wi, n = n, nodes = nodes,
-      ic = ic, ebic.gamma = ebic.gamma
+      ic = ic, ebic_gamma = ebic_gamma
     )
   })
 
@@ -520,11 +469,11 @@ network.regularization <- function(
   R <- glasso_list[[optimal]]$w
 
   # Get W
-  W <- wi2net(glasso_list[[optimal]]$wi)
+  W <- inv2pcor(glasso_list[[optimal]]$wi)
   dimnames(R) <- dimnames(W) <- dimnames(S)
 
   # Return results
-  if(network.only){
+  if(network_only){
     return(W)
   }else{
     return(
@@ -540,26 +489,26 @@ network.regularization <- function(
 
 # Bug checking ----
 # data = wmt2[,7:24]; n = NULL; corr = "auto"
-# na.data = "pairwise"; penalty = "weibull"; adaptive.gamma = TRUE
+# na_data = "pairwise"; penalty = "weibull"; adaptive = TRUE
 # gamma = NULL; lambda = NULL; nlambda = 50
-# lambda.min.ratio = 0.01; penalize.diagonal = TRUE
-# optimize.lambda = FALSE; ic = "BIC"; network.only = TRUE
-# ebic.gamma = 0.5; fast = TRUE; verbose = FALSE
-# LLA = TRUE; LLA.threshold = 1e-04; LLA.iter = 10000
+# lambda_min_ratio = 0.01; penalize_diagonal = TRUE
+# optimize.lambda = FALSE; ic = "BIC"; network_only = TRUE
+# ebic_gamma = 0.5; fast = TRUE; verbose = FALSE
+# LLA = TRUE; LLA_threshold = 1e-04; LLA_iter = 10000
 
 
 #' @noRd
 # Errors ----
 # Updated 19.01.2026
-network.regularization_errors <- function(
-    data, n, gamma, adaptive.gamma, nlambda,
-    lambda.min.ratio, penalize.diagonal, ebic.gamma,
-    fast, LLA, LLA.threshold, network.only, verbose, ...
+network_regularization_errors <- function(
+    data, n, gamma, adaptive, nlambda,
+    lambda_min_ratio, penalize_diagonal, ebic_gamma,
+    fast, LLA, LLA_threshold, network_only, verbose, ...
 )
 {
 
   # 'data' errors
-  object_error(data, c("matrix", "data.frame", "tibble"), "network.regularization")
+  object_error(data, c("matrix", "data.frame", "tibble"), "network_estimation")
 
   # Check for tibble
   if(get_object_type(data) == "tibble"){
@@ -568,62 +517,62 @@ network.regularization_errors <- function(
 
   # 'n' errors
   if(!is.null(n)){
-    length_error(n, 1, "network.regularization")
-    typeof_error(n, "numeric", "network.regularization")
+    length_error(n, 1, "network_estimation")
+    typeof_error(n, "numeric", "network_estimation")
   }
 
   # 'gamma' errors
   if(!is.null(gamma)){
-    length_error(gamma, 1, "network.regularization")
-    typeof_error(gamma, "numeric", "network.regularization")
-    range_error(gamma, c(0, Inf), "network.regularization")
+    length_error(gamma, 1, "network_estimation")
+    typeof_error(gamma, "numeric", "network_estimation")
+    range_error(gamma, c(0, Inf), "network_estimation")
   }
 
-  # 'adaptive.gamma' errors
-  length_error(adaptive.gamma, 1, "network.regularization")
-  typeof_error(adaptive.gamma, "logical", "network.regularization")
+  # 'adaptive' errors
+  length_error(adaptive, 1, "network_estimation")
+  typeof_error(adaptive, "logical", "network_estimation")
 
   # 'nlambda' errors
-  length_error(nlambda, 1, "network.regularization")
-  typeof_error(nlambda, "numeric", "network.regularization")
-  range_error(nlambda, c(1, Inf), "network.regularization")
+  length_error(nlambda, 1, "network_estimation")
+  typeof_error(nlambda, "numeric", "network_estimation")
+  range_error(nlambda, c(1, Inf), "network_estimation")
 
-  # 'lambda.min.ratio' errors
-  length_error(lambda.min.ratio, 1, "network.regularization")
-  typeof_error(lambda.min.ratio, "numeric", "network.regularization")
-  range_error(lambda.min.ratio, c(0, 1), "network.regularization")
+  # 'lambda_min_ratio' errors
+  length_error(lambda_min_ratio, 1, "network_estimation")
+  typeof_error(lambda_min_ratio, "numeric", "network_estimation")
+  range_error(lambda_min_ratio, c(0, 1), "network_estimation")
 
-  # 'penalize.diagonal' errors
-  length_error(penalize.diagonal, 1, "network.regularization")
-  typeof_error(penalize.diagonal, "logical", "network.regularization")
+  # 'penalize_diagonal' errors
+  length_error(penalize_diagonal, 1, "network_estimation")
+  typeof_error(penalize_diagonal, "logical", "network_estimation")
 
-  # 'ebic.gamma' errors
-  length_error(ebic.gamma, 1, "network.regularization")
-  typeof_error(ebic.gamma, "numeric", "network.regularization")
-  range_error(ebic.gamma, c(0, Inf), "network.regularization")
+  # 'ebic_gamma' errors
+  length_error(ebic_gamma, 1, "network_estimation")
+  typeof_error(ebic_gamma, "numeric", "network_estimation")
+  range_error(ebic_gamma, c(0, Inf), "network_estimation")
 
   # 'fast' errors
-  length_error(fast, 1, "network.regularization")
-  typeof_error(fast, "logical", "network.regularization")
+  length_error(fast, 1, "network_estimation")
+  typeof_error(fast, "logical", "network_estimation")
 
   # 'LLA' errors
-  length_error(LLA, 1, "network.regularization")
-  typeof_error(LLA, "logical", "network.regularization")
+  length_error(LLA, 1, "network_estimation")
+  typeof_error(LLA, "logical", "network_estimation")
 
-  # 'LLA.threshold' errors
+  # 'LLA_threshold' errors
   if(LLA){
-    length_error(LLA.threshold, 1, "network.regularization")
-    typeof_error(LLA.threshold, "numeric", "network.regularization")
-    range_error(LLA.threshold, c(-Inf, 0.10), "network.regularization")
+    length_error(LLA_threshold, 1, "network_estimation")
+    typeof_error(LLA_threshold, "numeric", "network_estimation")
+    range_error(LLA_threshold, c(-Inf, 0.10), "network_estimation")
   }
 
-  # 'network.only' errors
-  length_error(network.only, 1, "network.regularization")
-  typeof_error(network.only, "logical", "network.regularization")
+  # 'network_only' errors
+  length_error(network_only, 1, "network_estimation")
+  typeof_error(network_only, "logical", "network_estimation")
 
   # 'verbose' errors
-  length_error(verbose, 1, "network.regularization")
-  typeof_error(verbose, "logical", "network.regularization")
+  length_error(verbose, 1, "network_estimation")
+  typeof_error(verbose, "logical", "network_estimation")
 
   # Check for usable data
   if(needs_usable(list(...))){
@@ -635,173 +584,10 @@ network.regularization_errors <- function(
 
 }
 
-# OPTIMIZATION FUNCTIONS ----
-
-#' @noRd
-# MLE Gumbel Scale Parameter ----
-# Updated 05.02.2026
-gumbel_mle <- function(x)
-{
-
-  # Set up MLE for scale
-  scale_mle <- function(scale, x, n)
-  {
-
-    # Pre-compute reused values
-    x_scale <- x / scale
-
-    # Return log-likelihood
-    return(-n * log(scale) - sum(x_scale) - sum(exp(-x_scale)))
-
-  }
-
-  # Return parameters
-  return(
-    optimize(
-      f = scale_mle, interval = c(1e-04, 1),
-      x = x, n = length(x), maximum = TRUE
-    )$maximum
-  )
-
-}
-
-#' @noRd
-# MLE Weibull Parameters ----
-# Updated 10.01.2026
-weibull_mle <- function(x)
-{
-
-  # Set up MLE for shape
-  shape_mle <- function(k, x, n)
-  {
-
-    # Pre-compute reused values
-    x_k <- x^k
-    log_x <- log(x)
-
-    # Return log-likelihood
-    return(sum(x_k * log_x) / sum(x_k) - 1 / k - sum(log_x) / n)
-
-  }
-
-  # Obtain MLE estimate
-  shape <- uniroot(
-    f = shape_mle, interval = c(0.01, 20),
-    x = x, n = length(x)
-  )$root
-
-  # Return parameters
-  return(c(shape = shape, scale = mean(x^shape)^(1 / shape)))
-
-}
-
-#' @noRd
-# lambda optimization function ----
-# Updated 24.11.2025
-lambda_optimize <- function(
-    lambda, gamma, K, S, derivative_FUN,
-    glasso_FUN, glasso_ARGS,
-    lambda_matrix, penalize.diagonal,
-    ic, n, nodes, ebic.gamma, shape
-)
-{
-
-  # Obtain lambda matrix
-  lambda_matrix[] <- abs(
-    derivative_FUN(x = K, lambda = lambda, gamma = gamma, shape = shape)
-  )
-
-  # Check for diagonal penalization
-  if(!penalize.diagonal){
-    diag(lambda_matrix) <- 0
-  }
-
-  # Obtain lambda matrix
-  glasso_ARGS$rho <- lambda_matrix
-
-  # Obtain network
-  network <- do.call(what = glasso_FUN, args = glasso_ARGS)$wi
-
-  # Compute criterion
-  IC <- information_crtierion(S, network, n, nodes, ic, ebic.gamma)
-
-  # Check for NA
-  return(swiftelse(is.na(IC) | is.infinite(IC), Inf, IC))
-
-}
-
-#' @noRd
-# gamma optimization function ----
-# Updated 06.01.2025
-gamma_optimize <- function(
-    gamma, lambda, K, S, derivative_FUN,
-    glasso_FUN, glasso_ARGS,
-    lambda_matrix, penalize.diagonal,
-    ic, n, nodes, ebic.gamma
-)
-{
-
-  # Obtain lambda matrix
-  lambda_matrix[] <- derivative_FUN(x = K, lambda = lambda, gamma = gamma)
-
-  # Check for diagonal penalization
-  if(!penalize.diagonal){
-    diag(lambda_matrix) <- 0
-  }
-
-  # Obtain lambda matrix
-  glasso_ARGS$rho <- lambda_matrix
-
-  # Obtain network
-  network <- do.call(what = glasso_FUN, args = glasso_ARGS)$wi
-
-  # Compute criterion
-  IC <- information_crtierion(S, network, n, nodes, ic, ebic.gamma)
-
-  # Check for NA
-  return(swiftelse(is.na(IC) | is.infinite(IC), Inf, IC))
-
-}
-
-#' @noRd
-# Penalty optimization function ----
-# Updated 06.01.2025
-penalty_optimize <- function(
-    params, K, S, derivative_FUN,
-    glasso_FUN, glasso_ARGS,
-    lambda_matrix, penalize.diagonal,
-    ic, n, nodes, ebic.gamma
-)
-{
-
-  # Obtain lambda matrix
-  lambda_matrix[] <- derivative_FUN(x = K, lambda = params[1], gamma = params[2])
-
-  # Check for diagonal penalization
-  if(!penalize.diagonal){
-    diag(lambda_matrix) <- 0
-  }
-
-  # Obtain lambda matrix
-  glasso_ARGS$rho <- lambda_matrix
-
-  # Obtain network
-  network <- do.call(what = glasso_FUN, args = glasso_ARGS)$wi
-
-  # Compute criterion
-  IC <- information_crtierion(S, network, n, nodes, ic, ebic.gamma)
-
-  # Check for NA
-  return(swiftelse(is.na(IC) | is.infinite(IC), Inf, IC))
-
-}
-
-# INFORMATION CRITERION ----
-
 #' @noRd
 # Information criterion ----
 # Updated 10.01.2026
-information_crtierion <- function(S, K, n, nodes, ic, ebic.gamma)
+information_crtierion <- function(S, K, n, nodes, ic, ebic_gamma)
 {
 
   # Compute Gaussian likelihood (minus two for convenience)
@@ -827,7 +613,7 @@ information_crtierion <- function(S, K, n, nodes, ic, ebic.gamma)
       "aic" = L + 2 * E,
       "aicc" = L + 2 * E + (2 * E^2 + 2 * E) / (n - E - 1),
       "bic" = L + E * log(n),
-      "ebic" = L + E * log(n) + 4 * E * ebic.gamma * log(nodes),
+      "ebic" = L + E * log(n) + 4 * E * ebic_gamma * log(nodes),
       "bic0" = swiftelse( # see https://www.jstor.org/stable/24310368
         df > 0, log(L / df) + (log(n) * E / n), -Inf
       ),

@@ -59,7 +59,7 @@
 #'
 #' @return Returns a named vector of confusion matrix metrics
 #'
-#' @author Hudson Golino <hfg9s at virginia.edu> and Alexander P. Christensen <alexpaulchristensen@gmail.com>
+#' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @examples
 #' # Load data
@@ -69,17 +69,17 @@
 #' split <- sample(1:nrow(wmt), round(nrow(wmt) / 2))
 #'
 #' # Estimate networks
-#' split1 <- network.estimation(wmt[split,])
-#' split2 <- network.estimation(wmt[-split,])
+#' split1 <- network_estimation(wmt[split,])
+#' split2 <- network_estimation(wmt[-split,])
 #'
 #' # Estimate metrics
-#' network.confusion(split1, split2)
+#' edge_confusion(split1, split2)
 #'
 #' @export
 #'
 # Compute confusion matrix metrics ----
 # Updated 26.02.2026
-network.confusion <- function(base, comparison, metric = c(
+edge_confusion <- function(base, comparison, metric = c(
   "all", "sen", "spec",
   "ppv", "npv", "fdr", "fom",
   "ba", "f1", "csi", "mcc"
@@ -95,7 +95,7 @@ network.confusion <- function(base, comparison, metric = c(
   )
 
   # Set default
-  metric <- set_default(metric, "all", network.confusion, several.ok = TRUE)
+  metric <- set_default(metric, "all", edge_confusion, several.ok = TRUE)
 
   # Check for all
   if("all" %in% metric){

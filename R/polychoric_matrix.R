@@ -14,7 +14,7 @@
 #' scales from -3 to 3 in increments of 1 should be shifted
 #' by added 4 to all values)
 #'
-#' @param na.data Character (length = 1).
+#' @param na_data Character (length = 1).
 #' How should missing data be handled?
 #' Defaults to \code{"pairwise"}.
 #' Available options:
@@ -28,24 +28,24 @@
 #'
 #' }
 #'
-#' @param empty.method Character (length = 1).
+#' @param empty_method Character (length = 1).
 #' Method for empty cell correction.
 #' Available options:
 #'
 #' \itemize{
 #'
-#' \item \code{"none"} --- Adds no value (\code{empty.value = "none"})
+#' \item \code{"none"} --- Adds no value (\code{empty_value = "none"})
 #' to the empirical joint frequency table between two variables
 #'
-#' \item \code{"zero"} --- Adds \code{empty.value} to the cells with zero
+#' \item \code{"zero"} --- Adds \code{empty_value} to the cells with zero
 #' in the joint frequency table between two variables
 #'
-#' \item \code{"all"} --- Adds \code{empty.value} to all
+#' \item \code{"all"} --- Adds \code{empty_value} to all
 #' in the joint frequency table between two variables
 #'
 #' }
 #'
-#' @param empty.value Character (length = 1).
+#' @param empty_value Character (length = 1).
 #' Value to add to the joint frequency table cells.
 #' Accepts numeric values between 0 and 1 or
 #' specific methods:
@@ -55,10 +55,10 @@
 #' \item \code{"none"} --- Adds no value (\code{0}) to the empirical joint
 #' frequency table between two variables
 #'
-#' \item \code{"point_five"} --- Adds \code{0.5} to the cells defined by \code{empty.method}
+#' \item \code{"point_five"} --- Adds \code{0.5} to the cells defined by \code{empty_method}
 #'
 #' \item \code{"one_over"} --- Adds \code{1 / n} where \emph{n} equals the number of cells
-#' based on \code{empty.method}. For \code{empty.method = "zero"},
+#' based on \code{empty_method}. For \code{empty_method = "zero"},
 #' \emph{n} equals the number of \emph{zero} cells
 #'
 #' }
@@ -73,21 +73,21 @@
 #' wmt <- as.matrix(wmt2[,7:24])
 #'
 #' # Compute polychoric correlation matrix
-#' correlations <- polychoric.matrix(wmt)
+#' correlations <- polychoric_matrix(wmt)
 #'
 #' # Randomly assign missing data
 #' wmt[sample(1:length(wmt), 1000)] <- NA
 #'
 #' # Compute polychoric correlation matrix
 #' # with pairwise missing
-#' pairwise_correlations <- polychoric.matrix(
-#'   wmt, na.data = "pairwise"
+#' pairwise_correlations <- polychoric_matrix(
+#'   wmt, na_data = "pairwise"
 #' )
 #'
 #' # Compute polychoric correlation matrix
 #' # with listwise missing
-#' pairwise_correlations <- polychoric.matrix(
-#'   wmt, na.data = "listwise"
+#' pairwise_correlations <- polychoric_matrix(
+#'   wmt, na_data = "listwise"
 #' )
 #'
 #' @references
@@ -116,19 +116,19 @@
 #' @export
 #'
 # Compute polychoric correlation matrix
-# Updated 10.07.2024
-polychoric.matrix <- function(
-    data, na.data = c("pairwise", "listwise"),
-    empty.method = c("none", "zero", "all"),
-    empty.value = c("none", "point_five", "one_over"),
+# Updated 07.03.2026
+polychoric_matrix <- function(
+    data, na_data = c("pairwise", "listwise"),
+    empty_method = c("none", "zero", "all"),
+    empty_value = c("none", "point_five", "one_over"),
     ...
 )
 {
 
   # Set default arguments if missing
-  na.data <- set_default(na.data, "pairwise", polychoric.matrix)
-  empty.method <- set_default(empty.method, "none", polychoric.matrix)
-  if(missing(empty.value)){empty.value <- "none"}
+  na_data <- set_default(na_data, "pairwise", polychoric_matrix)
+  empty_method <- set_default(empty_method, "none", polychoric_matrix)
+  if(missing(empty_value)){empty_value <- "none"}
 
   # Check for need to check for usable data
   if(needs_usable(list(...))){
@@ -139,30 +139,30 @@ polychoric.matrix <- function(
   data <- as.matrix(data)
 
   # Argument errors (try to return ordinal data)
-  data <- polychoric.matrix_errors(data)
+  data <- polychoric_matrix_errors(data)
 
   # Check for missing data
-  if(na.data == "pairwise"){
+  if(na_data == "pairwise"){
     data[is.na(data)] <- 99 # "pairwise" is performed in C
-  }else if(na.data == "listwise"){
+  }else if(na_data == "listwise"){
     data <- na.omit(data) # no performance difference with C
   }
 
   # Get dimensions of data
   dimensions <- as.integer(dim(data))
 
-  # Set up 'empty.method' and 'empty.value' for C
-  if(empty.method == "none"){
-    empty.method <- 0L # Set no value
-    empty.value <- 0 # Set no value
+  # Set up 'empty_method' and 'empty_value' for C
+  if(empty_method == "none"){
+    empty_method <- 0L # Set no value
+    empty_value <- 0 # Set no value
   }else{
 
-    # Set 'empty.method'
-    empty.method <- swiftelse(empty.method == "zero", 1L, 2L)
+    # Set 'empty_method'
+    empty_method <- swiftelse(empty_method == "zero", 1L, 2L)
 
-    # Set 'empty.value'
-    if(is.character(empty.value)){
-      empty.value <- swiftelse(empty.value == "point_five", 0.50, 2)
+    # Set 'empty_value'
+    if(is.character(empty_value)){
+      empty_value <- swiftelse(empty_value == "point_five", 0.50, 2)
     }
 
   }
@@ -172,9 +172,9 @@ polychoric.matrix <- function(
     .Call(
       "r_polychoric_correlation_matrix",
       as.integer(data),
-      empty.method, empty.value,
+      empty_method, empty_value,
       dimensions[1], dimensions[2],
-      PACKAGE = "EGAnet"
+      PACKAGE = "L0ggm"
     ), nrow = dimensions[2], ncol = dimensions[2]
   )
 
@@ -212,14 +212,14 @@ polychoric.matrix <- function(
 #' @noRd
 # Argument errors ----
 # Updated 04.09.2023
-polychoric.matrix_errors <- function(data)
+polychoric_matrix_errors <- function(data)
 {
 
   # Attempt to convert all data to be ordinal
   data <- column_apply(data, continuous2categorical)
 
   # 'data' errors
-  range_error(data, c(0, 11), "polychoric.matrix")
+  range_error(data, c(0, 11), "polychoric_matrix")
 
   # Return data
   return(data)
@@ -254,6 +254,3 @@ continuous2categorical <- function(values)
   return(values)
 
 }
-
-
-
