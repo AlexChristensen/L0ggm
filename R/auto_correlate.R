@@ -92,7 +92,7 @@
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @examples
-#' # Load data
+#' # Simulate data
 #' wmt <- wmt2[,7:24]
 #'
 #' # Obtain correlations

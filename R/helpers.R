@@ -806,6 +806,30 @@ force_numeric <- function(object)
 
 }
 
+#' @noRd
+# Convert matrix to {igraph} network
+# Updated 09.08.2023
+convert2igraph <- function (A, diagonal = 0)
+{
+
+  # Convert to matrix
+  A <- as.matrix(A)
+
+  # Change diagonal (to zero)
+  diag(A) <- diagonal
+
+  # Return {igraph} network
+  return(
+    silent_call(
+      igraph::graph_from_adjacency_matrix(
+        A, weighted = TRUE, mode = "undirected",
+        add.colnames = FALSE
+      )
+    )
+  )
+
+}
+
 #%%%%%%%%%%%%%%%%%%%%%
 # COUNT FUNCTIONS ----
 #%%%%%%%%%%%%%%%%%%%%%

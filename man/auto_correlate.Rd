@@ -108,7 +108,7 @@ continuous and categorical variables. \code{NA} values are not treated
 as categories
 }
 \examples{
-# Load data
+# Simulate data
 wmt <- wmt2[,7:24]
 
 # Obtain correlations
