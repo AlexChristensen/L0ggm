@@ -3,13 +3,13 @@ citHeader("To cite {L0ggm} in publications use:")
 bibentry(
 	bibtype	= "manual",
 	key	= "L0ggm",
-	title	= "L0ggm: L0 norm regularization penalties for Gaussian graphical models",
+	title	= "L0ggm: Smooth l0 penalty approximations for Gaussian graphical models",
 	author	= c(person("Christensen,", "Alexander")),
 	year = "2026",
 	note = "R package version 0.0.1",
 
   textVersion  = paste0(
   	"Christensen, A. P. (2026). ",
-    "L0ggm: L0 norm regularization penalties for Gaussian graphical models."
+    "L0ggm: Smooth l0 penalty approximations for Gaussian graphical models."
   )
 )

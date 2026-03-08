@@ -94,7 +94,7 @@ The five penalties available in {L0ggm} are:
 | `"atan"` (Wang & Zhu, 2016) | $\lambda \left(\gamma + \dfrac{2}{\pi}\right) \arctan \left(\dfrac{\lvert x \rvert}{\gamma}\right)$ |
 | `"exp"` (Wang, Fan, & Zhu, 2018) | $\lambda \left(1 - e^{-\lvert x \rvert / \gamma}\right)$ |
 | `"gumbel"` | $\lambda \left(e^{-e^{-\lvert x \rvert / \gamma}}\right)$ |
-| `"log"` | $\lambda \dfrac{\log\left(1 + \lvert x \rvert / \gamma\right)}{\log\left(1 + 1/\gamma\right)}$ |
+| `"log"` (Candes, Wakin, & Boyd, 2008) | $\lambda \dfrac{\log\left(1 + \lvert x \rvert / \gamma\right)}{\log\left(1 + 1/\gamma\right)}$ |
 | `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\lvert x \rvert / \gamma\right)^k}\right)$ |
 
 <em><strong>Note.</strong> Gumbel adjusts</em> $\lambda = \dfrac{\lambda}{1 - e^{-1}}$ <em>to scale consistently with other penalties and subtracts</em> $e^{-1}$ <em>from the penalty (prior to lambda) to adjust the y-intercept to zero.</em>
@@ -226,6 +226,8 @@ exp_network <- network_estimation(
 ---
 
 ## References
+
+Candes, E. J., Wakin, M. B., & Boyd, S. P. (2008). Enhancing sparsity by reweighted l1 minimization. *Journal of Fourier Analysis and Applications*, *14*(5), 877--905. https://doi.org/10.1007/s00041-008-9045-x
 
 Fisher, R. A., & Tippett, L. H. C. (1928). Limiting forms of the frequency distribution of the largest or smallest member of a sample. *Mathematical Proceedings of the Cambridge Philosophical Society*, *24*(2), 180--190. https://doi.org/10.1017/S0305004100015681
 
