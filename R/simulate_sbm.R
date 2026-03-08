@@ -95,7 +95,7 @@
 #'   nodes = 6, # 6 nodes per block
 #'   blocks = 3, # 3 community blocks = 18 total nodes
 #'   sample_size = 1000, # number of cases = 1000
-#'   within_density = 0.70, # 70% edge probability within blocks
+#'   within_density = 0.90, # 90% edge probability within blocks
 #'   between_density = 0.20 # 20% edge probability between blocks
 #' )
 #'
@@ -113,7 +113,7 @@
 #'   nodes = 6, # 6 nodes per block
 #'   blocks = 3, # 3 community blocks
 #'   sample_size = 1000, # number of cases = 1000
-#'   within_density = c(0.80, 0.70, 0.60), # density varies by block
+#'   within_density = c(0.85, 0.90, 0.95), # density varies by block
 #'   between_density = 0.15 # 15% edge probability between blocks
 #' )
 #'
@@ -122,7 +122,7 @@
 #'   nodes = 6, # 6 nodes per block
 #'   blocks = 3, # 3 community blocks
 #'   sample_size = 1000, # number of cases = 1000
-#'   within_density = 0.70, # 70% edge probability within blocks
+#'   within_density = 0.90, # 90% edge probability within blocks
 #'   between_density = 0.20, # 20% edge probability between blocks
 #'   negative_proportion = 0.20 # 20% of edges are negative
 #' )
@@ -428,19 +428,19 @@ sbm_weights <- function(
     R <- condition_output$R; lambda <- condition_output$lambda
 
     # Check for positive definite again
-    if(anyNA(R) || !EGAnet:::is_positive_definite(R)){
+    if(anyNA(R) || !is_positive_definite(R)){
       stop("Not positive definite")
     }
 
     # Update network
-    P <- EGAnet:::cor2pcor(R)
+    P <- cor2pcor(R)
     P[network == 0] <- 0
     network <- P
 
     # Update parameters
     edges <- network[lower_triangle]
     edges <- edges[edges != 0]
-    params <- EGAnet:::weibull_mle(abs(edges))
+    params <- weibull_mle(abs(edges))
 
     # Attach attributes to MLE Weibull to weights
     attr(edges, "params") <- params

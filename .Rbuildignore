@@ -1,6 +1,6 @@
 ^\.git$
 ^\.github$
-^\.images$
+^images$
 ^\.Rproj\.user$
 ^Readme\.md$
 .gitignore

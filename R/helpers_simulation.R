@@ -21,7 +21,7 @@ generate_edges <- function(nonzero, n, p)
 {
 
   # Get Weibull model
-  data("weibull_weights", package = "L0ggm", envir = environment())
+  weibull_weights <- get(data("weibull_weights", package = "L0ggm", envir = environment()))
 
   # Check for empirical parameter bounds and maximal partial correlation
   outside_bounds <- greater_than <- TRUE

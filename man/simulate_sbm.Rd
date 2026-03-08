@@ -112,7 +112,7 @@ three_block <- simulate_sbm(
   nodes = 6, # 6 nodes per block
   blocks = 3, # 3 community blocks = 18 total nodes
   sample_size = 1000, # number of cases = 1000
-  within_density = 0.70, # 70\% edge probability within blocks
+  within_density = 0.90, # 90\% edge probability within blocks
   between_density = 0.20 # 20\% edge probability between blocks
 )
 
@@ -130,7 +130,7 @@ varying_density <- simulate_sbm(
   nodes = 6, # 6 nodes per block
   blocks = 3, # 3 community blocks
   sample_size = 1000, # number of cases = 1000
-  within_density = c(0.80, 0.70, 0.60), # density varies by block
+  within_density = c(0.85, 0.90, 0.95), # density varies by block
   between_density = 0.15 # 15\% edge probability between blocks
 )
 
@@ -139,7 +139,7 @@ with_negatives <- simulate_sbm(
   nodes = 6, # 6 nodes per block
   blocks = 3, # 3 community blocks
   sample_size = 1000, # number of cases = 1000
-  within_density = 0.70, # 70\% edge probability within blocks
+  within_density = 0.90, # 90\% edge probability within blocks
   between_density = 0.20, # 20\% edge probability between blocks
   negative_proportion = 0.20 # 20\% of edges are negative
 )
