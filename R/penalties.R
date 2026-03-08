@@ -39,6 +39,13 @@ gumbel_penalty <- function(x, lambda, gamma = 0.01, ...)
 }
 
 #' @noRd
+# Updated 08.03.2026
+log_penalty <- function(x, lambda, gamma = 0.10, ...)
+{
+  return(lambda * log(1 + abs(x) / gamma) / log(1 + 1 / gamma))
+}
+
+#' @noRd
 # Updated 05.02.2026
 weibull_penalty <- function(x, lambda, gamma = 0.01, shape, ...)
 {

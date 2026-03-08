@@ -1,5 +1,5 @@
 Package: L0ggm
-Title: L0 Norm Regularization Penalties for Gaussian Graphical Models
+Title: Smooth L0 Penalty Approximations for Gaussian Graphical Models
 Version: 0.0.1
 Date: 2026-03-07
 Authors@R: c(person("Alexander", "Christensen", email = "alexpaulchristensen@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9798-7037")))

@@ -31,6 +31,13 @@ l1_proximal <- function(x, lambda, ...)
 }
 
 #' @noRd
+# Updated 08.03.2026
+log_proximal <- function(x, lambda, gamma = 0.10, ...)
+{
+  return(l1_proximal(x, log_derivative(x, lambda, gamma)))
+}
+
+#' @noRd
 # Updated 04.03.2026
 weibull_proximal <- function(x, lambda, gamma = 0.01, shape, ...)
 {

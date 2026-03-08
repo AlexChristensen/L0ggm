@@ -6,7 +6,7 @@
 <td style="border: none; vertical-align: middle;">
 
 # L0ggm
-L0 Norm Regularization Penalties for Gaussian Graphical Models
+#### Smooth $L_0$ Penalty Approximations for Gaussian Graphical Models
 
 <!--- CRAN
 <a href="https://CRAN.R-project.org/package=L0ggm"><img border="0" src="https://www.r-pkg.org/badges/version/L0ggm" alt="CRAN version"/></a>
@@ -41,7 +41,7 @@ L0 Norm Regularization Penalties for Gaussian Graphical Models
 
 This package estimates **Gaussian graphical models** (GGMs) using regularization penalties that approximate the $L_0$ norm. In a GGM, the nonzero off-diagonal entries of the precision matrix (inverse covariance) encode conditional dependence relationships between variables — the network structure. Recovering this sparse structure from data is the central estimation challenge.
 
-The package implements four continuous, differentiable approximations to the $L_0$ norm as regularization penalties, applied through a Local Linear Approximation (LLA) framework that wraps the graphical LASSO solver. The **adaptive Weibull** penalty is the default, and is the primary methodological contribution of the package.
+The package implements five continuous, differentiable approximations to the $L_0$ norm as regularization penalties, applied through a Local Linear Approximation (LLA) framework that wraps the graphical LASSO solver. The **adaptive Weibull** penalty is the default, and is the primary methodological contribution of the package.
 
 ---
 
@@ -87,22 +87,23 @@ $$\rho(K_{ij}) \approx \rho(K_{ij}^{(t)}) + \rho'(K_{ij}^{(t)}) \cdot (K_{ij} - 
 
 which reduces each step to a re-weighted GLASSO problem. A single LLA pass (the default) is extremely fast and produces estimates with strong theoretical guarantees (Zou & Li, 2008). Full iterative LLA to convergence is also available via `LLA = TRUE`.
 
-The four penalties available in {L0ggm} are:
+The five penalties available in {L0ggm} are:
 
 | Penalty | Formula |
 |---------|---------|
 | `"atan"` (Wang & Zhu, 2016) | $\lambda \left(\gamma + \dfrac{2}{\pi}\right) \arctan \left(\dfrac{\lvert x \rvert}{\gamma}\right)$ |
 | `"exp"` (Wang, Fan, & Zhu, 2018) | $\lambda \left(1 - e^{-\lvert x \rvert / \gamma}\right)$ |
 | `"gumbel"` | $\lambda \left(e^{-e^{-\lvert x \rvert / \gamma}}\right)$ |
+| `"log"` | $\lambda \dfrac{\log\left(1 + \lvert x \rvert / \gamma\right)}{\log\left(1 + 1/\gamma\right)}$ |
 | `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\lvert x \rvert / \gamma\right)^k}\right)$ |
 
 <em><strong>Note.</strong> Gumbel adjusts</em> $\lambda = \dfrac{\lambda}{1 - e^{-1}}$ <em>to scale consistently with other penalties and subtracts</em> $e^{-1}$ <em>from the penalty (prior to lambda) to adjust the y-intercept to zero.</em>
 
 <p align="center">
-<img src="images/penalty.png" width = 700 />
+<img src="images/derivative.png" width = 700 />
 </p>
 
-<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>.</em>
+<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>. Gumbel is roughly equivalent to EXP and not pictured.</em>
 
 ---
 
@@ -113,10 +114,10 @@ The four penalties available in {L0ggm} are:
 The Weibull penalty introduces a **shape parameter** $k > 0$ that continuously interpolates between qualitatively different penalty regimes:
 
 - **$k = 1$**: reduces exactly to the EXP penalty
-- **$k < 1$**: the penalty becomes more concave than exponential, with a steeper rise near the origin and faster convergence to $\lambda$ — more closely approximating the $L_0$ step function
-- **$k \to 0$**: approaches the $L_0$ indicator $\lambda \cdot \mathbf{1}(x \neq 0)$
+- **$k < 1$**: the penalty becomes less concave than exponential, with a wider rise near the origin and slower convergence to $\lambda$ — moving away from the $L_0$ step function (see Figure 1)
+- **$k \sim 0.40$**: approximates the Atan penalty
 
-This means $k$ directly controls the **degree of sparsity bias**: smaller $k$ imposes less shrinkage on nonzero coefficients and more aggressively zeros small ones. Rather than fixing $k$ by hand, {L0ggm} estimates it from the data.
+This variation in $k$ allows Weibull to control the **degree of sparsity bias**: smaller $k$ imposes more shrinkage on nonzero coefficients and less aggressively zeros small ones. Rather than fixing $k$ by hand, {L0ggm} estimates it from the data.
 
 ### Adaptive parameter estimation
 

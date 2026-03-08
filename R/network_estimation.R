@@ -1,7 +1,7 @@
 #' @title L0 Norm Regularized Network Estimation
 #'
 #' @description A general function to estimate Gaussian graphical models using
-#' L0 norm regularization penalties. All penalties are implemented using
+#' L0 penalty approximations. All penalties are implemented using
 #' either single-pass or full Local Linear Approximation (LLA: Fan & Li, 2001; Zou & Li, 2008)
 #'
 #' @param data Matrix or data frame.
@@ -55,16 +55,19 @@
 #' \itemize{
 #'
 #' \item \code{"atan"} --- Arctangent (Wang & Zhu, 2016)
-#' \deqn{\lambda \cdot (\gamma + 2 \pi) \cdot \arctan(\frac{|x|}{\gamma})}
+#' \deqn{\lambda \cdot (\gamma + \frac{2}{\pi}) \cdot \arctan\left(\frac{|x|}{\gamma}\right)}
 #'
 #' \item \code{"exp"} --- EXP (Wang, Fan, & Zhu, 2018)
 #' \deqn{\lambda \cdot (1 - e^{-\frac{|x|}{\gamma}})}
 #'
 #' \item \code{"gumbel"} --- Gumbel
-#' \deqn{\lambda \cdot e^{-e^{\frac{|x|}{\gamma}}}}
+#' \deqn{\frac{\lambda}{1 - e^{-1}} \cdot \left(e^{-e^{-\frac{|x|}{\gamma}}} - e^{-1}\right)}
+#'
+#' \item \code{"log"} --- Log (Candes, Wakin, & Boyd, 2008)
+#' \deqn{\frac{\lambda \cdot \log\left(1 + \frac{|x|}{\gamma}\right)}{\log\left(1 + \frac{1}{\gamma}\right)}}
 #'
 #' \item \code{"weibull"} --- Weibull
-#' \deqn{\lambda \cdot (1 - e^{\large(-\frac{|x|}{\gamma}\large)^k})}
+#' \deqn{\lambda \cdot \left(1 - e^{-\left(\frac{|x|}{\gamma}\right)^k}\right)}
 #'
 #' }
 #'
@@ -79,6 +82,8 @@
 #' \item \code{"exp"} = 0.01
 #'
 #' \item \code{"gumbel"} = 0.01
+#'
+#' \item \code{"log"} = 0.10
 #'
 #' \item \code{"weibull"} = 0.01
 #'
@@ -203,6 +208,11 @@
 #'
 #' @references
 #'
+#' \strong{Log penalty} \cr
+#' Candes, E. J., Wakin, M. B., & Boyd, S. P. (2008).
+#' Enhancing sparsity by reweighted l1 minimization.
+#' \emph{Journal of Fourier Analysis and Applications}, \emph{14}(5), 877--905.
+#'
 #' \strong{BIC0} \cr
 #' Dicker, L., Huang, B., & Lin, X. (2013).
 #' Variable selection and estimation with the seamless-L0 penalty.
@@ -249,12 +259,12 @@
 #' @export
 #'
 # Apply non-convex regularization ----
-# Updated 07.03.2026
+# Updated 08.03.2026
 network_estimation <- function(
     data, n = NULL,
     corr = c("auto", "pearson", "spearman"),
     na_data = c("pairwise", "listwise"),
-    penalty = c("atan", "exp", "gumbel", "weibull"),
+    penalty = c("atan", "exp", "gumbel", "log", "weibull"),
     gamma = NULL, adaptive = TRUE,
     nlambda = 50, lambda_min_ratio = 0.01, penalize_diagonal = TRUE,
     ic = c("AIC", "AICc", "BIC", "BIC0", "EBIC", "MBIC"), ebic_gamma = 0.50,
@@ -315,6 +325,7 @@ network_estimation <- function(
     "atan" = atan_derivative,
     "exp" = exp_derivative,
     "gumbel" = gumbel_derivative,
+    "log" = log_derivative,
     "weibull" = weibull_derivative
   )
 
@@ -330,6 +341,7 @@ network_estimation <- function(
       "atan" = 0.01,
       "exp" = 0.01,
       "gumbel" = 0.01,
+      "log" = 0.10,
       "weibull" = 0.01
     )
 
