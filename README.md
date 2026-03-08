@@ -89,13 +89,13 @@ which reduces each step to a re-weighted GLASSO problem. A single LLA pass (the 
 
 The five penalties available in {L0ggm} are:
 
-| Penalty | Formula |
-|---------|---------|
-| `"atan"` (Wang & Zhu, 2016) | $\lambda \left(\gamma + \dfrac{2}{\pi}\right) \arctan \left(\dfrac{\lvert x \rvert}{\gamma}\right)$ |
-| `"exp"` (Wang, Fan, & Zhu, 2018) | $\lambda \left(1 - e^{-\lvert x \rvert / \gamma}\right)$ |
-| `"gumbel"` | $\lambda \left(e^{-e^{-\lvert x \rvert / \gamma}}\right)$ |
-| `"log"` (Candes, Wakin, & Boyd, 2008) | $\lambda \dfrac{\log\left(1 + \lvert x \rvert / \gamma\right)}{\log\left(1 + 1/\gamma\right)}$ |
-| `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\lvert x \rvert / \gamma\right)^k}\right)$ |
+| Penalty | Formula | $\gamma$ |
+|---------|---------|----------|
+| `"atan"` (Wang & Zhu, 2016) | $\lambda \left(\gamma + \dfrac{2}{\pi}\right) \arctan \left(\dfrac{\lvert x \rvert}{\gamma}\right)$ | 0.01 |
+| `"exp"` (Wang, Fan, & Zhu, 2018) | $\lambda \left(1 - e^{-\lvert x \rvert / \gamma}\right)$ | 0.01 |
+| `"gumbel"` | $\lambda \left(e^{-e^{-\lvert x \rvert / \gamma}}\right)$ | 0.01 |
+| `"log"` (Candes, Wakin, & Boyd, 2008) | $\lambda \dfrac{\log\left(1 + \lvert x \rvert / \gamma\right)}{\log\left(1 + 1/\gamma\right)}$ | 0.10 |
+| `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\lvert x \rvert / \gamma\right)^k}\right)$ | 0.01 |
 
 <em><strong>Note.</strong> Gumbel adjusts</em> $\lambda = \dfrac{\lambda}{1 - e^{-1}}$ <em>to scale consistently with other penalties and subtracts</em> $e^{-1}$ <em>from the penalty (prior to lambda) to adjust the y-intercept to zero.</em>
 
