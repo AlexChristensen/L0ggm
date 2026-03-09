@@ -3,17 +3,19 @@ Title: Smooth L0 Penalty Approximations for Gaussian Graphical Models
 Version: 0.0.1
 Date: 2026-03-09
 Authors@R: c(person("Alexander", "Christensen", email = "alexpaulchristensen@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9798-7037")))
-Maintainer: Alexander P. Christensen <alexpaulchristensen@gmail.com>
 Description: Provides smooth approximations to the L0 norm penalty for
     estimating sparse Gaussian graphical models (GGMs). Network estimation
     is performed using the Local Linear Approximation (LLA) framework
-    (Fan & Li, 2001; Zou & Li, 2008) with five penalty functions:
-    arctangent (Wang & Zhu, 2016), EXP (Wang, Fan, & Zhu, 2018), Gumbel,
-    Log (Candes, Wakin, & Boyd, 2008), and Weibull. Adaptive penalty
-    parameters are estimated via maximum likelihood, and model selection
-    uses information criteria including AIC, BIC, and EBIC. Simulation
-    functions generate multivariate normal data from GGMs with stochastic
-    block model or small-world (Watts-Strogatz) network structures.
+    (Fan & Li, 2001 <doi:10.1198/016214501753382273>;
+    Zou & Li, 2008 <doi:10.1214/009053607000000802>) with five penalty
+    functions: arctangent (Wang & Zhu, 2016 <doi:10.1155/2016/6495417>),
+    EXP (Wang, Fan, & Zhu, 2018 <doi:10.1007/s10463-016-0588-3>), Gumbel,
+    Log (Candes, Wakin, & Boyd, 2008 <doi:10.1007/s00041-008-9045-x>),
+    and Weibull. Adaptive penalty parameters for EXP, Gumbel, and Weibull
+    are estimated via maximum likelihood, and model selection uses
+    information criteria including AIC, BIC, and EBIC (Extended BIC).
+    Simulation functions generate multivariate normal data from GGMs with
+    stochastic block model or small-world (Watts-Strogatz) network structures.
 Depends: R (>= 3.5.0)
 License: AGPL (>= 3.0)
 Encoding: UTF-8
