@@ -36,6 +36,9 @@ gumbel_mle <- function(x)
 weibull_mle <- function(x)
 {
 
+  # Ensure no exact zeros to avoid log(0)
+  x <- pmax.int(x, .Machine$double.eps)
+
   # Set up MLE for shape
   shape_mle <- function(k, x, n)
   {

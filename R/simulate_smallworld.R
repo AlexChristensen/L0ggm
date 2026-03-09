@@ -32,6 +32,17 @@
 #' @param sample_size Numeric (length = 1).
 #' Number of cases to generate from a random multivariate normal distribution
 #'
+#' @param skew Numeric (length = 1 or \code{nodes}).
+#' Skew to be included in categorical variables. It is randomly sampled from provided values.
+#' Can be a single value or as many values as there are (total) variables.
+#' Current skew implementation is between -2 and 2 in increments of 0.05.
+#' Skews that are not in this sequence will be converted to their nearest
+#' value in the sequence. Not recommended to use with \code{variables_range}
+#'
+#' @param skew_range Numeric (length = 2).
+#' Randomly selects skews within in the range.
+#' Somewhat redundant with \code{skew} but more flexible
+#'
 #' @param max_iterations Numeric (length = 1).
 #' Maximum number of attempts to find (1) a connected network structure,
 #' (2) a network within empirical small-world bounds, and (3) a valid set
@@ -140,7 +151,8 @@
 # Updated 08.03.2026
 simulate_smallworld <- function(
     nodes, density, rewire, negative_proportion,
-    sample_size, max_iterations = 100
+    sample_size, skew = 0, skew_range = NULL,
+    max_iterations = 100
 )
 {
 
@@ -159,7 +171,7 @@ simulate_smallworld <- function(
   }
 
   # Check for input errors
-  simulate_smallworld_errors(nodes, density, rewire, negative_proportion, sample_size)
+  simulate_smallworld_errors(nodes, density, rewire, negative_proportion, sample_size, skew)
 
   # Initialize generation checks
   smallworld <- connected <- FALSE
@@ -262,12 +274,21 @@ simulate_smallworld <- function(
   }
 
   # Generate data
-  data <- MASS_mvrnorm(n = sample_size, mu = rep(0, nodes), Sigma = diag(nodes))
+  data_output <- simulate_data(n = sample_size, R = output$R, skew = skew, skew_range = skew_range)
 
   # Return parameters
   return(
     list(
-      data = data %*% chol(output$R),
+      data = data_output$data,
+      parameters = list(
+        nodes = nodes,
+        density = density,
+        neighbors = neighbors,
+        rewire = rewire,
+        negative_proportion = negative_proportion,
+        sample_size = sample_size,
+        skew = data_output$skew
+      ),
       population = list(
         R = output$R, Omega = output$network, omega = output$omega
       ),
@@ -291,7 +312,7 @@ simulate_smallworld <- function(
 #' @noRd
 # Errors ----
 # Updated 08.03.2026
-simulate_smallworld_errors <- function(nodes, density, rewire, negative_proportion, sample_size)
+simulate_smallworld_errors <- function(nodes, density, rewire, negative_proportion, sample_size, skew)
 {
 
   # Errors for 'nodes'
@@ -318,6 +339,11 @@ simulate_smallworld_errors <- function(nodes, density, rewire, negative_proporti
   typeof_error(sample_size, "numeric")
   length_error(sample_size, 1)
   range_error(sample_size, c(1, Inf))
+
+  # Errors for 'skew'
+  typeof_error(skew, "numeric")
+  length_error(skew, c(1, nodes))
+  range_error(skew, c(-2, 2))
 
 }
 
@@ -533,7 +559,7 @@ smallworld_weights <- function(
     list(
       R = R,
       network = network,
-      oemga = omega,
+      omega = omega,
       params = attr(edges, "params"),
       lambda = lambda
     )

@@ -113,3 +113,52 @@ condition_network <- function(network)
   return(list(R = cov2cor(solve(Omega)), lambda = opt$root))
 
 }
+
+#' @noRd
+# Simulate data
+# Updated 09.03.2026
+simulate_data <- function(n, R, skew, skew_range)
+{
+
+  # Check for skew range
+  if(!is.null(skew_range)){
+    typeof_error(skew_range, "numeric") # object type error
+    length_error(skew_range, 2) # object length error
+    range_error(skew_range, c(-2, 2)) # object range error
+    possible_skews <- seq(-2, 2, 0.05) # possible skews
+    skew_range <- round(skew_range, 2) # get to hundredths digit
+    min_range <- abs(min(skew_range) - possible_skews) # difference for minimum
+    min_skew <- possible_skews[which.min(min_range)] # get minimum skew
+    max_range <- abs(max(skew_range) - possible_skews) # difference for maximum
+    max_skew <- possible_skews[which.min(max_range)] # get maximum skew
+    skew <- seq(min_skew, max_skew, 0.05) # obtain skews
+  }
+
+  # Generate data
+  output <- mvrnorm_precompute(n, R)
+  data <- MASS_mvrnorm_quick(p = output$p, np = output$np, coV = output$coV)
+  data <- data %*% chol(R)
+
+  # Set skew
+  n_skew <- length(skew)
+  if(n_skew == 1){
+    skew <- rep(skew, output$p)
+  }else if(n_skew != output$p){
+    skew <- shuffle_replace(skew, output$p)
+  }
+
+  # Loop through columns
+  node_sequence <- seq_len(output$p)
+  for(i in node_sequence){
+    data[,i] <- skew_continuous(skewness = skew[i], data = data[,i])
+  }
+
+  # Add column names to data
+  names(skew) <- colnames(data) <- paste0(
+    "V", format_integer(node_sequence, digits(output$p) - 1)
+  )
+
+  # Return data and skew
+  return(list(data = data, skew = skew))
+
+}

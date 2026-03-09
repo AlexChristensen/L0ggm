@@ -40,6 +40,17 @@
 #' @param sample_size Numeric (length = 1).
 #' Number of cases to generate from a random multivariate normal distribution
 #'
+#' @param skew Numeric (length = 1 or \code{nodes * blocks}).
+#' Skew to be included in categorical variables. It is randomly sampled from provided values.
+#' Can be a single value or as many values as there are (total) variables.
+#' Current skew implementation is between -2 and 2 in increments of 0.05.
+#' Skews that are not in this sequence will be converted to their nearest
+#' value in the sequence. Not recommended to use with \code{variables_range}
+#'
+#' @param skew_range Numeric (length = 2).
+#' Randomly selects skews within in the range.
+#' Somewhat redundant with \code{skew} but more flexible
+#'
 #' @param max_iterations Numeric (length = 1).
 #' Maximum number of attempts to find (1) a connected network structure and
 #' (2) a valid set of edge weights.
@@ -142,7 +153,9 @@
 # Updated 08.03.2026
 simulate_sbm <- function(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size, max_iterations = 100
+    negative_proportion, sample_size,
+    skew = 0, skew_range = NULL,
+    max_iterations = 100
 )
 {
 
@@ -163,7 +176,7 @@ simulate_sbm <- function(
   # Check for input errors
   simulate_sbm_errors(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size
+    negative_proportion, sample_size, skew
   )
 
   # Determine total number of nodes
@@ -261,14 +274,28 @@ simulate_sbm <- function(
   }
 
   # Generate data
-  data <- MASS_mvrnorm(n = sample_size, mu = rep(0, total_nodes), Sigma = diag(total_nodes))
+  data_output <- simulate_data(n = sample_size, R = output$R, skew = skew, skew_range = skew_range)
 
   # Return parameters
   return(
     list(
-      data = data %*% chol(output$R),
+      data = data_output$data,
+      parameters = list(
+        nodes = nodes,
+        blocks = blocks,
+        sample_size = sample_size,
+        skew = data_output$skew,
+        within_density = within_density,
+        between_density = between_density,
+        negative_proportion = negative_proportion
+      ),
       population = list(
-        R = output$R, Omega = output$network, membership = output$membership
+        R = output$R,
+        Omega = output$network,
+        membership = output$membership,
+        Q = igraph::modularity(
+          convert2igraph(abs(output$network)), output$membership
+        )
       ),
       weight_parameters = output$params,
       convergence = list(
@@ -291,7 +318,7 @@ simulate_sbm <- function(
 # Updated 08.03.2026
 simulate_sbm_errors <- function(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size
+    negative_proportion, sample_size, skew
 )
 {
 
@@ -324,6 +351,11 @@ simulate_sbm_errors <- function(
   typeof_error(sample_size, "numeric")
   length_error(sample_size, 1)
   range_error(sample_size, c(1, Inf))
+
+  # Errors for 'skew'
+  typeof_error(skew, "numeric")
+  length_error(skew, c(1, nodes * blocks))
+  range_error(skew, c(-2, 2))
 
 }
 

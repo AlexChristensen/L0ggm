@@ -358,7 +358,7 @@ network_estimation <- function(
     lower_triangle <- lower.tri(S)
 
     # Set partial correlations
-    P <- cor2pcor(S); lower_P <- abs(P[lower_triangle])
+    P <- inv2pcor(K); lower_P <- abs(P[lower_triangle])
 
     # Compute for standard error
     scaling <- sqrt(n)
@@ -472,7 +472,7 @@ network_estimation <- function(
 
   # Compute ICs
   ICs <- nvapply(glasso_list, function(element){
-    information_crtierion(
+    information_criterion(
       S = S, K = element$wi, n = n, nodes = nodes,
       ic = ic, ebic_gamma = ebic_gamma
     )
@@ -504,7 +504,7 @@ network_estimation <- function(
 }
 
 # Bug checking ----
-# data = wmt2[,7:24]; n = NULL; corr = "auto"
+# data = basic_smallworld; n = NULL; corr = "auto"
 # na_data = "pairwise"; penalty = "weibull"; adaptive = TRUE
 # gamma = NULL; lambda = NULL; nlambda = 50
 # lambda_min_ratio = 0.01; penalize_diagonal = TRUE
@@ -601,15 +601,17 @@ network_regularization_errors <- function(
 
 #' @noRd
 # Information criterion ----
-# Updated 10.01.2026
-information_crtierion <- function(S, K, n, nodes, ic, ebic_gamma)
+# Updated 09.03.2026
+information_criterion <- function(S, K, n, nodes, ic, ebic_gamma)
 {
 
   # Compute Gaussian likelihood (minus two for convenience)
+  trSK <- sum(S * K)
+  log_det_K <- log(det(K))
   L <- swiftelse(
     ic %in% c("bic0", "mbic"),
-    n * sum(diag(S %*% K)) - log(det(K)), # use deviance
-    -2 * (n / 2) * (log(det(K)) - sum(diag(S %*% K))) # use log-likelihood
+    n * trSK - log_det_K, # use deviance
+    -2 * (n / 2) * (log_det_K - trSK) # use log-likelihood
   )
 
   # Set diagonal of K to zero
@@ -626,7 +628,7 @@ information_crtierion <- function(S, K, n, nodes, ic, ebic_gamma)
     switch(
       ic,
       "aic" = L + 2 * E,
-      "aicc" = L + 2 * E + (2 * E^2 + 2 * E) / (n - E - 1),
+      "aicc" = swiftelse(n - E - 1 > 0, L + 2 * E + (2 * E^2 + 2 * E) / (n - E - 1), Inf),
       "bic" = L + E * log(n),
       "ebic" = L + E * log(n) + 4 * E * ebic_gamma * log(nodes),
       "bic0" = swiftelse( # see https://www.jstor.org/stable/24310368

@@ -41,7 +41,7 @@ log_derivative <- function(x, lambda, gamma = 0.10, ...)
 weibull_derivative <- function(x, lambda, gamma = 0.01, shape, ...)
 {
   # Pre-compute components
-  abs_x <- abs(swiftelse(x == 0, .Machine$double.eps, x))
+  abs_x <- pmax.int(abs(x), .Machine$double.eps)
   x_gamma <- abs_x / gamma
 
   # Return derivative

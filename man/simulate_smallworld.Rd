@@ -10,6 +10,8 @@ simulate_smallworld(
   rewire,
   negative_proportion,
   sample_size,
+  skew = 0,
+  skew_range = NULL,
   max_iterations = 100
 )
 }
@@ -37,6 +39,17 @@ mean = 0.35 and SD = 0.09, bounded between 0.08 and 0.55}
 
 \item{sample_size}{Numeric (length = 1).
 Number of cases to generate from a random multivariate normal distribution}
+
+\item{skew}{Numeric (length = 1 or \code{nodes}).
+Skew to be included in categorical variables. It is randomly sampled from provided values.
+Can be a single value or as many values as there are (total) variables.
+Current skew implementation is between -2 and 2 in increments of 0.05.
+Skews that are not in this sequence will be converted to their nearest
+value in the sequence. Not recommended to use with \code{variables_range}}
+
+\item{skew_range}{Numeric (length = 2).
+Randomly selects skews within in the range.
+Somewhat redundant with \code{skew} but more flexible}
 
 \item{max_iterations}{Numeric (length = 1).
 Maximum number of attempts to find (1) a connected network structure,

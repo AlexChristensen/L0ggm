@@ -11,7 +11,7 @@ Implements L0 norm regularization penalties for Gaussian graphical models
 \seealso{
 Useful links:
 \itemize{
-  \item Report bugs at \url{https://github.com/AlexChristensen/adaptGGM/issues}
+  \item Report bugs at \url{https://github.com/AlexChristensen/L0ggm/issues}
 }
 
 }
