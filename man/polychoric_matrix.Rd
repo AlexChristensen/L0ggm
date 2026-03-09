@@ -84,25 +84,25 @@ approximation (Drezner & Wesolosky, 1990) to estimate the bivariate normal
 CDF, and Brent's method (Brent, 2013) for optimization of rho
 }
 \examples{
-# Load data (ensure matrix for missing data example)
-wmt <- as.matrix(wmt2[,7:24])
-
-# Compute polychoric correlation matrix
-correlations <- polychoric_matrix(wmt)
-
-# Randomly assign missing data
-wmt[sample(1:length(wmt), 1000)] <- NA
-
-# Compute polychoric correlation matrix
-# with pairwise missing
-pairwise_correlations <- polychoric_matrix(
-  wmt, na_data = "pairwise"
+# Categorize data
+basic_categorized <- apply(
+  basic_smallworld, 2, categorize, categories = 5
 )
 
 # Compute polychoric correlation matrix
-# with listwise missing
+correlations <- polychoric_matrix(basic_categorized)
+
+# Randomly assign missing data
+basic_categorized[sample(1:length(basic_categorized), 1000)] <- NA
+
+# Compute polychoric correlation matrix with pairwise missing
 pairwise_correlations <- polychoric_matrix(
-  wmt, na_data = "listwise"
+  basic_categorized, na_data = "pairwise"
+)
+
+# Compute polychoric correlation matrix with listwise missing
+pairwise_correlations <- polychoric_matrix(
+  basic_categorized, na_data = "listwise"
 )
 
 }

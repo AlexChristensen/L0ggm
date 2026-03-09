@@ -108,11 +108,8 @@ continuous and categorical variables. \code{NA} values are not treated
 as categories
 }
 \examples{
-# Simulate data
-wmt <- wmt2[,7:24]
-
 # Obtain correlations
-wmt_corr <- auto_correlate(wmt)
+R <- auto_correlate(basic_smallworld)
 
 }
 \author{

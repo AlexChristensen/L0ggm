@@ -62,15 +62,15 @@
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @examples
-#' # Load data
-#' wmt <- wmt2[,7:24]
-#'
 #' # Set split
-#' split <- sample(1:nrow(wmt), round(nrow(wmt) / 2))
+#' split <- sample(
+#'   1:nrow(basic_smallworld),
+#'   round(nrow(basic_smallworld) / 2)
+#' )
 #'
 #' # Estimate networks
-#' split1 <- network_estimation(wmt[split,])
-#' split2 <- network_estimation(wmt[-split,])
+#' split1 <- network_estimation(basic_smallworld[split,])
+#' split2 <- network_estimation(basic_smallworld[-split,])
 #'
 #' # Estimate metrics
 #' edge_confusion(split1, split2)

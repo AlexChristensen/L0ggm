@@ -47,17 +47,14 @@ Computes several traditional fit metrics for networks including
 }
 }
 \examples{
-# Load data
-wmt <- wmt2[,7:24]
-
 # Obtain correlation matrix
-S <- auto_correlate(wmt)
+S <- auto_correlate(basic_smallworld)
 
 # Obtain Weibull network
-weibull_network <- network_estimation(data = wmt)
+weibull_network <- network_estimation(data = basic_smallworld, LLA = TRUE)
 
 # Obtain fit (expects continuous variables!)
-network_fit(network = weibull_network, n = nrow(wmt), S = S)
+network_fit(network = weibull_network, n = nrow(basic_smallworld), S = S)
 # Scaled metrics are not yet available for
 # dichotomous or polytomous data!
 

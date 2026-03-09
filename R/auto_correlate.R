@@ -92,11 +92,8 @@
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @examples
-#' # Simulate data
-#' wmt <- wmt2[,7:24]
-#'
 #' # Obtain correlations
-#' wmt_corr <- auto_correlate(wmt)
+#' R <- auto_correlate(basic_smallworld)
 #'
 #' @export
 #'
@@ -282,60 +279,6 @@ auto_correlate <- function(
   return(correlation_matrix)
 
 }
-
-# Bug checking ----
-# ## Different categories
-# set.seed(1234)
-# data = latentFactoR::simulate_factors(
-#   factors = 4, variables = 4,
-#   loadings = 0.55, cross_loadings = 0.05,
-#   correlations = 0.30, sample_size = 1000,
-#   variable_categories = c(
-#     rep(2, 4), rep(5, 4),
-#     rep(7, 4), rep(Inf, 4)
-#   )
-# )$data
-# ordinal_categories = 7
-# corr = "pearson"; forcePD = TRUE
-# na_data = "pairwise"; empty_method = "none"
-# empty_value = "none"; verbose = FALSE
-#
-# # Compare against {qgraph}'s `cor_auto`
-# qgraph_correlations <- qgraph::cor_auto(data)
-# EGAnet_correlations <- auto_correlate(data)
-#
-# # Difference
-# max(abs(EGAnet_correlations - qgraph_correlations))
-# # Biggest difference is between polyserial (7 categories with continuous)
-#
-# ## Add missing data
-# data[sample(1:length(data), 1000)] <- NA
-# # Compare against {qgraph}'s `cor_auto`
-# qgraph_correlations <- qgraph::cor_auto(
-#   data,
-#   ordinalLevelMax = 8
-#   # Needs to have 8 levels to account for missing data!!
-# )
-# EGAnet_correlations <- auto_correlate(data)
-#
-# # Difference
-# max(abs(EGAnet_correlations - qgraph_correlations))
-# # Biggest difference is between polyserial (7 categories with continuous)
-#
-## Zero cell counts
-# data <- cbind(
-#   c(0, 1, 2, 3, 4, 1, 2, 3, 1),
-#   c(0, 1, 2, 2, 1, 2, 2, 4, 2)
-# ); ordinal_categories = 7;
-# corr = "pearson"; forcePD = TRUE;
-# na_data = "pairwise"; empty_method = "none";
-# empty_value = "none"; verbose = FALSE;
-#
-# The above bug checks for categorical data
-# have been verified to match the output
-# of Turbofuns::PolychoricRM to a maximum
-# difference less than or equal to 1.0e-06
-# (or one step beyond floating point)
 
 #' @noRd
 # Errors ----

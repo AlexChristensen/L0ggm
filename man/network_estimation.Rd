@@ -223,7 +223,7 @@ Whether messages and (insignificant) warnings should be output.
 Defaults to \code{FALSE} (silent calls).
 Set to \code{TRUE} to see all messages and warnings for every function call}
 
-\item{...}{Additional arguments to be passed on to \code{\link[EGAnet]{auto.correlate}}}
+\item{...}{Additional arguments to be passed on to \code{auto.correlate}}
 }
 \value{
 A network matrix
@@ -234,17 +234,21 @@ L0 penalty approximations. All penalties are implemented using
 either single-pass or full Local Linear Approximation (LLA: Fan & Li, 2001; Zou & Li, 2008)
 }
 \examples{
-# Obtain data
-wmt <- wmt2[,7:24]
-
 # Obtain default estimator (adaptive Weibull)
-weibull_network <- network_estimation(data = wmt)
+weibull_network <- network_estimation(
+  data = basic_smallworld, LLA = TRUE
+)
 
 # Obtain Atan network
-atan_network <- network_estimation(data = wmt, penalty = "atan")
+atan_network <- network_estimation(
+  data = basic_smallworld, penalty = "atan", LLA = TRUE
+)
 
 # Obtain static EXP network
-exp_network <- network_estimation(data = wmt, penalty = "exp", adaptive = FALSE)
+exp_network <- network_estimation(
+  data = basic_smallworld, penalty = "exp",
+  adaptive = FALSE, LLA = TRUE
+)
 
 }
 \references{

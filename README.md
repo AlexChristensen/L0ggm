@@ -200,26 +200,32 @@ remotes::install_github("AlexChristensen/L0ggm")
 ## Usage
 
 ```r
+# Load package
 library(L0ggm)
 
-# Use the included WMT-2 cognitive ability dataset (items 7-24)
-wmt <- wmt2[, 7:24]
+# Simulate smallworld data
+basic_smallworld <- simulate_smallworld(
+  nodes = 20, # 20 nodes in the network
+  density = 0.30, # moderate initial lattice connectivity
+  rewire = 0.20, # 20% rewiring probability
+  sample_size = 1000 # number of cases = 1000
+)
 
 # Estimate network with default adaptive Weibull penalty
-# Model selection via BIC over a log-spaced lambda sequence
-weibull_network <- network_estimation(data = wmt)
+# with full LLA (iterate to convergence; recommended)
+weibull_network <- network_estimation(data = basic_smalworld$data, LLA = TRUE)
 
-# Retrieve full output (network, precision matrix, selected lambda, etc.)
-weibull_full <- network_estimation(data = wmt, network_only = FALSE)
+# Get full output (network, precision matrix, selected lambda, etc.)
+weibull_full <- network_estimation(data = basic_smalworld$data, network_only = FALSE)
 
-# Use the Arctangent penalty with full LLA (iterate to convergence)
+# Use the Arctangent penalty
 atan_network <- network_estimation(
-  data = wmt, penalty = "atan", LLA = TRUE
+  data = basic_smalworld$data, penalty = "atan", LLA = TRUE
 )
 
 # Use the EXP penalty with fixed (non-adaptive) gamma
 exp_network <- network_estimation(
-  data = wmt, penalty = "exp", adaptive = FALSE
+  data = basic_smalworld$data, penalty = "exp", LLA = TRUE, adaptive = FALSE
 )
 ```
 

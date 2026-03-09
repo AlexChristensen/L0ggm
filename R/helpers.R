@@ -215,7 +215,7 @@ symmetric_matrix_lapply <- function(X, FUN, ...){
 # can be reproduced so that the user arrives at the
 # same results *without* influencing R's random number
 # generation or changing a user-defined seed previous
-# to, while, or after using {EGAnet} functions.
+# to, while, or after using {L0ggm} functions.
 #
 # Assistance in writing C and interfacing with R
 # was provided by GPT-4
@@ -410,106 +410,357 @@ MASS_mvrnorm_quick <- function(seed = NULL, p, np, coV)
   return(t(tcrossprod(coV, matrix(rnorm_ziggurat(np, seed), ncol = p))))
 }
 
-#%%%%%%%%%%%%%%%%%%%%%
-# PARALLELIZATION ----
-#%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%
+# CATEGORIZE ----
+#%%%%%%%%%%%%%%%%
 
 #' @noRd
-# Clear memory ----
-# Updated 07.11.2023
-clear_memory <- function()
-{
-  sink <- capture.output(
-    gc(verbose = FALSE, reset = TRUE, full = TRUE)
-  )
-}
+# Adds skew to a single variable ----
+# Updated 30.11.2022
+skew_single_variable <- function(data, skew_values){
 
-#' @noRd
-# Get available memory ----
-# Updated 18.10.2023
-available_memory <- function()
-{
+  # Categorize biased data with updated thresholds
+  for(i in (length(skew_values) + 1):1){
 
-  # Get operating system
-  OS <- tolower(Sys.info()["sysname"])
-
-  # Branch based on OS
-  if(OS == "windows"){ # Windows
-
-    # Alternative (outputs memory in kB)
-    bytes <- as.numeric(
-      trimws(system("wmic OS get FreePhysicalMemory", intern = TRUE))[2]
-    ) * 1e+03
-
-  }else if(OS == "linux"){ # Linux
-
-    # Split system information
-    info_split <- strsplit(system("free", intern = TRUE), split = " ")
-
-    # Remove "Mem:" and "Swap:"
-    info_split <- lapply(info_split, function(x){gsub("Mem:", "", x)})
-    info_split <- lapply(info_split, function(x){gsub("Swap:", "", x)})
-
-    # Get actual values
-    info_split <- lapply(info_split, function(x){x[x != ""]})
-
-    # Bind values
-    info_split <- do.call(rbind, info_split[1:2])
-
-    # Get free values (Linux reports in *kilo*bytes -- thanks, Aleksandar Tomasevic)
-    bytes <- as.numeric(info_split[2, info_split[1,] == "available"]) * 1e+03
-
-  }else{ # Mac
-
-    # System information
-    system_info <- system("top -l 1 -s 0 | grep PhysMem", intern = TRUE)
-
-    # Get everything after comma
-    unused <- gsub(" .*,", "", system_info)
-
-    # Get values only
-    value <- gsub(" unused.", "", gsub("PhysMem: ", "", unused))
-
-    # Check for bytes
-    if(grepl("M", value)){
-      bytes <- as.numeric(gsub("M", "", value)) * 1e+06
-    }else if(grepl("G", value)){
-      bytes <- as.numeric(gsub("G", "", value)) * 1e+09
-    }else if(grepl("K", value)){
-      bytes <- as.numeric(gsub("K", "", value)) * 1e+03
-    }else if(grepl("B", value)){ # edge case
-      bytes <- as.numeric(gsub("B", "", value)) * 1
-    }else if(grepl("T", value)){ # edge case
-      bytes <- as.numeric(gsub("T", "", value)) * 1e+12
+    # First category
+    if(i == 1){
+      data[data < skew_values[i]] <- i
+    }else if(i == length(skew_values) + 1){ # Last category
+      data[data >= skew_values[i-1]] <- i
+    }else{ # Middle category
+      data[data >= skew_values[i-1] & data < skew_values[i]] <- i
     }
 
   }
 
-  # Return bytes
-  return(bytes)
+  # Return skewed data
+  return(data)
 
 }
 
-#' @noRd
-# Store random state ----
-# Updated 04.08.2023
-store_state <- function()
+# Computes skewness ----
+# Removes psych package dependency (from version 2.2.3)
+# Updated 09.03.2026
+skewness <- function(x, na.rm = TRUE, type = 3)
 {
-  if(exists(".Random.seed", envir = parent.frame(2))){
-    assign("saved_state", .Random.seed, envir = parent.frame(2))
+
+  if(length(dim(x)) == 0){
+
+    if(na.rm){
+      x <- x[!is.na(x)]
+    }
+
+    n   <- length(x[!is.na(x)])
+    mx  <- mean(x)
+    sdx <- sd(x, na.rm = na.rm)
+
+    deviations  <- x - mx
+    sum_dev2    <- sum(deviations^2, na.rm = na.rm)
+    sum_dev3    <- sum(deviations^3, na.rm = na.rm)
+
+    switch(type,
+           # Type 1
+           skewer <- sqrt(n) * (sum_dev3 / sum_dev2^(3/2)),
+           # Type 2
+           skewer <- n * sqrt(n - 1) * (sum_dev3 / ((n - 2) * sum_dev2^(3/2))),
+           # Type 3
+           skewer <- sum_dev3 / (n * sdx^3)
+    )
+
+  }else{
+
+    skewer <- rep(NA, dim(x)[2])
+
+    if(is.matrix(x)){
+      mx <- colMeans(x, na.rm = na.rm)
+    }else{
+      mx <- apply(x, 2, mean, na.rm = na.rm)
+    }
+
+    sdx <- apply(x, 2, sd, na.rm = na.rm)
+
+    for(i in seq_len(dim(x)[2])){
+
+      n <- length(x[!is.na(x[, i]), i])
+
+      deviations <- x[, i] - mx[i]
+      sum_dev2   <- sum(deviations^2, na.rm = na.rm)
+      sum_dev3   <- sum(deviations^3, na.rm = na.rm)
+
+      switch(type,
+             # Type 1
+             skewer[i] <- sqrt(n) * (sum_dev3 / sum_dev2^(3/2)),
+             # Type 2
+             skewer[i] <- n * sqrt(n - 1) * (sum_dev3 / ((n - 2) * sum_dev2^(3/2))),
+             # Type 3
+             skewer[i] <- sum_dev3 / (n * sdx[i]^3)
+      )
+
+    }
+
   }
+
+  return(skewer)
+
 }
 
+
+# Based on
+# Garrido, L. E., Abad, F. J., & Ponsoda, V. (2011).
+# Performance of Velicer’s minimum average partial factor retention
+# method with categorical variables.
+# Educational and Psychological Measurement, 71(3), 551-570.
+# https://doi.org/10.1177/0013164410389489
+#
 #' @noRd
-# Restore and remove random state ----
-# Updated 04.08.2023
-restore_state <- function()
+# Generates skewed data for continuous data ----
+# Updated 24.07.2024
+skew_continuous <- function(
+    skewness,
+    data = NULL,
+    sample_size = 1000000,
+    tolerance = 0.00001
+)
 {
-  if(exists("saved_state", envir = parent.frame(2))){
-    saved_state <- get("saved_state", envir = parent.frame(2))
-    assign(".Random.seed", saved_state, envir = parent.frame(2))
-    rm("saved_state", envir = parent.frame(2))
+
+  # Check for zero skew (skip adding skew)
+  if(skewness == 0){
+    return(data)
   }
+
+  # Generate data
+  if(is.null(data)){
+    data <- rnorm(sample_size)
+  }
+
+  # Kurtosis
+  kurtosis <- 1
+
+  # Initialize increments
+  increments <- 0.01
+
+  # Seek along a range of skews
+  skew_values <- seq(
+    -2, 2, increments
+  )
+
+  # Compute skews
+  skews <- unlist(lapply(skew_values, function(x){
+    # Skew data
+    skew_data <- sinh(
+      kurtosis * (asinh(data) + x)
+    )
+
+    # Observed skew in data
+    skewness(skew_data)
+  }))
+
+  # Compute minimum index
+  minimum <- which.min(abs(skewness - skews))
+
+  # Check for whether skewness is found
+  while(abs(skewness - skews[minimum]) > tolerance){
+
+    # Check for minimum value
+    if(minimum == 1){
+      kurtosis <- kurtosis - 0.1
+    }else if(minimum == length(skews)){
+      kurtosis <- kurtosis + 0.1
+    }else{
+
+      # Decrease increments
+      increments <- 0.01 * 0.1
+
+      # Seek along a range of skews
+      skew_values <- seq(
+        skew_values[minimum - 1],
+        skew_values[minimum + 1],
+        length.out = 100
+      )
+
+    }
+
+    # Compute skews
+    skews <- unlist(lapply(skew_values, function(x){
+      # Skew data
+      skew_data <- sinh(
+        kurtosis * (asinh(data) + x)
+      )
+
+      # Observed skew in data
+      skewness(skew_data)
+    }))
+
+    # Compute minimum index
+    minimum <- which.min(abs(skewness - skews))
+
+  }
+
+  # Compute final skew data
+  skew_data <- sinh(
+    kurtosis * (asinh(data) + skew_values[minimum])
+  )
+
+  # Re-scale
+  skew_data <- scale(skew_data)
+
+  # Return skewed data
+  return(skew_data)
+
+}
+
+# Based on
+# Garrido, L. E., Abad, F. J., & Ponsoda, V. (2011).
+# Performance of Velicer’s minimum average partial factor retention
+# method with categorical variables.
+# Educational and Psychological Measurement, 71(3), 551-570.
+# https://doi.org/10.1177/0013164410389489
+#
+#' @noRd
+# Generates skew ----
+# Updated 09.08.2022
+skew_generator <- function(
+    skewness, categories,
+    reduction_factor = 0.75,
+    sample_size = 1000000,
+    initial_proportion = 0.50,
+    tolerance = 0.00001
+)
+{
+
+  # Initialize skew matrix
+  skew_matrix <- matrix(
+    0, nrow = categories, ncol = categories
+  )
+
+  # Initialize cases
+  cases <- numeric(sample_size)
+
+  # Loop through categories
+  for(i in 2:categories){
+
+    # Initialize (largest category) proportion
+    proportion <- initial_proportion
+
+    # Current proportion for rest of categories
+    remaining_proportion <- 1 - proportion
+
+    # Initialize categories allocations
+    allocation <- 1
+    allocation_1 <- 1
+
+    # Loop through with reduction factor
+    if(i > 2){
+      for(j in 1:(i-2)){
+        allocation_1 <- allocation_1 * reduction_factor
+        allocation <- allocation + allocation_1
+      }
+    }
+
+    # Divide remaining proportion by allocations
+    divided_proportion <- remaining_proportion / allocation
+
+    # Undefined objects
+    propinf <- 1 / sample_size
+    propsup <- initial_proportion
+    E <- divided_proportion / reduction_factor
+
+    # Loop through
+    for(j in 1:i){
+      cases[round(sample_size * propinf):round(sample_size * propsup)] <- j
+      E <- E * reduction_factor
+      propinf <- propsup
+      propsup <- propinf + E
+    }
+
+    # Compute skewness
+    skew_actual <- skewness(cases)
+
+    # Limits
+    limitsup <- 1
+    limitsinf <- 0
+
+    # Ensure skew within tolerance
+    while(abs(skew_actual - skewness) > tolerance){
+
+      # Skew greater than
+      if(skew_actual < skewness){
+        limitinf <- proportion
+        proportion <- (proportion + limitsup) / 2
+      }else{
+        limitsup <- proportion
+        proportion <- (proportion + limitsinf) / 2
+      }
+
+      # Update
+      # Current proportion for rest of categories
+      remaining_proportion <- 1 - proportion
+
+      # Divide remaining proportion by allocations
+      divided_proportion <- remaining_proportion / allocation
+
+      # Undefined objects
+      propinf <- 1 / sample_size
+      propsup <- proportion
+      E <- divided_proportion / reduction_factor
+
+      # Loop through
+      for(j in 1:i){
+        cases[round(sample_size * propinf):round(sample_size * propsup)] <- j
+        E <- E * reduction_factor
+        propinf <- propsup
+        propsup <- propinf + E
+      }
+
+      # Compute skewness
+      skew_actual <- skewness(cases)
+
+    }
+
+    # Set E
+    E <- divided_proportion / reduction_factor
+    cumulative_probability <- proportion
+
+    # Update matrix
+    for(j in 1:i){
+
+      skew_matrix[i,j] <- cumulative_probability
+      E <- E * reduction_factor
+      cumulative_probability <- cumulative_probability + E
+
+    }
+
+  }
+
+  # Normal inverse
+  norm_inv_matrix <- qnorm(skew_matrix)
+
+  # Set infinite values to zero
+  norm_inv_matrix[is.infinite(norm_inv_matrix)] <- 0
+
+  # Category probability
+  category_probability <- matrix(
+    0, nrow = categories, ncol = categories
+  )
+
+  # Fill first column
+  category_probability[,1] <- skew_matrix[,1]
+
+  # Loop through
+  for(i in 2:categories){
+    category_probability[,i] <- skew_matrix[,i] - skew_matrix[,i-1]
+  }
+
+  # Make -1 = 0
+  category_probability[category_probability == -1] <- 0
+
+  # Return skew
+  result <- list(
+    skew_matrix = norm_inv_matrix,
+    probability = category_probability
+  )
+  return(result)
+
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%
@@ -518,7 +769,7 @@ restore_state <- function()
 
 # These functions aren't often used because
 # dimensions of the data are usually used
-# elsewhere in {EGAnet}; however, these
+# elsewhere in {L0ggm}; however, these
 # functions use `seq_len` and `dim` which
 # have minimal speed advantages over their
 # respective `1:nrow` and `1:ncol`
@@ -1219,7 +1470,7 @@ obtain_thresholds <- function(categorical_variable)
 #%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Lots of R packages and functions print
-# messages that add to the noise of {EGAnet}
+# messages that add to the noise of {L0ggm}
 # outputs; these functions make other
 # packages' messages go away
 #

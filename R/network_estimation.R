@@ -200,7 +200,7 @@
 #' Defaults to \code{FALSE} (silent calls).
 #' Set to \code{TRUE} to see all messages and warnings for every function call
 #'
-#' @param ... Additional arguments to be passed on to \code{\link[EGAnet]{auto.correlate}}
+#' @param ... Additional arguments to be passed on to \code{auto.correlate}
 #'
 #' @return A network matrix
 #'
@@ -244,17 +244,21 @@
 #' \emph{Annals of Statistics}, \emph{36}(4), 1509--1533.
 #'
 #' @examples
-#' # Obtain data
-#' wmt <- wmt2[,7:24]
-#'
 #' # Obtain default estimator (adaptive Weibull)
-#' weibull_network <- network_estimation(data = wmt)
+#' weibull_network <- network_estimation(
+#'   data = basic_smallworld, LLA = TRUE
+#' )
 #'
 #' # Obtain Atan network
-#' atan_network <- network_estimation(data = wmt, penalty = "atan")
+#' atan_network <- network_estimation(
+#'   data = basic_smallworld, penalty = "atan", LLA = TRUE
+#' )
 #'
 #' # Obtain static EXP network
-#' exp_network <- network_estimation(data = wmt, penalty = "exp", adaptive = FALSE)
+#' exp_network <- network_estimation(
+#'   data = basic_smallworld, penalty = "exp",
+#'   adaptive = FALSE, LLA = TRUE
+#' )
 #'
 #' @export
 #'

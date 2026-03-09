@@ -1,21 +1,19 @@
 Package: L0ggm
 Title: Smooth L0 Penalty Approximations for Gaussian Graphical Models
 Version: 0.0.1
-Date: 2026-03-07
+Date: 2026-03-09
 Authors@R: c(person("Alexander", "Christensen", email = "alexpaulchristensen@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9798-7037")))
 Maintainer: Alexander P. Christensen <alexpaulchristensen@gmail.com>
-Description: Implements the Exploratory Graph Analysis (EGA) framework for dimensionality
-             and psychometric assessment. EGA estimates the number of dimensions in
-	     	 psychological data using network estimation methods and community detection
-             algorithms. A bootstrap method is provided to assess the stability of dimensions
-	     	 and items. Fit is evaluated using the Entropy Fit family of indices. Unique 
-             Variable Analysis evaluates the extent to which items are locally dependent (or
-             redundant). Network loadings provide similar information to factor loadings and
-	     	 can be used to compute network scores. A bootstrap and permutation approach are
-             available to assess configural and metric invariance. Hierarchical structures
-             can be detected using Hierarchical EGA. Time series and intensive longitudinal 
-	     	 data can be analyzed using Dynamic EGA, supporting individual, group, and 
-             population level assessments.
+Description: Provides smooth approximations to the L0 norm penalty for
+    estimating sparse Gaussian graphical models (GGMs). Network estimation
+    is performed using the Local Linear Approximation (LLA) framework
+    (Fan & Li, 2001; Zou & Li, 2008) with five penalty functions:
+    arctangent (Wang & Zhu, 2016), EXP (Wang, Fan, & Zhu, 2018), Gumbel,
+    Log (Candes, Wakin, & Boyd, 2008), and Weibull. Adaptive penalty
+    parameters are estimated via maximum likelihood, and model selection
+    uses information criteria including AIC, BIC, and EBIC. Simulation
+    functions generate multivariate normal data from GGMs with stochastic
+    block model or small-world (Watts-Strogatz) network structures.
 Depends: R (>= 3.5.0)
 License: AGPL (>= 3.0)
 Encoding: UTF-8
