@@ -508,7 +508,6 @@ network_estimation <- function(
 # ebic_gamma = 0.5; fast = TRUE; verbose = FALSE
 # LLA = TRUE; LLA_threshold = 1e-04; LLA_iter = 10000
 
-
 #' @noRd
 # Errors ----
 # Updated 19.01.2026

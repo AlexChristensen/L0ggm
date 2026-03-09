@@ -7,10 +7,10 @@
 simulate_sbm(
   nodes,
   blocks,
-  sample_size,
   within_density,
   between_density,
   negative_proportion,
+  sample_size,
   max_iterations = 100
 )
 }
@@ -23,9 +23,6 @@ Minimum three nodes per block}
 
 \item{blocks}{Numeric (length = 1).
 Number of community blocks}
-
-\item{sample_size}{Numeric (length = 1).
-Number of cases to generate from a random multivariate normal distribution}
 
 \item{within_density}{Numeric (length = 1 or \code{blocks}).
 Probability that an edge exists between any two nodes within the same
@@ -46,6 +43,9 @@ Proportion of edges that are negative (inhibitory).
 Must be between 0 and 1.
 If not provided, a value is sampled from an empirical distribution with
 mean = 0.35 and SD = 0.09, bounded between 0.08 and 0.55}
+
+\item{sample_size}{Numeric (length = 1).
+Number of cases to generate from a random multivariate normal distribution}
 
 \item{max_iterations}{Numeric (length = 1).
 Maximum number of attempts to find (1) a connected network structure and

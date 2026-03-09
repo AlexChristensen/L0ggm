@@ -17,9 +17,6 @@
 #' @param blocks Numeric (length = 1).
 #' Number of community blocks
 #'
-#' @param sample_size Numeric (length = 1).
-#' Number of cases to generate from a random multivariate normal distribution
-#'
 #' @param within_density Numeric (length = 1 or \code{blocks}).
 #' Probability that an edge exists between any two nodes within the same
 #' community block.
@@ -39,6 +36,9 @@
 #' Must be between 0 and 1.
 #' If not provided, a value is sampled from an empirical distribution with
 #' mean = 0.35 and SD = 0.09, bounded between 0.08 and 0.55
+#'
+#' @param sample_size Numeric (length = 1).
+#' Number of cases to generate from a random multivariate normal distribution
 #'
 #' @param max_iterations Numeric (length = 1).
 #' Maximum number of attempts to find (1) a connected network structure and
@@ -140,7 +140,10 @@
 #'
 # Simulate SBM GGM data ----
 # Updated 08.03.2026
-simulate_sbm <- function(nodes, blocks, sample_size, within_density, between_density, negative_proportion, max_iterations = 100)
+simulate_sbm <- function(
+    nodes, blocks, within_density, between_density,
+    negative_proportion, sample_size, max_iterations = 100
+)
 {
 
   # Check for missing negative proportion
@@ -159,8 +162,8 @@ simulate_sbm <- function(nodes, blocks, sample_size, within_density, between_den
 
   # Check for input errors
   simulate_sbm_errors(
-    nodes, blocks, sample_size, within_density,
-    between_density, negative_proportion
+    nodes, blocks, within_density, between_density,
+    negative_proportion, sample_size
   )
 
   # Determine total number of nodes
@@ -180,7 +183,7 @@ simulate_sbm <- function(nodes, blocks, sample_size, within_density, between_den
 
   # Initialize generation checks
   connected <- FALSE
-  good_weights <- TRUE
+  bad_weights <- TRUE
 
   # Initialize iterations
   weights_iter <- connected_iter <- 0
@@ -207,26 +210,52 @@ simulate_sbm <- function(nodes, blocks, sample_size, within_density, between_den
 
   }
 
+  # Get Weibull model
+  weibull_weights <- get(data("weibull_weights", package = "L0ggm", envir = environment()))
+
+  # Collect errors
+  errors <- character(length = max_iterations + 1)
+
   # Generate edges for the network
-  while(good_weights){
+  while(bad_weights){
 
     # Try to get good weights
     output <- try(
       sbm_weights(
-        block_matrix, membership, membership_matrix, sample_size,
+        weibull_weights, block_matrix, membership, membership_matrix, sample_size,
         total_nodes, negative_proportion, lower_triangle
       ), silent = TRUE
     )
 
     # Set good weights
-    good_weights <- is(output, "try-error")
+    bad_weights <- is(output, "try-error")
 
     # Increase count
     weights_iter <- weights_iter + 1
 
+    # If an error, collect it
+    if(bad_weights){
+      errors[weights_iter] <- trimws(strsplit(output[1], split = "\n")[[1]][2])
+    }
+
     # Stop on greater than max iterations
     if(weights_iter > max_iterations){
-      stop("Reached maximum iterations: Could not find weights that for the SBM solution.")
+
+      # Collect errors
+      error_table <- fast_table(errors)
+
+      # Remove NULL
+      error_table <- error_table[names(error_table) != ""]
+
+      # Return error
+      stop(
+        paste0(
+          "Reached maximum iterations: Could not find weights that for the SBM solution. ",
+          "Resulting errors were due to:\n\n",
+          paste0(names(error_table), " = ", error_table, collapse = "\n")
+        )
+      )
+
     }
 
   }
@@ -252,7 +281,7 @@ simulate_sbm <- function(nodes, blocks, sample_size, within_density, between_den
 
 }
 
-# # Bug checking ----
+# Bug checking ----
 # nodes = c(4, 6, 8); blocks = 3; sample_size = 1000
 # within_density = 0.90; between_density = 0.20
 # negative_proportion = 0.35; max_iterations = 100
@@ -261,8 +290,8 @@ simulate_sbm <- function(nodes, blocks, sample_size, within_density, between_den
 # Errors ----
 # Updated 08.03.2026
 simulate_sbm_errors <- function(
-    nodes, blocks, sample_size, within_density,
-    between_density, negative_proportion
+    nodes, blocks, within_density, between_density,
+    negative_proportion, sample_size
 )
 {
 
@@ -275,11 +304,6 @@ simulate_sbm_errors <- function(
   typeof_error(nodes, "numeric")
   length_error(nodes, c(1, blocks))
   range_error(nodes, c(3, Inf))
-
-  # Errors for 'sample_size'
-  typeof_error(sample_size, "numeric")
-  length_error(sample_size, 1)
-  range_error(sample_size, c(1, Inf))
 
   # Errors for 'within_density'
   typeof_error(within_density, "numeric")
@@ -295,6 +319,11 @@ simulate_sbm_errors <- function(
   typeof_error(negative_proportion, "numeric")
   length_error(negative_proportion, 1)
   range_error(negative_proportion, c(0, 1))
+
+  # Errors for 'sample_size'
+  typeof_error(sample_size, "numeric")
+  length_error(sample_size, 1)
+  range_error(sample_size, c(1, Inf))
 
 }
 
@@ -356,14 +385,14 @@ generate_sbm <- function(
 # SBM weight generation ----
 # Updated 08.03.2026
 sbm_weights <- function(
-    block_matrix, membership, membership_matrix, sample_size,
-    total_nodes, negative_proportion, lower_triangle
+    weibull_weights, block_matrix, membership, membership_matrix,
+    sample_size, total_nodes, negative_proportion, lower_triangle
 )
 {
 
   # Generate edges
   total_edges <- sum(block_matrix)
-  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = total_nodes)
+  edges <- generate_edges(weibull_weights, nonzero = total_edges, n = sample_size, p = total_nodes)
 
   # Sort edges
   sorted_edges <- sort(abs(edges), decreasing = TRUE)

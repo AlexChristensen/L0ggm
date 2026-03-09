@@ -3,6 +3,12 @@
 # Updated 08.03.2026
 check_bounds <- function(shape, scale)
 {
+  # The bounds were derived from the 203 empirical datasets
+  # from Huth et al. (2025), representing most "standard"
+  # conditions that occur in empirical data
+  # (see `?weibull_descriptives` for selection criterion)
+  # These ranges will be updated as more empirical data
+  # are aggregated
   (shape < 0.7177596) | (shape > 1.6276798) | (scale < 0.03275058) | (scale > 0.18792034)
 }
 
@@ -17,11 +23,8 @@ weibull_xoshiro <- function(n, shape, scale)
 #' @noRd
 # Generate edge values
 # Updated 08.03.2026
-generate_edges <- function(nonzero, n, p)
+generate_edges <- function(weibull_weights, nonzero, n, p)
 {
-
-  # Get Weibull model
-  weibull_weights <- get(data("weibull_weights", package = "L0ggm", envir = environment()))
 
   # Check for empirical parameter bounds and maximal partial correlation
   outside_bounds <- greater_than <- TRUE
@@ -108,27 +111,5 @@ condition_network <- function(network)
 
   # Return results
   return(list(R = cov2cor(solve(Omega)), lambda = opt$root))
-
-}
-
-#' @noRd
-# Get number of neighbors based on density
-# Updated 08.03.2026
-get_neighbors <- function(nodes, density)
-{
-
-  # Degrees of freedom
-  half_df <- (nodes - 1) / 2
-
-  # Total edges with density
-  edges <- nodes * half_df * density
-
-  # Return with minimum neighbor check
-  return(
-    min(
-      max(round(edges / nodes), 1), # maximum neighbors
-      floor(half_df) # minimum degrees of freedom
-    )
-  )
 
 }
