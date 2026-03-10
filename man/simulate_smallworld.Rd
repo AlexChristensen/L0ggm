@@ -71,7 +71,7 @@ Returns a list containing:
 \item{data}{Simulated data from the specified small-world network model}
 
 \item{parameters}{
-A list echoing the input parameters used to generate the data:
+A list containing all input, derived, and estimated parameters:
 
 \itemize{
 
@@ -91,6 +91,13 @@ initial ring lattice, derived from \code{nodes} and \code{density}
 \item \code{skew} --- Named numeric vector of per-variable skew values
 actually applied during data generation
 
+\item \code{weibull} --- MLE parameters of the Weibull distribution fit
+to the absolute edge weights, containing \code{shape} and \code{scale}
+
+\item \code{omega} --- Smallworldness omega statistic of the generated
+network (Telesford et al., 2011); values near zero indicate small-world
+structure
+
 }
 
 }
@@ -104,17 +111,8 @@ A list containing the population-level network parameters:
 
 \item \code{Omega} --- Population partial correlation network (GGM)
 
-\item \code{omega} --- Smallworldness omega statistic of the generated
-network (Telesford et al., 2011); values near zero indicate small-world
-structure
-
 }
 
-}
-
-\item{weight_parameters}{
-MLE parameters of the Weibull distribution fit to the absolute edge weights,
-containing \code{shape} and \code{scale}
 }
 
 \item{convergence}{

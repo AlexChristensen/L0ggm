@@ -9,16 +9,13 @@ A named list with two elements, \code{shape} and \code{scale},
 each containing:
 \describe{
   \item{\code{coefficients}}{A named numeric vector of regression
-  coefficients from the SUR model. The shape equation includes an intercept
-  and three predictors (\code{beta_min}, \code{rlp}, \code{n_scaled});
-  the scale equation includes an intercept and two predictors
-  (\code{beta_min}, \code{rlp}). Predictors are defined as follows:
+  coefficients from the SUR model. Both equations include an intercept
+  and two predictors (\code{beta_min}, \code{rlp}). Predictors are
+  defined as follows:
   \describe{
     \item{\code{beta_min}}{A noise-to-signal proxy, \eqn{\sqrt{\log(p)/n}},
     where \eqn{p} is the number of nodes and \eqn{n} is the sample size.}
     \item{\code{rlp}}{Reciprocal log of node count, \eqn{1 / \log(p)}.}
-    \item{\code{n_scaled}}{Sample size rescaled to units of 10,000,
-    \eqn{n / 10{,}000}. Included in the shape equation only.}
   }}
   \item{\code{residuals}}{A numeric vector of residuals from the fitted SUR
   equation, used by \code{\link{weibull_parameters}} to introduce
@@ -30,31 +27,42 @@ data(weibull_weights)
 }
 \description{
 A named list encoding the Seemingly Unrelated Regression (SUR) model fitted
-to Weibull shape and scale parameters derived from 223 empirical networks in
-\code{\link{weibull_descriptives}}. The object is consumed internally by
-\code{\link{weibull_parameters}} to generate data-driven Weibull parameter
-estimates given a network's number of nodes and sample size.
+to Weibull shape and log-transformed scale parameters derived from 190
+empirical networks in \code{\link{weibull_descriptives}}. The object is
+consumed internally by \code{\link{weibull_parameters}} to generate
+data-driven Weibull parameter estimates given a network's number of nodes
+and sample size.
 }
 \details{
-Absolute partial correlations from 223 deduplicated empirical networks
-(8–40 nodes; \eqn{n < 300{,}000}) were fitted to Beta, Gamma, log-normal,
-and Weibull distributions via maximum likelihood. Weibull provided the best
-fit most consistently: it outperformed each alternative by more than 2
-log-likelihood units far more often than the reverse (vs. Beta: 60–1;
-vs. Gamma: 16–3; vs. log-normal: 184–12).
+Absolute partial correlations from 222 deduplicated empirical networks
+(Huth et al., 2025) were fitted to Beta, Gamma, log-normal, and Weibull
+distributions via maximum likelihood. Weibull provided the best fit most
+consistently: it outperformed each alternative by more than 2 log-likelihood
+units far more often than the reverse (vs. Beta: 60--1; vs. Gamma: 16--3;
+vs. log-normal: 184--12).
 
 The resulting Weibull shape and scale parameters were then jointly modelled
 as a function of network descriptors using Seemingly Unrelated Regression
-(\code{systemfit}), which accounts for the correlated
-residuals between the shape and scale equations across networks. The scale
-equation omits \code{n_scaled} relative to the shape equation, reflecting
-the empirical model selection process. One network (number 43, where
-\eqn{N \approx p} and the condition number was extreme) was excluded as an
-outlier prior to fitting.
+(\code{systemfit}), which accounts for correlated residuals between the
+shape and scale equations across networks. Prior to fitting, networks with
+fewer than one observation per edge (\eqn{\text{ope} \leq 1}) were excluded,
+as Huth et al. (2025) demonstrated that networks in this regime show the
+weakest statistical evidence for edge presence or absence, yielding unstable
+parameter estimates (n = 31 excluded). One additional network was excluded
+as a shape outlier, leaving n = 190 networks for analysis. The scale
+parameter was log-transformed prior to modelling to satisfy the normality
+assumption; residuals from the log-scale equation were approximately normal
+(Shapiro-Wilk W = 0.983, p = 0.023), with the marginal p-value reflecting
+test sensitivity at n = 190 rather than a substantive violation, as
+confirmed by visual inspection of the residual histogram.
 
-Variance inflation factors and condition numbers confirmed the absence of
-problematic multicollinearity. Residual normality was assessed via
-Shapiro-Wilk tests and histograms; homoskedasticity via Breusch-Pagan tests.
+Variance inflation factors (< 1.01) and the condition number of the design
+matrix (kappa = 40.0) confirmed the absence of problematic multicollinearity.
+Breusch-Pagan tests indicated statistically significant heteroskedasticity
+in both equations; however, HC3-robust standard errors were substantively
+identical to OLS standard errors, indicating no material effect on inference.
+Shape residuals were normally distributed (Shapiro-Wilk W = 0.993,
+p = 0.565).
 }
 \examples{
 data("weibull_weights")
@@ -68,8 +76,8 @@ weibull_parameters(nodes = 12, sample_size = 500)
 
 }
 \references{
-Huth, K. B. S., Haslbeck, J. M. B., Keetelaar, S., Van Holst, R. J., & Marsman, M. (2025).
-Statistical evidence in psychological networks.
+Huth, K. B. S., Haslbeck, J. M. B., Keetelaar, S., Van Holst, R. J., &
+Marsman, M. (2025). Statistical evidence in psychological networks.
 \emph{Nature Human Behaviour}.
 }
 \keyword{datasets}

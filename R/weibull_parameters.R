@@ -22,8 +22,8 @@
 #' bootstrapping contexts. Defaults to \code{FALSE}.
 #'
 #' @details
-#' The shape and scale parameters are predicted from three derived network
-#' descriptors:
+#' The shape and scale parameters are predicted from two derived network
+#' descriptors shared across both equations:
 #'
 #' \describe{
 #'   \item{\code{beta_min}}{A noise-to-signal proxy defined as
@@ -33,21 +33,23 @@
 #'   \item{\code{rlp}}{The reciprocal log of the number of nodes,
 #'     \eqn{1 / \log(p)}, capturing the diminishing marginal effect of network
 #'     size on edge weight distributions.}
-#'   \item{\code{n_scaled}}{Sample size scaled to units of 10,000
-#'     (\eqn{n / 10{,}000}), used only in the shape equation to reduce
-#'     numerical range. Not included in the scale equation.}
 #' }
 #'
-#' These predictors enter two SUR equations — one for shape and one for scale --
-#' whose coefficients are stored in the internal \code{weibull_weights} dataset.
-#' SUR was used to account for the correlated residuals between the shape and
-#' scale equations across networks.
+#' These predictors enter two SUR equations — one for shape and one for
+#' log-transformed scale — whose coefficients are stored in the internal
+#' \code{weibull_weights} dataset. SUR was used to account for the correlated
+#' residuals between the shape and scale equations across networks (residual
+#' correlation = 0.594). The scale equation was fitted on \code{log(scale)} to
+#' satisfy residual normality; predictions are back-transformed via \code{exp()}
+#' before being returned. When \code{bootstrap = TRUE}, residuals are added in
+#' log space prior to back-transformation, preserving the correct error
+#' structure.
 #'
 #' Empirically, shape values ranged from approximately 0.72 to 1.63
 #' (M = 1.08, SD = 0.13) and scale values from approximately 0.03 to 0.19
-#' (M = 0.10, SD = 0.03) across the Huth et al. (2025) networks. Shape values
-#' near 1 indicate approximately exponential edge weight distributions; values
-#' above 1 indicate a rising hazard (mode-bearing distribution).
+#' (M = 0.10, SD = 0.03) across the 190 networks used to fit the model. Shape
+#' values near 1 indicate approximately exponential edge weight distributions;
+#' values above 1 indicate a rising hazard (mode-bearing distribution).
 #'
 #' When \code{bootstrap = TRUE}, residuals are drawn via \code{shuffle()} --
 #' a random sampling without replacement — from the empirical SUR residuals,
@@ -56,7 +58,8 @@
 #' @return A named numeric vector of length 2:
 #' \describe{
 #'   \item{\code{shape}}{The predicted Weibull shape parameter (\eqn{k > 0}).}
-#'   \item{\code{scale}}{The predicted Weibull scale parameter (\eqn{\lambda > 0}).}
+#'   \item{\code{scale}}{The predicted Weibull scale parameter (\eqn{\lambda > 0}),
+#'   back-transformed from log space.}
 #' }
 #'
 #' @examples
@@ -69,8 +72,8 @@
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @references
-#' Huth, K. B. S., Haslbeck, J. M. B., Keetelaar, S., Van Holst, R. J., & Marsman, M. (2025).
-#' Statistical evidence in psychological networks.
+#' Huth, K. B. S., Haslbeck, J. M. B., Keetelaar, S., Van Holst, R. J., &
+#' Marsman, M. (2025). Statistical evidence in psychological networks.
 #' \emph{Nature Human Behaviour}.
 #'
 #' @export
@@ -84,26 +87,29 @@ weibull_parameters <- function(nodes, sample_size, bootstrap = FALSE)
   weibull_weights <- get(data("weibull_weights", package = "L0ggm", envir = environment()))
 
   # Compute descriptive parameters
-  scale_parameters <- c(beta_min = sqrt(log(nodes) / sample_size), rlp = 1 / log(nodes))
-  shape_parameters <- c(scale_parameters, n_scaled = sample_size / 10000)
+  parameters <- c(beta_min = sqrt(log(nodes) / sample_size), rlp = 1 / log(nodes))
 
   # Compute Weibull parameters
   shape <- unname(
     weibull_weights$shape$coefficients[1] +
-    sum(weibull_weights$shape$coefficients[-1] * shape_parameters)
+    sum(weibull_weights$shape$coefficients[-1] * parameters)
   )
   scale <- unname(
     weibull_weights$scale$coefficients[1] +
-    sum(weibull_weights$scale$coefficients[-1] * scale_parameters)
+    sum(weibull_weights$scale$coefficients[-1] * parameters)
   )
 
   # Bootstrap residuals
   if(bootstrap){
-    shape <- shape + shuffle(weibull_weights$shape$residuals, 1)
-    scale <- scale + shuffle(weibull_weights$scale$residuals, 1)
+
+    # Draw index
+    index <- shuffle(seq_along(weibull_weights$shape$residuals), 1)
+
+    shape <- shape + weibull_weights$shape$residuals[index]
+    scale <- scale + weibull_weights$scale$residuals[index]
   }
 
-  # Return parameters
-  return(c(shape = shape, scale = scale))
+  # Return parameters (scale needs a back-transform)
+  return(c(shape = shape, scale = exp(scale)))
 
 }

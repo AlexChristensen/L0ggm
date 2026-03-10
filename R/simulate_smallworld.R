@@ -61,7 +61,7 @@
 #' \item{data}{Simulated data from the specified small-world network model}
 #'
 #' \item{parameters}{
-#' A list echoing the input parameters used to generate the data:
+#' A list containing all input, derived, and estimated parameters:
 #'
 #' \itemize{
 #'
@@ -81,6 +81,13 @@
 #' \item \code{skew} --- Named numeric vector of per-variable skew values
 #' actually applied during data generation
 #'
+#' \item \code{weibull} --- MLE parameters of the Weibull distribution fit
+#' to the absolute edge weights, containing \code{shape} and \code{scale}
+#'
+#' \item \code{omega} --- Smallworldness omega statistic of the generated
+#' network (Telesford et al., 2011); values near zero indicate small-world
+#' structure
+#'
 #' }
 #'
 #' }
@@ -94,17 +101,8 @@
 #'
 #' \item \code{Omega} --- Population partial correlation network (GGM)
 #'
-#' \item \code{omega} --- Smallworldness omega statistic of the generated
-#' network (Telesford et al., 2011); values near zero indicate small-world
-#' structure
-#'
 #' }
 #'
-#' }
-#'
-#' \item{weight_parameters}{
-#' MLE parameters of the Weibull distribution fit to the absolute edge weights,
-#' containing \code{shape} and \code{scale}
 #' }
 #'
 #' \item{convergence}{
@@ -248,7 +246,7 @@ simulate_smallworld <- function(
 
     # Estimate small-worldness (|0.50| based on Telesford et al., 2011)
     omega <- smallworldness(A, nodes, neighbors)[["omega"]]
-    smallworld <- silent_call((omega > -0.30) & (omega < 0.80))
+    smallworld <- silent_call((omega > -0.30) & (omega < 0.70))
     # Between the +/- 2 SD range of the empirical values
 
     # Increase count
@@ -256,7 +254,7 @@ simulate_smallworld <- function(
 
     # Stop on greater than max iterations
     if(smallworld_iter > max_iterations){
-      stop("Reached maximum iterations: Could not find solution where network was smallworld.")
+      stop("Reached maximum iterations: Could not find solution where network was small-world.")
     }
 
   }
@@ -304,7 +302,7 @@ simulate_smallworld <- function(
       # Return error
       stop(
         paste0(
-          "Reached maximum iterations: Could not find weights that for the SBM solution. ",
+          "Reached maximum iterations: Could not find weights that for the small-world solution. ",
           "Resulting errors were due to:\n\n",
           paste0(names(error_table), " = ", error_table, collapse = "\n")
         )
@@ -328,12 +326,11 @@ simulate_smallworld <- function(
         rewire = rewire,
         negative_proportion = negative_proportion,
         sample_size = sample_size,
-        skew = data_output$skew
+        skew = data_output$skew,
+        weibull = output$params,
+        omega = output$omega
       ),
-      population = list(
-        R = output$R, Omega = output$network, omega = output$omega
-      ),
-      weight_parameters = output$params,
+      population = list(R = output$R, Omega = output$network),
       convergence = list(
         connected = connected_iter,
         smallworld = smallworld_iter,
@@ -557,11 +554,8 @@ smallworld_weights <- function(
   # Set up for smallworld Schur complement
   ## ASPL component
   distance_normed <- lattice[lower_triangle][nonzero] / (neighbors + 1)
-  ## CC component
-  cc <- pmax(1e-06, igraph::transitivity(convert2igraph(A), type = "local")) # ensure non-zero floor
-  cc_normed <- (outer(cc, cc, FUN = "+") / 2)[lower_triangle][nonzero]
   ## Set weights order
-  weight_order <- rank((1 - distance_normed) * cc_normed, ties.method = "random")
+  weight_order <- rank((1 - distance_normed), ties.method = "random")
   network[lower_triangle][nonzero] <- sorted_edges[weight_order] * signs
   network <- network + t(network) # make symmetric
 
@@ -583,17 +577,13 @@ smallworld_weights <- function(
     }
 
     # Store outputs
-    R <- output$R; lambda <- output$lambda
+    lambda <- output$lambda
 
-    # Check for positive definite again
-    if(anyNA(R) || !is_positive_definite(R)){
-      stop("Not positive definite")
-    }
-
-    # Update network
-    P <- cor2pcor(R)
+    # Update network and correlations
+    P <- cor2pcor(output$R)
     P[network == 0] <- 0
     network <- P
+    R <- pcor2cor(network)
 
     # Update parameters
     edges <- network[lower_triangle]

@@ -4,9 +4,12 @@
 #' block model (SBM) structure. Nodes are partitioned into communities, with
 #' edge density controlled separately within and between communities. Edge
 #' weights are derived empirically and the resulting network is used to
-#' generate multivariate normal data. Parameters do not have default values
-#' (except \code{negative_proportion}, \code{target_condition}, and
-#' \code{max_iterations}) and must each be set. See examples to get started
+#' generate multivariate normal data. A \code{mixing} parameter controls the
+#' proportion of the strongest edges that are allowed to appear between
+#' communities rather than being reserved for within-community positions.
+#' Parameters do not have default values (except \code{negative_proportion},
+#' \code{mixing}, \code{target_condition}, and \code{max_iterations}) and
+#' must each be set. See examples to get started
 #'
 #' @param nodes Numeric (length = 1 or \code{blocks}).
 #' Number of nodes per community block.
@@ -51,6 +54,23 @@
 #' Randomly selects skews within in the range.
 #' Somewhat redundant with \code{skew} but more flexible
 #'
+#' @param mixing Numeric (length = 1).
+#' Proportion of the strongest edges that are randomly assigned to
+#' between-block positions rather than being reserved for within-block
+#' positions. At \code{mixing = 0} (default), all of the strongest edges are
+#' placed within communities, producing well-separated blocks. Higher values
+#' redistribute more top-weighted edges to between-block positions, reducing
+#' the weight separation between communities.
+#' Must be between 0 and 1
+#'
+#' @param mixing_range Numeric (length = 2).
+#' If provided, the mixing proportion is drawn uniformly from this range on
+#' each call, overriding \code{mixing}. Useful for introducing variability
+#' across simulation replications. For example,
+#' \code{mixing_range = c(0.05, 0.20)} samples a mixing value between 5\%
+#' and 20\% on each draw.
+#' Both values must be between 0 and 1
+#'
 #' @param target_condition Numeric (length = 1).
 #' Target condition number (using \code{\link{kappa}}) used
 #' when ridge regularization is applied to an ill-conditioned precision matrix.
@@ -68,7 +88,7 @@
 #' \item{data}{Simulated data from the specified SBM network model}
 #'
 #' \item{parameters}{
-#' A list echoing the input parameters used to generate the data:
+#' A list containing all input, derived, and estimated parameters:
 #'
 #' \itemize{
 #'
@@ -87,6 +107,17 @@
 #'
 #' \item \code{negative_proportion} --- Proportion of negative edges used
 #'
+#' \item \code{weibull} --- MLE parameters of the Weibull distribution fit
+#' to the absolute edge weights, containing \code{shape} and \code{scale}
+#'
+#' \item \code{mixing} --- Numeric vector of length 2 giving the within-block
+#' reservation range used during weight assignment. When \code{mixing_range}
+#' is provided, this equals \code{1 - mixing_range}; otherwise both values
+#' equal \code{1 - mixing}
+#'
+#' \item \code{Q} --- Modularity of the population network with respect to
+#' the block membership structure, computed via \code{igraph::modularity}
+#'
 #' }
 #'
 #' }
@@ -103,16 +134,8 @@
 #' \item \code{membership} --- Named integer vector of community block
 #' assignments for each node
 #'
-#' \item \code{Q} --- Modularity of the population network with respect to
-#' the block membership structure, computed via \code{igraph::modularity}
-#'
 #' }
 #'
-#' }
-#'
-#' \item{weight_parameters}{
-#' MLE parameters of the Weibull distribution fit to the absolute edge weights,
-#' containing \code{shape} and \code{scale}
 #' }
 #'
 #' \item{convergence}{
@@ -175,6 +198,26 @@
 #'   negative_proportion = 0.20 # 20% of edges are negative
 #' )
 #'
+#' # Control community separation via mixing
+#' mixed_blocks <- simulate_sbm(
+#'   nodes = 6, # 6 nodes per block
+#'   blocks = 3, # 3 community blocks
+#'   sample_size = 1000, # number of cases = 1000
+#'   within_density = 0.90, # 90% edge probability within blocks
+#'   between_density = 0.20, # 20% edge probability between blocks
+#'   mixing = 0.10 # 10% of strongest edges can appear between blocks
+#' )
+#'
+#' # Variable mixing across simulation replications
+#' variable_mixing <- simulate_sbm(
+#'   nodes = 6, # 6 nodes per block
+#'   blocks = 3, # 3 community blocks
+#'   sample_size = 1000, # number of cases = 1000
+#'   within_density = 0.90, # 90% edge probability within blocks
+#'   between_density = 0.20, # 20% edge probability between blocks
+#'   mixing_range = c(0.05, 0.20) # mixing sampled uniformly from 5-20%
+#' )
+#'
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @references
@@ -191,6 +234,7 @@ simulate_sbm <- function(
     nodes, blocks, within_density, between_density,
     negative_proportion, sample_size,
     skew = 0, skew_range = NULL,
+    mixing = 0, mixing_range = NULL,
     target_condition = 30,
     max_iterations = 100
 )
@@ -213,7 +257,7 @@ simulate_sbm <- function(
   # Check for input errors
   simulate_sbm_errors(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size, skew,
+    negative_proportion, sample_size, skew, mixing,
     target_condition, max_iterations
   )
 
@@ -271,7 +315,9 @@ simulate_sbm <- function(
     output <- try(
       sbm_weights(
         block_matrix, membership, membership_matrix, sample_size,
-        total_nodes, negative_proportion, target_condition, lower_triangle
+        total_nodes, negative_proportion,
+        mixing, mixing_range,
+        target_condition, lower_triangle
       ), silent = TRUE
     )
 
@@ -328,17 +374,16 @@ simulate_sbm <- function(
         skew = data_output$skew,
         within_density = within_density,
         between_density = between_density,
-        negative_proportion = negative_proportion
+        negative_proportion = negative_proportion,
+        weibull = output$params,
+        mixing = output$mixing,
+        Q = igraph::modularity(convert2igraph(abs(output$network)), output$membership)
       ),
       population = list(
         R = output$R,
         Omega = output$network,
-        membership = output$membership,
-        Q = igraph::modularity(
-          convert2igraph(abs(output$network)), output$membership
-        )
+        membership = output$membership
       ),
-      weight_parameters = output$params,
       convergence = list(
         connected = connected_iter,
         weights = weights_iter,
@@ -361,7 +406,7 @@ simulate_sbm <- function(
 # Updated 10.03.2026
 simulate_sbm_errors <- function(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size, skew,
+    negative_proportion, sample_size, skew, mixing,
     target_condition, max_iterations
 )
 {
@@ -400,6 +445,11 @@ simulate_sbm_errors <- function(
   typeof_error(skew, "numeric")
   length_error(skew, c(1, swiftelse(length(nodes) == 1, nodes * blocks, sum(nodes))))
   range_error(skew, c(-2, 2))
+
+  # Errors for 'mixing'
+  typeof_error(mixing, "numeric")
+  length_error(mixing, 1)
+  range_error(mixing, c(0, 1))
 
   # Errors for 'target_condition'
   typeof_error(target_condition, "numeric")
@@ -472,9 +522,24 @@ generate_sbm <- function(
 # Updated 10.03.2026
 sbm_weights <- function(
     block_matrix, membership, membership_matrix, sample_size,
-    total_nodes, negative_proportion, target_condition, lower_triangle
+    total_nodes, negative_proportion,
+    mixing, mixing_range,
+    target_condition, lower_triangle
 )
 {
+
+  # Check for mixing range
+  if(!is.null(mixing_range)){
+    typeof_error(mixing_range, "numeric") # object type error
+    length_error(mixing_range, 2) # object length error
+    range_error(mixing_range, c(0, 1)) # object range error
+    mixing <- range(mixing_range)
+  }else{
+    mixing <- c(mixing, mixing)
+  }
+
+  # Reverse mixing
+  mixing <- 1 - mixing
 
   # Generate edges
   total_edges <- sum(block_matrix)
@@ -487,8 +552,8 @@ sbm_weights <- function(
   within_index <- membership_matrix & block_matrix
   total_within <- sum(within_index)
 
-  # Set mixing parameter = (U(0.15, 0.35))
-  within_reserved <- round(total_within * runif_xoshiro(1, min = 0.65, max = 0.85))
+  # Set mixing parameter
+  within_reserved <- round(total_within * runif_xoshiro(1, min = mixing[2], max = mixing[1]))
   within_random <- total_within - within_reserved
 
   # Top edges guaranteed to go into communities
@@ -540,17 +605,18 @@ sbm_weights <- function(
     }
 
     # Store outputs
-    R <- output$R; lambda <- output$lambda
+    lambda <- output$lambda
+
+    # Update network and correlations
+    P <- cor2pcor(output$R)
+    P[network == 0] <- 0
+    network <- P
+    R <- pcor2cor(network)
 
     # Check for positive definite again
     if(anyNA(R) || !is_positive_definite(R)){
       stop("Not positive definite")
     }
-
-    # Update network
-    P <- cor2pcor(R)
-    P[network == 0] <- 0
-    network <- P
 
     # Update parameters
     edges <- network[lower_triangle]
@@ -574,6 +640,7 @@ sbm_weights <- function(
       network = network,
       membership = membership,
       params = attr(edges, "params"),
+      mixing = mixing,
       lambda = lambda,
       condition = kappa(R)
     )

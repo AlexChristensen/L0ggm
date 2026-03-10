@@ -9,7 +9,7 @@ check_bounds <- function(shape, scale)
   # (see `?weibull_descriptives` for selection criterion)
   # These ranges will be updated as more empirical data
   # are aggregated
-  (shape < 0.70) | (shape > 1.70) | (scale < 0.03) | (scale > 0.19)
+  (shape < 0.70) | (shape > 1.50) | (scale < 0.03) | (scale > 0.19)
 }
 
 #' @noRd
@@ -96,7 +96,7 @@ condition_network <- function(network, target_condition)
   R <- cov2cor(solve(Omega))
 
   # Return results
-  return(list(R = R, lambda = opt$root, condition = kappa(R)))
+  return(list(R = R, lambda = opt$root))
 
 }
 
