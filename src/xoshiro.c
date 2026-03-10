@@ -100,13 +100,13 @@ uint64_t splitmix64(uint64_t *x) {
 
 // Function to set single seed to get the 4 random seeds
 void seed_xoshiro256(xoshiro256_state* state, uint64_t seed) {
-    
+
     // Loop unrolled
     seed = splitmix64(&seed); state->s[0] = seed;
     seed = splitmix64(&seed); state->s[1] = seed;
     seed = splitmix64(&seed); state->s[2] = seed;
     seed = splitmix64(&seed); state->s[3] = seed;
-    
+
 }
 
 // Stored so it doesn't need to be repeatedly called
@@ -228,39 +228,45 @@ SEXP r_xoshiro_shuffle(SEXP r_vector, SEXP r_seed) {
 }
 
 // Function to shuffle indices with replacement
-SEXP r_xoshiro_shuffle_replace(SEXP r_vector, SEXP r_seed) {
+SEXP r_xoshiro_shuffle_replace(SEXP r_vector, SEXP r_size, SEXP r_seed) {
 
-    // Get length of R vector
-    int vector_length = length(r_vector);
+  // Get length of R vector
+  int vector_length = length(r_vector);
 
-    // Initialize R values
-    uint64_t seed_value = (uint64_t) REAL(r_seed)[0];
+  // Get output size (default to vector_length if size <= 0)
+  int size = asInteger(r_size);
+  if (size <= 0) {
+    size = vector_length;
+  }
 
-    // For random seed, use zero
-    if(seed_value == 0) { // Use clocktime in nanoseconds
-      seed_value = get_time_ns();
-    }
+  // Initialize R values
+  uint64_t seed_value = (uint64_t) REAL(r_seed)[0];
 
-    // Seed the random number generator
-    xoshiro256_state state;
-    seed_xoshiro256(&state, seed_value);
+  // For random seed, use zero
+  if(seed_value == 0) { // Use clocktime in nanoseconds
+    seed_value = get_time_ns();
+  }
 
-    // Create R vector
-    SEXP r_output = PROTECT(allocVector(REALSXP, vector_length));
+  // Seed the random number generator
+  xoshiro256_state state;
+  seed_xoshiro256(&state, seed_value);
 
-    // Get a pointer to the double data of the R vector
-    double* vec_data = REAL(r_output);
+  // Create R vector of length `size`
+  SEXP r_output = PROTECT(allocVector(REALSXP, size));
 
-    // Shuffle
-    for(int i = 0; i < vector_length; i++) {
-        vec_data[i] = (double) (next(&state) % vector_length) + 1;
-    }
+  // Get a pointer to the double data of the R vector
+  double* vec_data = REAL(r_output);
 
-    // Release protected SEXP objects
-    UNPROTECT(1);
+  // Sample with replacement
+  for(int i = 0; i < size; i++) {
+    vec_data[i] = (double) (next(&state) % vector_length) + 1;
+  }
 
-    // Return the result
-    return r_output;
+  // Release protected SEXP objects
+  UNPROTECT(1);
+
+  // Return the result
+  return r_output;
 
 }
 

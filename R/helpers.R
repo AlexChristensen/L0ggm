@@ -288,7 +288,7 @@ shuffle <- function(x, size = length(x), seed = NULL)
 #' @noRd
 # Shuffle (with replacement) ----
 # Uses xoshiro256++ random number generation: https://prng.di.unimi.it/
-# Updated 30.07.2023
+# Updated 10.03.2026
 shuffle_replace <- function(x, size = length(x), seed = NULL)
 {
 
@@ -296,9 +296,9 @@ shuffle_replace <- function(x, size = length(x), seed = NULL)
   return(
     x[.Call(
       "r_xoshiro_shuffle_replace",
-      x, swiftelse(is.null(seed), 0, seed),
+      x, size, swiftelse(is.null(seed), 0, seed),
       PACKAGE = "L0ggm"
-    )][seq_len(size)]
+    )]
   )
 
 }
