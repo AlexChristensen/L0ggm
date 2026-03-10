@@ -75,8 +75,16 @@
 #' Target condition number (using \code{\link{kappa}}) used
 #' when ridge regularization is applied to an ill-conditioned precision matrix.
 #' A lower value produces a better-conditioned (more stable) matrix.
-#' Defaults to \code{30}.
-#' For looser constraints, up to \code{100} is accepted but not recommended
+#' Defaults to \code{15}.
+#' For looser constraints, up to \code{30} is accepted but not recommended
+#'
+#' @param max_correlation Numeric (length = 1).
+#' Maximum allowed absolute correlation between any pair of nodes in the
+#' population correlation matrix \code{R}.
+#' If the largest off-diagonal entry of \code{abs(R)} exceeds this threshold,
+#' the current weight draw is rejected and a new one is attempted.
+#' Must be between 0 and 1.
+#' Defaults to \code{0.80}
 #'
 #' @param max_iterations Numeric (length = 1).
 #' Maximum number of attempts to find (1) a connected network structure and
@@ -143,11 +151,9 @@
 #'
 #' \itemize{
 #'
-#' \item \code{connected} --- Number of iterations needed to obtain a
-#' connected network
+#' \item \code{iterations} --- Number of iterations needed
 #'
-#' \item \code{weights} --- Number of iterations needed to obtain valid
-#' edge weights
+#' \item \code{rejections} --- Reasons each pass was rejected (informative for challenging structures)
 #'
 #' \item \code{lambda} --- Ridge regularization parameter used to condition
 #' the precision matrix when it was not initially positive definite;
@@ -235,7 +241,7 @@ simulate_sbm <- function(
     negative_proportion, sample_size,
     skew = 0, skew_range = NULL,
     mixing = 0, mixing_range = NULL,
-    target_condition = 30,
+    target_condition = 15, max_correlation = 0.80,
     max_iterations = 100
 )
 {
@@ -258,7 +264,7 @@ simulate_sbm <- function(
   simulate_sbm_errors(
     nodes, blocks, within_density, between_density,
     negative_proportion, sample_size, skew, mixing,
-    target_condition, max_iterations
+    target_condition, max_correlation, max_iterations
   )
 
   # Determine total number of nodes
@@ -271,92 +277,86 @@ simulate_sbm <- function(
   membership <- sort(rep(community_sequence, times = nodes))
 
   # Set up membership matrix
-  membership_matrix <- block_matrix <- outer(membership, membership, "==")
+  membership_matrix <-  outer(membership, membership, "==")
 
   # Obtain lower triangle
   lower_triangle <- lower.tri(membership_matrix)
 
-  # Initialize generation checks
-  connected <- FALSE
-  bad_weights <- TRUE
-
   # Initialize iterations
-  weights_iter <- connected_iter <- 0
+  iter <- 0
 
-  # Ensure all nodes are connected to one other node
-  while(!connected){
+  # Initialize condition
+  search <- TRUE
+
+  # Collect rejections
+  rejections <- character(length = max_iterations + 1)
+
+  # Generation loop
+  while(search){
+
+    # Increase iterations
+    iter <- iter + 1
+
+    # Stop on greater than max iterations
+    if(iter > max_iterations){
+
+      # Collect rejections
+      rejection_table <- fast_table(rejections)
+
+      # Remove NULL
+      rejection_table <- rejection_table[names(rejection_table) != ""]
+
+      # Return error
+      stop(
+        paste0(
+          "Reached maximum iterations: Could not find weights that for the SBM structure. ",
+          "Resulting rejections were due to:\n\n",
+          paste0(names(rejection_table), " = ", rejection_table, collapse = "\n")
+        )
+      )
+
+    }
 
     # Get block matrix
     block_matrix <- generate_sbm(
-      block_matrix, blocks, membership, membership_matrix,
+      membership_matrix, blocks, membership, membership_matrix,
       within_density, between_density, lower_triangle
     )
 
     # Check block matrix
-    connected <- igraph::is_connected(convert2igraph(block_matrix + t(block_matrix)))
+    if(!igraph::is_connected(convert2igraph(block_matrix + t(block_matrix)))){
 
-    # Increase count
-    connected_iter <- connected_iter + 1
+      # Add rejection reason
+      rejections[iter] <- "Could not find structure where every node was connected."
 
-    # Stop on greater than max iterations
-    if(connected_iter > max_iterations){
-      stop("Reached maximum iterations: Could not find solution where every node was connected.")
+      # Move to next iteration
+      next
+
     }
-
-  }
-
-  # Collect errors
-  errors <- character(length = max_iterations + 1)
-
-  # Generate edges for the network
-  while(bad_weights){
 
     # Try to get good weights
     output <- try(
       sbm_weights(
         block_matrix, membership, membership_matrix, sample_size,
         total_nodes, negative_proportion,
-        mixing, mixing_range,
-        target_condition, lower_triangle
+        mixing, mixing_range, target_condition,
+        max_correlation, lower_triangle
       ), silent = TRUE
     )
 
-    # Set good weights
-    bad_weights <- is(output, "try-error")
+    # Check for error
+    if(is(output, "try-error")){
 
-    # Increase count
-    weights_iter <- weights_iter + 1
+      # Add rejection reason
+      rejections[iter] <- trimws(strsplit(output[1], split = "\n")[[1]][2])
 
-    # If an error, collect it
-    if(bad_weights){
-      errors[weights_iter] <- trimws(strsplit(output[1], split = "\n")[[1]][2])
-    }else if(output$condition > (target_condition + 10)){
-
-      # Update bad weights and create error
-      bad_weights <- TRUE
-      errors[weights_iter] <- "Condition greater than target"
+      # Move to next iteration
+      next
 
     }
 
-    # Stop on greater than max iterations
-    if(weights_iter > max_iterations){
-
-      # Collect errors
-      error_table <- fast_table(errors)
-
-      # Remove NULL
-      error_table <- error_table[names(error_table) != ""]
-
-      # Return error
-      stop(
-        paste0(
-          "Reached maximum iterations: Could not find weights that for the SBM solution. ",
-          "Resulting errors were due to:\n\n",
-          paste0(names(error_table), " = ", error_table, collapse = "\n")
-        )
-      )
-
-    }
+    # Update search
+    search <- FALSE
 
   }
 
@@ -385,8 +385,8 @@ simulate_sbm <- function(
         membership = output$membership
       ),
       convergence = list(
-        connected = connected_iter,
-        weights = weights_iter,
+        iterations = iter,
+        rejections = rejections,
         lambda = output$lambda,
         condition = output$condition
       )
@@ -399,7 +399,9 @@ simulate_sbm <- function(
 # nodes = c(4, 6, 8); blocks = 3; sample_size = 1000
 # within_density = 0.90; between_density = 0.20
 # negative_proportion = 0.35; skew = 0; skew_range = NULL
-# target_condition = 30; max_iterations = 100
+# mixing = 0; mixing_range = c(0.05, 0.15)
+# target_condition = 10;
+# max_correlation = 0.80; max_iterations = 100
 
 #' @noRd
 # Errors ----
@@ -407,7 +409,7 @@ simulate_sbm <- function(
 simulate_sbm_errors <- function(
     nodes, blocks, within_density, between_density,
     negative_proportion, sample_size, skew, mixing,
-    target_condition, max_iterations
+    target_condition, max_correlation, max_iterations
 )
 {
 
@@ -454,7 +456,12 @@ simulate_sbm_errors <- function(
   # Errors for 'target_condition'
   typeof_error(target_condition, "numeric")
   length_error(target_condition, 1)
-  range_error(target_condition, c(1, 100))
+  range_error(target_condition, c(1, 30))
+
+  # Errors for 'max_correlation'
+  typeof_error(max_correlation, "numeric")
+  length_error(max_correlation, 1)
+  range_error(max_correlation, c(0, 1))
 
   # Errors for 'max_iterations'
   typeof_error(max_iterations, "numeric")
@@ -523,8 +530,8 @@ generate_sbm <- function(
 sbm_weights <- function(
     block_matrix, membership, membership_matrix, sample_size,
     total_nodes, negative_proportion,
-    mixing, mixing_range,
-    target_condition, lower_triangle
+    mixing, mixing_range, target_condition,
+    max_correlation, lower_triangle
 )
 {
 
@@ -533,27 +540,31 @@ sbm_weights <- function(
     typeof_error(mixing_range, "numeric") # object type error
     length_error(mixing_range, 2) # object length error
     range_error(mixing_range, c(0, 1)) # object range error
-    mixing <- range(mixing_range)
+    mixing <- mixing_range
   }else{
     mixing <- c(mixing, mixing)
   }
 
   # Reverse mixing
-  mixing <- 1 - mixing
+  mixing <- range(1 - mixing)
+
+  # Set lower triangles
+  block_lower <- block_matrix[lower_triangle]
+  membership_lower <- membership_matrix[lower_triangle]
 
   # Generate edges
-  total_edges <- sum(block_matrix)
+  total_edges <- sum(block_lower)
   edges <- generate_edges(nonzero = total_edges, n = sample_size, p = total_nodes)
 
   # Sort edges
   sorted_edges <- sort(abs(edges), decreasing = TRUE)
 
   # Obtain edges
-  within_index <- membership_matrix & block_matrix
+  within_index <- membership_lower & block_lower
   total_within <- sum(within_index)
 
   # Set mixing parameter
-  within_reserved <- round(total_within * runif_xoshiro(1, min = mixing[2], max = mixing[1]))
+  within_reserved <- round(total_within * runif_xoshiro(1, min = mixing[1], max = mixing[2]))
   within_random <- total_within - within_reserved
 
   # Top edges guaranteed to go into communities
@@ -566,18 +577,17 @@ sbm_weights <- function(
   # Remaining edge weights
   remaining_weights <- shuffle(sorted_edges[-reserved_index])
 
-  # Divide by number of between edges
-  n_between <- length(between_index)
-  negative_proportion <- min(negative_proportion / (n_between / total_edges), 1)
-
   # Get signs
-  signs <- swiftelse(runif_xoshiro(n_between) < negative_proportion, -1, 1)
+  signs <- swiftelse(runif_xoshiro(length(between_index)) < negative_proportion, -1, 1)
 
   # Set edges
-  block_matrix[(!membership_matrix) & block_matrix] <- shuffle(remaining_weights[between_index]) * signs
-  block_matrix[within_index] <- shuffle(
+  block_matrix[lower_triangle][!membership_lower & block_lower] <- shuffle(remaining_weights[between_index]) * signs
+  block_matrix[lower_triangle][within_index] <- shuffle(
     c(sorted_edges[reserved_index], remaining_weights[remaining_index])
   )
+
+  # Set upper triangle to zero
+  block_matrix[upper.tri(block_matrix)] <- 0
 
   # Make symmetric
   network <- block_matrix + t(block_matrix)
@@ -599,9 +609,9 @@ sbm_weights <- function(
     # Try to condition network
     output <- try(condition_network(network, target_condition), silent = TRUE)
 
-    # Check for positive definite again
+    # Check for whether correlation matrix is conditioned
     if(is(output, "try-error")){
-      stop("Ill-conditioned network")
+      stop("Ill-conditioned")
     }
 
     # Store outputs
@@ -633,6 +643,17 @@ sbm_weights <- function(
 
   }
 
+  # Check for condition
+  condition <- kappa(R)
+  if(condition > (target_condition + 5)){
+    stop("Condition number exceeds target")
+  }
+
+  # Check for maximum correlation
+  if(max(abs(R[lower_triangle])) > max_correlation){
+    stop("Max correlation exceeds target")
+  }
+
   # Return results
   return(
     list(
@@ -642,7 +663,7 @@ sbm_weights <- function(
       params = attr(edges, "params"),
       mixing = mixing,
       lambda = lambda,
-      condition = kappa(R)
+      condition = condition
     )
   )
 

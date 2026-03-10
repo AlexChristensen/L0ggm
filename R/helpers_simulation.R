@@ -88,7 +88,7 @@ condition_network <- function(network, target_condition)
         return(kappa(R) - target_condition)
       }
 
-    }, interval = c(0.001, 0.300)
+    }, interval = c(0.001, 1)
   )
 
   # Set diagonal on precision

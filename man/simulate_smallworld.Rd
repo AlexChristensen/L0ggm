@@ -12,7 +12,8 @@ simulate_smallworld(
   sample_size,
   skew = 0,
   skew_range = NULL,
-  target_condition = 30,
+  target_condition = 10,
+  max_correlation = 0.8,
   max_iterations = 100
 )
 }
@@ -56,8 +57,16 @@ Somewhat redundant with \code{skew} but more flexible}
 Target condition number (using \code{\link{kappa}}) used
 when ridge regularization is applied to an ill-conditioned precision matrix.
 A lower value produces a better-conditioned (more stable) matrix.
-Defaults to \code{30}.
-For looser constraints, up to \code{100} is accepted but not recommended}
+Defaults to \code{10}.
+For looser constraints, up to \code{30} is accepted but not recommended}
+
+\item{max_correlation}{Numeric (length = 1).
+Maximum allowed absolute correlation between any pair of nodes in the
+population correlation matrix \code{R}.
+If the largest off-diagonal entry of \code{abs(R)} exceeds this threshold,
+the current weight draw is rejected and a new one is attempted.
+Must be between 0 and 1.
+Defaults to \code{0.80}}
 
 \item{max_iterations}{Numeric (length = 1).
 Maximum number of attempts to find (1) a connected network structure,
@@ -120,14 +129,9 @@ A list containing iteration counts and conditioning information:
 
 \itemize{
 
-\item \code{connected} --- Number of iterations needed to obtain a
-connected network
+\item \code{iterations} --- Number of iterations needed
 
-\item \code{smallworld} --- Number of iterations needed to obtain a
-network within empirical small-world bounds
-
-\item \code{weights} --- Number of iterations needed to obtain valid
-edge weights
+\item \code{rejections} --- Reasons each pass was rejected (informative for challenging structures)
 
 \item \code{lambda} --- Ridge regularization parameter used to condition
 the precision matrix when it was not initially positive definite;

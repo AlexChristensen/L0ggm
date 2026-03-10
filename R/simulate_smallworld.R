@@ -47,8 +47,16 @@
 #' Target condition number (using \code{\link{kappa}}) used
 #' when ridge regularization is applied to an ill-conditioned precision matrix.
 #' A lower value produces a better-conditioned (more stable) matrix.
-#' Defaults to \code{30}.
-#' For looser constraints, up to \code{100} is accepted but not recommended
+#' Defaults to \code{10}.
+#' For looser constraints, up to \code{30} is accepted but not recommended
+#'
+#' @param max_correlation Numeric (length = 1).
+#' Maximum allowed absolute correlation between any pair of nodes in the
+#' population correlation matrix \code{R}.
+#' If the largest off-diagonal entry of \code{abs(R)} exceeds this threshold,
+#' the current weight draw is rejected and a new one is attempted.
+#' Must be between 0 and 1.
+#' Defaults to \code{0.80}
 #'
 #' @param max_iterations Numeric (length = 1).
 #' Maximum number of attempts to find (1) a connected network structure,
@@ -110,14 +118,9 @@
 #'
 #' \itemize{
 #'
-#' \item \code{connected} --- Number of iterations needed to obtain a
-#' connected network
+#' \item \code{iterations} --- Number of iterations needed
 #'
-#' \item \code{smallworld} --- Number of iterations needed to obtain a
-#' network within empirical small-world bounds
-#'
-#' \item \code{weights} --- Number of iterations needed to obtain valid
-#' edge weights
+#' \item \code{rejections} --- Reasons each pass was rejected (informative for challenging structures)
 #'
 #' \item \code{lambda} --- Ridge regularization parameter used to condition
 #' the precision matrix when it was not initially positive definite;
@@ -184,7 +187,7 @@
 simulate_smallworld <- function(
     nodes, density, rewire, negative_proportion,
     sample_size, skew = 0, skew_range = NULL,
-    target_condition = 30,
+    target_condition = 10, max_correlation = 0.80,
     max_iterations = 100
 )
 {
@@ -206,15 +209,8 @@ simulate_smallworld <- function(
   # Check for input errors
   simulate_smallworld_errors(
     nodes, density, rewire, negative_proportion, sample_size,
-    skew, target_condition, max_iterations
+    skew, target_condition, max_correlation, max_iterations
   )
-
-  # Initialize generation checks
-  smallworld <- connected <- FALSE
-  bad_weights <- TRUE
-
-  # Initialize iterations
-  weights_iter <- smallworld_iter <- connected_iter <- 0
 
   # Set neighbors
   neighbors <- get_neighbors(nodes, density)
@@ -222,93 +218,93 @@ simulate_smallworld <- function(
   # Create lattice network
   lattice <- smallworld_generate(nodes, neighbors, 0)
 
-  # Ensure network is smallworld (within empirical bounds)
-  while(!smallworld){
+  # Initialize iterations
+  iter <- 0
 
-    # Ensure all nodes are connected to one other node
-    while(!connected){
+  # Initialize condition
+  search <- TRUE
 
-      # Small-world adjacency
-      A <- smallworld_generate(nodes, neighbors, rewire)
+  # Collect rejections
+  rejections <- character(length = max_iterations + 1)
 
-      # Check block matrix
-      connected <- igraph::is_connected(convert2igraph(A))
+  # Generation loop
+  while(search){
 
-      # Increase count
-      connected_iter <- connected_iter + 1
+    # Increase iterations
+    iter <- iter + 1
 
-      # Stop on greater than max iterations
-      if(connected_iter > max_iterations){
-        stop("Reached maximum iterations: Could not find solution where every node was connected.")
-      }
+    # Stop on greater than max iterations
+    if(iter > max_iterations){
+
+      # Collect rejections
+      rejection_table <- fast_table(rejections)
+
+      # Remove NULL
+      rejection_table <- rejection_table[names(rejection_table) != ""]
+
+      # Return error
+      stop(
+        paste0(
+          "Reached maximum iterations: Could not find weights that for the small-world structure ",
+          "Resulting rejections were due to:\n\n",
+          paste0(names(rejection_table), " = ", rejection_table, collapse = "\n")
+        )
+      )
+
+    }
+
+    # Small-world adjacency
+    A <- smallworld_generate(nodes, neighbors, rewire)
+
+    # Check adjacency
+    if(!igraph::is_connected(convert2igraph(A))){
+
+      # Add rejection reason
+      rejections[iter] <- "Could not find structure where every node was connected."
+
+      # Move to next iteration
+      next
 
     }
 
     # Estimate small-worldness (|0.50| based on Telesford et al., 2011)
     omega <- smallworldness(A, nodes, neighbors)[["omega"]]
-    smallworld <- silent_call((omega > -0.30) & (omega < 0.70))
-    # Between the +/- 2 SD range of the empirical values
 
-    # Increase count
-    smallworld_iter <- smallworld_iter + 1
+    # Check for smallworldness
+    if((omega < -0.30) | (omega > 0.70)){
 
-    # Stop on greater than max iterations
-    if(smallworld_iter > max_iterations){
-      stop("Reached maximum iterations: Could not find solution where network was small-world.")
+      # Add rejection reason
+      rejections[iter] <- "Could not find structure where network was small-world."
+
+      # Move to next iteration
+      next
+
     }
-
-  }
-
-  # Collect errors
-  errors <- character(length = max_iterations + 1)
-
-  # Generate edges for the network
-  while(bad_weights){
 
     # Try to get good weights
     output <- try(
       smallworld_weights(
         A, lattice, nodes, sample_size, neighbors,
-        negative_proportion, target_condition, omega
+        negative_proportion, target_condition,
+        max_correlation, omega
       ), silent = TRUE
     )
 
-    # Set good weights
-    bad_weights <- is(output, "try-error")
+    # Check for error
+    if(is(output, "try-error")){
 
-    # Increase count
-    weights_iter <- weights_iter + 1
+      # Add rejection reason
+      rejections[iter] <- trimws(strsplit(output[1], split = "\n")[[1]][2])
 
-    # If an error, collect it
-    if(bad_weights){
-      errors[weights_iter] <- trimws(strsplit(output[1], split = "\n")[[1]][2])
-    }else if(output$condition > (target_condition + 10)){
-
-      # Update bad weights and create error
-      bad_weights <- TRUE
-      errors[weights_iter] <- "Condition greater than target"
+      # Move to next iteration
+      next
 
     }
 
-    # Stop on greater than max iterations
-    if(weights_iter > max_iterations){
+    # Update search
+    search <- FALSE
 
-      # Collect errors
-      error_table <- fast_table(errors)
 
-      # Remove NULL
-      error_table <- error_table[names(error_table) != ""]
-
-      # Return error
-      stop(
-        paste0(
-          "Reached maximum iterations: Could not find weights that for the small-world solution. ",
-          "Resulting errors were due to:\n\n",
-          paste0(names(error_table), " = ", error_table, collapse = "\n")
-        )
-      )
-
-    }
 
   }
 
@@ -332,9 +328,8 @@ simulate_smallworld <- function(
       ),
       population = list(R = output$R, Omega = output$network),
       convergence = list(
-        connected = connected_iter,
-        smallworld = smallworld_iter,
-        weights = weights_iter,
+        iterations = iter,
+        rejections = rejections,
         lambda = output$lambda,
         condition = output$condition
       )
@@ -347,14 +342,15 @@ simulate_smallworld <- function(
 # nodes = 20; density = 0.50; rewire = 0.10
 # negative_proportion = 0.35; sample_size = 1000
 # skew = 0; skew_range = NULL
-# target_condition = 30; max_iterations = 100
+# target_condition = 10;
+# max_correlation = 0.80; max_iterations = 100
 
 #' @noRd
 # Errors ----
 # Updated 10.03.2026
 simulate_smallworld_errors <- function(
     nodes, density, rewire, negative_proportion, sample_size,
-    skew, target_condition, max_iterations
+    skew, target_condition, max_correlation, max_iterations
 )
 {
 
@@ -391,7 +387,12 @@ simulate_smallworld_errors <- function(
   # Errors for 'target_condition'
   typeof_error(target_condition, "numeric")
   length_error(target_condition, 1)
-  range_error(target_condition, c(1, 100))
+  range_error(target_condition, c(1, 30))
+
+  # Errors for 'max_correlation'
+  typeof_error(max_correlation, "numeric")
+  length_error(max_correlation, 1)
+  range_error(max_correlation, c(0, 1))
 
   # Errors for 'max_iterations'
   typeof_error(max_iterations, "numeric")
@@ -498,7 +499,8 @@ smallworldness <- function (A, nodes, neighbors, iter = 100)
 # Updated 10.03.2026
 smallworld_weights <- function(
     A, lattice, nodes, sample_size, neighbors,
-    negative_proportion, target_condition, omega
+    negative_proportion, target_condition,
+    max_correlation, omega
 )
 {
 
@@ -571,9 +573,9 @@ smallworld_weights <- function(
     # Try to condition network
     output <- try(condition_network(network, target_condition), silent = TRUE)
 
-    # Check for positive definite again
+    # Check for whether correlation matrix is conditioned
     if(is(output, "try-error")){
-      stop("Ill-conditioned network")
+      stop("Ill-conditioned")
     }
 
     # Store outputs
@@ -584,6 +586,11 @@ smallworld_weights <- function(
     P[network == 0] <- 0
     network <- P
     R <- pcor2cor(network)
+
+    # Check for positive definite again
+    if(anyNA(R) || !is_positive_definite(R)){
+      stop("Not positive definite")
+    }
 
     # Update parameters
     edges <- network[lower_triangle]
@@ -600,6 +607,17 @@ smallworld_weights <- function(
 
   }
 
+  # Check for condition
+  condition <- kappa(R)
+  if(condition > (target_condition + 5)){
+    stop("Condition number exceeds target")
+  }
+
+  # Check for maximum correlation
+  if(max(abs(R[lower_triangle])) > max_correlation){
+    stop("Max correlation exceeds target")
+  }
+
   # Return results
   return(
     list(
@@ -608,7 +626,7 @@ smallworld_weights <- function(
       omega = omega,
       params = attr(edges, "params"),
       lambda = lambda,
-      condition = kappa(R)
+      condition = condition
     )
   )
 
