@@ -12,6 +12,7 @@ simulate_smallworld(
   sample_size,
   skew = 0,
   skew_range = NULL,
+  target_condition = 30,
   max_iterations = 100
 )
 }
@@ -51,6 +52,13 @@ value in the sequence. Not recommended to use with \code{variables_range}}
 Randomly selects skews within in the range.
 Somewhat redundant with \code{skew} but more flexible}
 
+\item{target_condition}{Numeric (length = 1).
+Target condition number (using \code{\link{kappa}}) used
+when ridge regularization is applied to an ill-conditioned precision matrix.
+A lower value produces a better-conditioned (more stable) matrix.
+Defaults to \code{30}.
+For looser constraints, up to \code{100} is accepted but not recommended}
+
 \item{max_iterations}{Numeric (length = 1).
 Maximum number of attempts to find (1) a connected network structure,
 (2) a network within empirical small-world bounds, and (3) a valid set
@@ -61,6 +69,31 @@ Defaults to \code{100}}
 Returns a list containing:
 
 \item{data}{Simulated data from the specified small-world network model}
+
+\item{parameters}{
+A list echoing the input parameters used to generate the data:
+
+\itemize{
+
+\item \code{nodes} --- Number of nodes in the network (as supplied)
+
+\item \code{density} --- Initial lattice density (as supplied)
+
+\item \code{neighbors} --- Number of nearest neighbors per node in the
+initial ring lattice, derived from \code{nodes} and \code{density}
+
+\item \code{rewire} --- Edge rewiring probability (as supplied)
+
+\item \code{negative_proportion} --- Proportion of negative edges used
+
+\item \code{sample_size} --- Number of simulated cases
+
+\item \code{skew} --- Named numeric vector of per-variable skew values
+actually applied during data generation
+
+}
+
+}
 
 \item{population}{
 A list containing the population-level network parameters:
@@ -98,9 +131,12 @@ network within empirical small-world bounds
 \item \code{weights} --- Number of iterations needed to obtain valid
 edge weights
 
-\item \code{condition} --- Ridge regularization parameter lambda used
-to condition the network if it was not initially positive definite;
+\item \code{lambda} --- Ridge regularization parameter used to condition
+the precision matrix when it was not initially positive definite;
 \code{NA} if no conditioning was required
+
+\item \code{condition} --- Condition number (ratio of largest to smallest
+eigenvalue) of the population correlation matrix \code{R}
 
 }
 
@@ -112,7 +148,7 @@ network structure using the Watts-Strogatz model. Nodes are arranged in a
 ring lattice and edges are randomly rewired with probability \code{rewire}.
 Edge weights are derived empirically and the resulting network is used to
 generate multivariate normal data. Parameters do not have default values
-(except \code{negative_proportion} and \code{max_iterations}) and must
+(except \code{negative_proportion}, \code{target_condition}, and \code{max_iterations}) and must
 each be set. See examples to get started
 }
 \examples{

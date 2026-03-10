@@ -5,7 +5,7 @@
 #' ring lattice and edges are randomly rewired with probability \code{rewire}.
 #' Edge weights are derived empirically and the resulting network is used to
 #' generate multivariate normal data. Parameters do not have default values
-#' (except \code{negative_proportion} and \code{max_iterations}) and must
+#' (except \code{negative_proportion}, \code{target_condition}, and \code{max_iterations}) and must
 #' each be set. See examples to get started
 #'
 #' @param nodes Numeric (length = 1).
@@ -43,6 +43,13 @@
 #' Randomly selects skews within in the range.
 #' Somewhat redundant with \code{skew} but more flexible
 #'
+#' @param target_condition Numeric (length = 1).
+#' Target condition number (using \code{\link{kappa}}) used
+#' when ridge regularization is applied to an ill-conditioned precision matrix.
+#' A lower value produces a better-conditioned (more stable) matrix.
+#' Defaults to \code{30}.
+#' For looser constraints, up to \code{100} is accepted but not recommended
+#'
 #' @param max_iterations Numeric (length = 1).
 #' Maximum number of attempts to find (1) a connected network structure,
 #' (2) a network within empirical small-world bounds, and (3) a valid set
@@ -52,6 +59,31 @@
 #' @return Returns a list containing:
 #'
 #' \item{data}{Simulated data from the specified small-world network model}
+#'
+#' \item{parameters}{
+#' A list echoing the input parameters used to generate the data:
+#'
+#' \itemize{
+#'
+#' \item \code{nodes} --- Number of nodes in the network (as supplied)
+#'
+#' \item \code{density} --- Initial lattice density (as supplied)
+#'
+#' \item \code{neighbors} --- Number of nearest neighbors per node in the
+#' initial ring lattice, derived from \code{nodes} and \code{density}
+#'
+#' \item \code{rewire} --- Edge rewiring probability (as supplied)
+#'
+#' \item \code{negative_proportion} --- Proportion of negative edges used
+#'
+#' \item \code{sample_size} --- Number of simulated cases
+#'
+#' \item \code{skew} --- Named numeric vector of per-variable skew values
+#' actually applied during data generation
+#'
+#' }
+#'
+#' }
 #'
 #' \item{population}{
 #' A list containing the population-level network parameters:
@@ -89,9 +121,12 @@
 #' \item \code{weights} --- Number of iterations needed to obtain valid
 #' edge weights
 #'
-#' \item \code{condition} --- Ridge regularization parameter lambda used
-#' to condition the network if it was not initially positive definite;
+#' \item \code{lambda} --- Ridge regularization parameter used to condition
+#' the precision matrix when it was not initially positive definite;
 #' \code{NA} if no conditioning was required
+#'
+#' \item \code{condition} --- Condition number (ratio of largest to smallest
+#' eigenvalue) of the population correlation matrix \code{R}
 #'
 #' }
 #'
@@ -131,8 +166,7 @@
 #'   negative_proportion = 0.20 # 20% of edges are negative
 #' )
 #'
-#' @author
-#' Alexander P. Christensen <alexpaulchristensen@gmail.com>
+#' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @references
 #' \strong{Seminal introduction to the Watts-Strogatz small-world model} \cr
@@ -148,10 +182,11 @@
 #' @export
 #'
 # Simulate Small-world GGM data ----
-# Updated 08.03.2026
+# Updated 10.03.2026
 simulate_smallworld <- function(
     nodes, density, rewire, negative_proportion,
     sample_size, skew = 0, skew_range = NULL,
+    target_condition = 30,
     max_iterations = 100
 )
 {
@@ -162,7 +197,7 @@ simulate_smallworld <- function(
     # Compute proportion of negative edges based on empirical values
     negative_proportion <- pmin(
       pmax(
-        0.3519157 + rnorm_ziggurat(1) * 0.08531577, # empirical mean +/- 1 SD
+        0.3511293 + rnorm_ziggurat(1) * 0.08295474, # empirical mean +/- 1 SD
         0.08333333 # empirical minimum
       ),
       0.54945055 # empirical maximum
@@ -171,7 +206,10 @@ simulate_smallworld <- function(
   }
 
   # Check for input errors
-  simulate_smallworld_errors(nodes, density, rewire, negative_proportion, sample_size, skew)
+  simulate_smallworld_errors(
+    nodes, density, rewire, negative_proportion, sample_size,
+    skew, target_condition, max_iterations
+  )
 
   # Initialize generation checks
   smallworld <- connected <- FALSE
@@ -210,7 +248,7 @@ simulate_smallworld <- function(
 
     # Estimate small-worldness (|0.50| based on Telesford et al., 2011)
     omega <- smallworldness(A, nodes, neighbors)[["omega"]]
-    smallworld <- silent_call((omega > -0.0578355) & (omega < 0.7464969))
+    smallworld <- silent_call((omega > -0.30) & (omega < 0.80))
     # Between the +/- 2 SD range of the empirical values
 
     # Increase count
@@ -223,9 +261,6 @@ simulate_smallworld <- function(
 
   }
 
-  # Get Weibull model
-  weibull_weights <- get(data("weibull_weights", package = "L0ggm", envir = environment()))
-
   # Collect errors
   errors <- character(length = max_iterations + 1)
 
@@ -235,8 +270,8 @@ simulate_smallworld <- function(
     # Try to get good weights
     output <- try(
       smallworld_weights(
-        weibull_weights, A, lattice, nodes, sample_size,
-        neighbors, negative_proportion, omega
+        A, lattice, nodes, sample_size, neighbors,
+        negative_proportion, target_condition, omega
       ), silent = TRUE
     )
 
@@ -249,6 +284,12 @@ simulate_smallworld <- function(
     # If an error, collect it
     if(bad_weights){
       errors[weights_iter] <- trimws(strsplit(output[1], split = "\n")[[1]][2])
+    }else if(output$condition > (target_condition + 10)){
+
+      # Update bad weights and create error
+      bad_weights <- TRUE
+      errors[weights_iter] <- "Condition greater than target"
+
     }
 
     # Stop on greater than max iterations
@@ -297,7 +338,8 @@ simulate_smallworld <- function(
         connected = connected_iter,
         smallworld = smallworld_iter,
         weights = weights_iter,
-        condition = output$lambda
+        lambda = output$lambda,
+        condition = output$condition
       )
     )
   )
@@ -305,14 +347,18 @@ simulate_smallworld <- function(
 }
 
 # Bug checking ----
-# nodes = c(4, 6, 8); blocks = 3; sample_size = 1000
-# within_density = 0.90; between_density = 0.20
-# negative_proportion = 0.35; max_iterations = 100
+# nodes = 20; density = 0.50; rewire = 0.10
+# negative_proportion = 0.35; sample_size = 1000
+# skew = 0; skew_range = NULL
+# target_condition = 30; max_iterations = 100
 
 #' @noRd
 # Errors ----
-# Updated 08.03.2026
-simulate_smallworld_errors <- function(nodes, density, rewire, negative_proportion, sample_size, skew)
+# Updated 10.03.2026
+simulate_smallworld_errors <- function(
+    nodes, density, rewire, negative_proportion, sample_size,
+    skew, target_condition, max_iterations
+)
 {
 
   # Errors for 'nodes'
@@ -344,6 +390,16 @@ simulate_smallworld_errors <- function(nodes, density, rewire, negative_proporti
   typeof_error(skew, "numeric")
   length_error(skew, c(1, nodes))
   range_error(skew, c(-2, 2))
+
+  # Errors for 'target_condition'
+  typeof_error(target_condition, "numeric")
+  length_error(target_condition, 1)
+  range_error(target_condition, c(1, 100))
+
+  # Errors for 'max_iterations'
+  typeof_error(max_iterations, "numeric")
+  length_error(max_iterations, 1)
+  range_error(max_iterations, c(1, Inf))
 
 }
 
@@ -442,10 +498,10 @@ smallworldness <- function (A, nodes, neighbors, iter = 100)
 
 #' @noRd
 # Smallworld weight generation ----
-# Updated 08.03.2026
+# Updated 10.03.2026
 smallworld_weights <- function(
-    weibull_weights, A, lattice, nodes, sample_size,
-    neighbors, negative_proportion, omega
+    A, lattice, nodes, sample_size, neighbors,
+    negative_proportion, target_condition, omega
 )
 {
 
@@ -495,7 +551,7 @@ smallworld_weights <- function(
   signs <- swiftelse(runif_xoshiro(total_edges) < negative_proportion, -1, 1)
 
   # Generate edges
-  edges <- generate_edges(weibull_weights, nonzero = total_edges, n = sample_size, p = nodes) * signs
+  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes)
   sorted_edges <- sort(edges, decreasing = TRUE)
 
   # Set up for smallworld Schur complement
@@ -519,15 +575,15 @@ smallworld_weights <- function(
   if(anyNA(R) || !is_positive_definite(R)){
 
     # Try to condition network
-    condition_output <- try(condition_network(network), silent = TRUE)
+    output <- try(condition_network(network, target_condition), silent = TRUE)
 
     # Check for positive definite again
-    if(is(condition_output, "try-error")){
+    if(is(output, "try-error")){
       stop("Ill-conditioned network")
     }
 
     # Store outputs
-    R <- condition_output$R; lambda <- condition_output$lambda
+    R <- output$R; lambda <- output$lambda
 
     # Check for positive definite again
     if(anyNA(R) || !is_positive_definite(R)){
@@ -561,7 +617,8 @@ smallworld_weights <- function(
       network = network,
       omega = omega,
       params = attr(edges, "params"),
-      lambda = lambda
+      lambda = lambda,
+      condition = kappa(R)
     )
   )
 

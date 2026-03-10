@@ -1,10 +1,10 @@
-#' Linear Model for Weibull Scale Parameter Prediction
+#' SUR Model Coefficients and Residuals for Weibull Parameter Prediction
 #'
-#' An \code{lm} object encoding the relationship between the Weibull scale
-#' parameter and network-level descriptives derived from 223 empirical datasets
-#' in \code{\link{weibull_descriptives}}. The model is intended for use in
-#' generating data-driven Weibull scale estimates given a network's shape
-#' parameter and structural properties.
+#' A named list encoding the Seemingly Unrelated Regression (SUR) model fitted
+#' to Weibull shape and scale parameters derived from 223 empirical networks in
+#' \code{\link{weibull_descriptives}}. The object is consumed internally by
+#' \code{\link{weibull_parameters}} to generate data-driven Weibull parameter
+#' estimates given a network's number of nodes and sample size.
 #'
 #' @name weibull_weights
 #'
@@ -12,30 +12,46 @@
 #'
 #' @usage data(weibull_weights)
 #'
-#' @format An object of class \code{lm} with the following model specification:
-#' \preformatted{scale ~ shape + scaling + rlp + ppo}
-#' Predictors are as defined in \code{\link{weibull_descriptives}}:
+#' @format A named list with two elements, \code{shape} and \code{scale},
+#' each containing:
 #' \describe{
-#'   \item{shape}{Weibull shape parameter (\eqn{k}) estimated from the
-#'   absolute partial correlations of each empirical network.}
-#'   \item{scaling}{Sample-size scaling index, \eqn{1 / \sqrt{n}}.}
-#'   \item{rlp}{Node-count scaling index, \eqn{1 / \ln(p)}.}
-#'   \item{ppo}{Parameters-per-observation ratio,
-#'   \eqn{p(p - 1) / 2\,/\,n}.}
+#'   \item{\code{coefficients}}{A named numeric vector of regression
+#'   coefficients from the SUR model. The shape equation includes an intercept
+#'   and three predictors (\code{beta_min}, \code{rlp}, \code{n_scaled});
+#'   the scale equation includes an intercept and two predictors
+#'   (\code{beta_min}, \code{rlp}). Predictors are defined as follows:
+#'   \describe{
+#'     \item{\code{beta_min}}{A noise-to-signal proxy, \eqn{\sqrt{\log(p)/n}},
+#'     where \eqn{p} is the number of nodes and \eqn{n} is the sample size.}
+#'     \item{\code{rlp}}{Reciprocal log of node count, \eqn{1 / \log(p)}.}
+#'     \item{\code{n_scaled}}{Sample size rescaled to units of 10,000,
+#'     \eqn{n / 10{,}000}. Included in the shape equation only.}
+#'   }}
+#'   \item{\code{residuals}}{A numeric vector of residuals from the fitted SUR
+#'   equation, used by \code{\link{weibull_parameters}} to introduce
+#'   empirically grounded variability when \code{bootstrap = TRUE}.}
 #' }
 #'
 #' @details
-#' The model was fit in two stages. In the first stage, an ordinary least
-#' squares regression of the Weibull scale parameter on \code{shape},
-#' \code{scaling}, \code{rlp}, and \code{ppo} was estimated on the full
-#' \code{\link{weibull_descriptives}} sample. Influential observations were
-#' then identified using Cook's distance with a conventional threshold of
-#' \eqn{D_i > 4 / n}, and those observations were removed. The model was
-#' subsequently re-estimated on the cleaned sample, which is the object
-#' stored here.
+#' Absolute partial correlations from 223 deduplicated empirical networks
+#' (8–40 nodes; \eqn{n < 300{,}000}) were fitted to Beta, Gamma, log-normal,
+#' and Weibull distributions via maximum likelihood. Weibull provided the best
+#' fit most consistently: it outperformed each alternative by more than 2
+#' log-likelihood units far more often than the reverse (vs. Beta: 60–1;
+#' vs. Gamma: 16–3; vs. log-normal: 184–12).
 #'
-#' Variance inflation factors were examined at both stages to confirm the
-#' absence of problematic multicollinearity among predictors.
+#' The resulting Weibull shape and scale parameters were then jointly modelled
+#' as a function of network descriptors using Seemingly Unrelated Regression
+#' (\code{systemfit}), which accounts for the correlated
+#' residuals between the shape and scale equations across networks. The scale
+#' equation omits \code{n_scaled} relative to the shape equation, reflecting
+#' the empirical model selection process. One network (number 43, where
+#' \eqn{N \approx p} and the condition number was extreme) was excluded as an
+#' outlier prior to fitting.
+#'
+#' Variance inflation factors and condition numbers confirmed the absence of
+#' problematic multicollinearity. Residual normality was assessed via
+#' Shapiro-Wilk tests and histograms; homoskedasticity via Breusch-Pagan tests.
 #'
 #' @keywords datasets
 #'
@@ -47,19 +63,12 @@
 #' @examples
 #' data("weibull_weights")
 #'
-#' # Inspect model summary
-#' summary(weibull_weights)
+#' # Inspect SUR coefficients for each equation
+#' weibull_weights$shape$coefficients
+#' weibull_weights$scale$coefficients
 #'
-#' # Predict Weibull scale for a new network
-#' # (e.g., p = 12 nodes, n = 200 observations, shape = 1)
-#' p <- 12; n <- 200
-#' new_data <- data.frame(
-#'   shape   = 1,
-#'   scaling = 1 / sqrt(n),
-#'   rlp     = 1 / log(p),
-#'   ppo     = (p * (p - 1) / 2) / n
-#' )
-#' predict(weibull_weights, newdata = new_data)
+#' # Predict Weibull parameters for a new network
+#' weibull_parameters(nodes = 12, sample_size = 500)
 #'
 NULL
 #----

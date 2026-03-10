@@ -13,6 +13,7 @@ simulate_sbm(
   sample_size,
   skew = 0,
   skew_range = NULL,
+  target_condition = 30,
   max_iterations = 100
 )
 }
@@ -54,11 +55,18 @@ Skew to be included in categorical variables. It is randomly sampled from provid
 Can be a single value or as many values as there are (total) variables.
 Current skew implementation is between -2 and 2 in increments of 0.05.
 Skews that are not in this sequence will be converted to their nearest
-value in the sequence. Not recommended to use with \code{variables_range}}
+value in the sequence}
 
 \item{skew_range}{Numeric (length = 2).
 Randomly selects skews within in the range.
 Somewhat redundant with \code{skew} but more flexible}
+
+\item{target_condition}{Numeric (length = 1).
+Target condition number (using \code{\link{kappa}}) used
+when ridge regularization is applied to an ill-conditioned precision matrix.
+A lower value produces a better-conditioned (more stable) matrix.
+Defaults to \code{30}.
+For looser constraints, up to \code{100} is accepted but not recommended}
 
 \item{max_iterations}{Numeric (length = 1).
 Maximum number of attempts to find (1) a connected network structure and
@@ -69,6 +77,30 @@ Defaults to \code{100}}
 Returns a list containing:
 
 \item{data}{Simulated data from the specified SBM network model}
+
+\item{parameters}{
+A list echoing the input parameters used to generate the data:
+
+\itemize{
+
+\item \code{nodes} --- Number of nodes per community block (as supplied)
+
+\item \code{blocks} --- Number of community blocks
+
+\item \code{sample_size} --- Number of simulated cases
+
+\item \code{skew} --- Named numeric vector of per-variable skew values
+actually applied during data generation
+
+\item \code{within_density} --- Within-block edge density (as supplied)
+
+\item \code{between_density} --- Between-block edge density (as supplied)
+
+\item \code{negative_proportion} --- Proportion of negative edges used
+
+}
+
+}
 
 \item{population}{
 A list containing the population-level network parameters:
@@ -81,6 +113,9 @@ A list containing the population-level network parameters:
 
 \item \code{membership} --- Named integer vector of community block
 assignments for each node
+
+\item \code{Q} --- Modularity of the population network with respect to
+the block membership structure, computed via \code{igraph::modularity}
 
 }
 
@@ -102,9 +137,12 @@ connected network
 \item \code{weights} --- Number of iterations needed to obtain valid
 edge weights
 
-\item \code{condition} --- Ridge regularization parameter lambda used
-to condition the network if it was not initially positive definite;
+\item \code{lambda} --- Ridge regularization parameter used to condition
+the precision matrix when it was not initially positive definite;
 \code{NA} if no conditioning was required
+
+\item \code{condition} --- Condition number (ratio of largest to smallest
+eigenvalue) of the population correlation matrix \code{R}
 
 }
 
@@ -116,8 +154,8 @@ block model (SBM) structure. Nodes are partitioned into communities, with
 edge density controlled separately within and between communities. Edge
 weights are derived empirically and the resulting network is used to
 generate multivariate normal data. Parameters do not have default values
-(except \code{negative_proportion} and \code{max_iterations}) and must
-each be set. See examples to get started
+(except \code{negative_proportion}, \code{target_condition}, and
+\code{max_iterations}) and must each be set. See examples to get started
 }
 \examples{
 # Generate SBM data with equal-sized blocks

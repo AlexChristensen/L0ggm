@@ -5,8 +5,8 @@
 #' edge density controlled separately within and between communities. Edge
 #' weights are derived empirically and the resulting network is used to
 #' generate multivariate normal data. Parameters do not have default values
-#' (except \code{negative_proportion} and \code{max_iterations}) and must
-#' each be set. See examples to get started
+#' (except \code{negative_proportion}, \code{target_condition}, and
+#' \code{max_iterations}) and must each be set. See examples to get started
 #'
 #' @param nodes Numeric (length = 1 or \code{blocks}).
 #' Number of nodes per community block.
@@ -45,11 +45,18 @@
 #' Can be a single value or as many values as there are (total) variables.
 #' Current skew implementation is between -2 and 2 in increments of 0.05.
 #' Skews that are not in this sequence will be converted to their nearest
-#' value in the sequence. Not recommended to use with \code{variables_range}
+#' value in the sequence
 #'
 #' @param skew_range Numeric (length = 2).
 #' Randomly selects skews within in the range.
 #' Somewhat redundant with \code{skew} but more flexible
+#'
+#' @param target_condition Numeric (length = 1).
+#' Target condition number (using \code{\link{kappa}}) used
+#' when ridge regularization is applied to an ill-conditioned precision matrix.
+#' A lower value produces a better-conditioned (more stable) matrix.
+#' Defaults to \code{30}.
+#' For looser constraints, up to \code{100} is accepted but not recommended
 #'
 #' @param max_iterations Numeric (length = 1).
 #' Maximum number of attempts to find (1) a connected network structure and
@@ -59,6 +66,30 @@
 #' @return Returns a list containing:
 #'
 #' \item{data}{Simulated data from the specified SBM network model}
+#'
+#' \item{parameters}{
+#' A list echoing the input parameters used to generate the data:
+#'
+#' \itemize{
+#'
+#' \item \code{nodes} --- Number of nodes per community block (as supplied)
+#'
+#' \item \code{blocks} --- Number of community blocks
+#'
+#' \item \code{sample_size} --- Number of simulated cases
+#'
+#' \item \code{skew} --- Named numeric vector of per-variable skew values
+#' actually applied during data generation
+#'
+#' \item \code{within_density} --- Within-block edge density (as supplied)
+#'
+#' \item \code{between_density} --- Between-block edge density (as supplied)
+#'
+#' \item \code{negative_proportion} --- Proportion of negative edges used
+#'
+#' }
+#'
+#' }
 #'
 #' \item{population}{
 #' A list containing the population-level network parameters:
@@ -71,6 +102,9 @@
 #'
 #' \item \code{membership} --- Named integer vector of community block
 #' assignments for each node
+#'
+#' \item \code{Q} --- Modularity of the population network with respect to
+#' the block membership structure, computed via \code{igraph::modularity}
 #'
 #' }
 #'
@@ -92,9 +126,12 @@
 #' \item \code{weights} --- Number of iterations needed to obtain valid
 #' edge weights
 #'
-#' \item \code{condition} --- Ridge regularization parameter lambda used
-#' to condition the network if it was not initially positive definite;
+#' \item \code{lambda} --- Ridge regularization parameter used to condition
+#' the precision matrix when it was not initially positive definite;
 #' \code{NA} if no conditioning was required
+#'
+#' \item \code{condition} --- Condition number (ratio of largest to smallest
+#' eigenvalue) of the population correlation matrix \code{R}
 #'
 #' }
 #'
@@ -138,8 +175,7 @@
 #'   negative_proportion = 0.20 # 20% of edges are negative
 #' )
 #'
-#' @author
-#' Alexander P. Christensen <alexpaulchristensen@gmail.com>
+#' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @references
 #' \strong{Seminal introduction to Stochastic Block Models} \cr
@@ -150,11 +186,12 @@
 #' @export
 #'
 # Simulate SBM GGM data ----
-# Updated 08.03.2026
+# Updated 10.03.2026
 simulate_sbm <- function(
     nodes, blocks, within_density, between_density,
     negative_proportion, sample_size,
     skew = 0, skew_range = NULL,
+    target_condition = 30,
     max_iterations = 100
 )
 {
@@ -165,7 +202,7 @@ simulate_sbm <- function(
     # Compute proportion of negative edges based on empirical values
     negative_proportion <- pmin(
       pmax(
-        0.3519157 + rnorm_ziggurat(1) * 0.08531577, # empirical mean +/- 1 SD
+        0.3511293 + rnorm_ziggurat(1) * 0.08295474, # empirical mean +/- 1 SD
         0.08333333 # empirical minimum
       ),
       0.54945055 # empirical maximum
@@ -176,7 +213,8 @@ simulate_sbm <- function(
   # Check for input errors
   simulate_sbm_errors(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size, skew
+    negative_proportion, sample_size, skew,
+    target_condition, max_iterations
   )
 
   # Determine total number of nodes
@@ -223,9 +261,6 @@ simulate_sbm <- function(
 
   }
 
-  # Get Weibull model
-  weibull_weights <- get(data("weibull_weights", package = "L0ggm", envir = environment()))
-
   # Collect errors
   errors <- character(length = max_iterations + 1)
 
@@ -235,8 +270,8 @@ simulate_sbm <- function(
     # Try to get good weights
     output <- try(
       sbm_weights(
-        weibull_weights, block_matrix, membership, membership_matrix, sample_size,
-        total_nodes, negative_proportion, lower_triangle
+        block_matrix, membership, membership_matrix, sample_size,
+        total_nodes, negative_proportion, target_condition, lower_triangle
       ), silent = TRUE
     )
 
@@ -249,6 +284,12 @@ simulate_sbm <- function(
     # If an error, collect it
     if(bad_weights){
       errors[weights_iter] <- trimws(strsplit(output[1], split = "\n")[[1]][2])
+    }else if(output$condition > (target_condition + 10)){
+
+      # Update bad weights and create error
+      bad_weights <- TRUE
+      errors[weights_iter] <- "Condition greater than target"
+
     }
 
     # Stop on greater than max iterations
@@ -301,7 +342,8 @@ simulate_sbm <- function(
       convergence = list(
         connected = connected_iter,
         weights = weights_iter,
-        condition = output$lambda
+        lambda = output$lambda,
+        condition = output$condition
       )
     )
   )
@@ -311,14 +353,16 @@ simulate_sbm <- function(
 # Bug checking ----
 # nodes = c(4, 6, 8); blocks = 3; sample_size = 1000
 # within_density = 0.90; between_density = 0.20
-# negative_proportion = 0.35; max_iterations = 100
+# negative_proportion = 0.35; skew = 0; skew_range = NULL
+# target_condition = 30; max_iterations = 100
 
 #' @noRd
 # Errors ----
-# Updated 08.03.2026
+# Updated 10.03.2026
 simulate_sbm_errors <- function(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size, skew
+    negative_proportion, sample_size, skew,
+    target_condition, max_iterations
 )
 {
 
@@ -354,8 +398,18 @@ simulate_sbm_errors <- function(
 
   # Errors for 'skew'
   typeof_error(skew, "numeric")
-  length_error(skew, c(1, nodes * blocks))
+  length_error(skew, c(1, swiftelse(length(nodes) == 1, nodes * blocks, sum(nodes))))
   range_error(skew, c(-2, 2))
+
+  # Errors for 'target_condition'
+  typeof_error(target_condition, "numeric")
+  length_error(target_condition, 1)
+  range_error(target_condition, c(1, 100))
+
+  # Errors for 'max_iterations'
+  typeof_error(max_iterations, "numeric")
+  length_error(max_iterations, 1)
+  range_error(max_iterations, c(1, Inf))
 
 }
 
@@ -415,16 +469,16 @@ generate_sbm <- function(
 
 #' @noRd
 # SBM weight generation ----
-# Updated 08.03.2026
+# Updated 10.03.2026
 sbm_weights <- function(
-    weibull_weights, block_matrix, membership, membership_matrix,
-    sample_size, total_nodes, negative_proportion, lower_triangle
+    block_matrix, membership, membership_matrix, sample_size,
+    total_nodes, negative_proportion, target_condition, lower_triangle
 )
 {
 
   # Generate edges
   total_edges <- sum(block_matrix)
-  edges <- generate_edges(weibull_weights, nonzero = total_edges, n = sample_size, p = total_nodes)
+  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = total_nodes)
 
   # Sort edges
   sorted_edges <- sort(abs(edges), decreasing = TRUE)
@@ -471,22 +525,22 @@ sbm_weights <- function(
   # Get population values
   R <- silent_call(pcor2cor(network))
 
-  # Set lambda
+  # Set condition and lambda
   lambda <- NA
 
   # Check for positive definite
   if(anyNA(R) || !is_positive_definite(R)){
 
     # Try to condition network
-    condition_output <- try(condition_network(network), silent = TRUE)
+    output <- try(condition_network(network, target_condition), silent = TRUE)
 
     # Check for positive definite again
-    if(is(condition_output, "try-error")){
+    if(is(output, "try-error")){
       stop("Ill-conditioned network")
     }
 
     # Store outputs
-    R <- condition_output$R; lambda <- condition_output$lambda
+    R <- output$R; lambda <- output$lambda
 
     # Check for positive definite again
     if(anyNA(R) || !is_positive_definite(R)){
@@ -520,7 +574,8 @@ sbm_weights <- function(
       network = network,
       membership = membership,
       params = attr(edges, "params"),
-      lambda = lambda
+      lambda = lambda,
+      condition = kappa(R)
     )
   )
 
