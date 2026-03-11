@@ -288,7 +288,7 @@ simulate_smallworld <- function(
     # Try to get good weights
     output <- try(
       smallworld_weights(
-        A, lattice, nodes, sample_size, neighbors,
+        A, lattice, nodes, neighbors,
         negative_proportion, target_condition,
         max_correlation, omega, lower_triangle
       ), silent = TRUE
@@ -502,7 +502,7 @@ smallworldness <- function (A, nodes, neighbors, iter = 100)
 # Smallworld weight generation ----
 # Updated 11.03.2026
 smallworld_weights <- function(
-    A, lattice, nodes, sample_size, neighbors,
+    A, lattice, nodes, neighbors,
     negative_proportion, target_condition,
     max_correlation, omega, lower_triangle
 )
@@ -548,7 +548,7 @@ smallworld_weights <- function(
   network <- matrix(0, nrow = nodes, ncol = nodes)
 
   # Generate edges
-  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes)
+  edges <- generate_edges(nonzero = total_edges, p = nodes)
   sorted_edges <- sort(edges, decreasing = TRUE)
 
   # Set up for smallworld Schur complement
