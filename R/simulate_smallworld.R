@@ -201,7 +201,8 @@ simulate_smallworld <- function(
         0.3511293 + rnorm_ziggurat(1) * 0.08295474, # empirical mean +/- 1 SD
         0.08333333 # empirical minimum
       ),
-      0.54945055 # empirical maximum
+      0.50 # empirical maximum (0.54945055)
+      # needs to be capped at 0.50 due to flipping variables
     )
 
   }

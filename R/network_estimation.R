@@ -380,9 +380,10 @@ network_estimation <- function(
 
       # Set parameters
       shape <- min(estimates[["shape"]], 1) # cap at EXP
+      scale <- swiftelse(shape == 1, mean(lower_P), estimates[["scale"]])
 
       # Set gamma to standard error
-      gamma <- estimates[["scale"]] * sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2) / scaling
+      gamma <- scale * sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2) / scaling
 
     }
 
