@@ -337,7 +337,7 @@ simulate_sbm <- function(
     # Try to get good weights
     output <- try(
       sbm_weights(
-        block_matrix, membership, membership_matrix,
+        block_matrix, membership, membership_matrix, sample_size,
         total_nodes, negative_proportion,
         mixing, mixing_range, target_condition,
         max_correlation, lower_triangle
@@ -528,7 +528,7 @@ generate_sbm <- function(
 # SBM weight generation ----
 # Updated 10.03.2026
 sbm_weights <- function(
-    block_matrix, membership, membership_matrix,
+    block_matrix, membership, membership_matrix, sample_size,
     total_nodes, negative_proportion,
     mixing, mixing_range, target_condition,
     max_correlation, lower_triangle
@@ -554,7 +554,7 @@ sbm_weights <- function(
 
   # Generate edges
   total_edges <- sum(block_lower)
-  edges <- generate_edges(nonzero = total_edges, p = total_nodes)
+  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = total_nodes)
 
   # Sort edges
   sorted_edges <- sort(abs(edges), decreasing = TRUE)

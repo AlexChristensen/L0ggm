@@ -1058,7 +1058,7 @@ force_numeric <- function(object)
 }
 
 #' @noRd
-# Convert matrix to {igraph} network
+# Convert matrix to {igraph} network ----
 # Updated 09.08.2023
 convert2igraph <- function (A, diagonal = 0)
 {
@@ -2002,6 +2002,25 @@ p_partial <- function(z, variables, sample_size)
   test <- z / sqrt(1 / (sample_size - variables - 5))
 
   return(pnorm(test, lower.tail = FALSE) * 2)
+
+}
+
+#' @noRd
+# Min-max normalization ----
+# Updated 11.03.2026
+min_max <- function(x)
+{
+
+  # Obtain minimum and maximum
+  x_range <- range(x, na.rm = TRUE)
+
+  # Return min-max normalization
+  return(
+    swiftelse(
+      x_range[1] == x_range[2], x,
+      (x - x_range[1]) / (x_range[2] - x_range[1])
+    )
+  )
 
 }
 

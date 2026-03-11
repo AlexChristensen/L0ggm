@@ -76,7 +76,7 @@
 #' weibull_weights$scale$coefficients
 #'
 #' # Predict Weibull parameters for a new network
-#' weibull_parameters(nodes = 12)
+#' weibull_parameters(nodes = 12, sample_size = 500)
 #'
 NULL
 #----

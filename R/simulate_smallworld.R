@@ -288,7 +288,7 @@ simulate_smallworld <- function(
     # Try to get good weights
     output <- try(
       smallworld_weights(
-        A, lattice, nodes, neighbors,
+        A, lattice, nodes, neighbors, sample_size,
         negative_proportion, target_condition,
         max_correlation, omega, lower_triangle
       ), silent = TRUE
@@ -502,7 +502,7 @@ smallworldness <- function (A, nodes, neighbors, iter = 100)
 # Smallworld weight generation ----
 # Updated 11.03.2026
 smallworld_weights <- function(
-    A, lattice, nodes, neighbors,
+    A, lattice, nodes, neighbors, sample_size,
     negative_proportion, target_condition,
     max_correlation, omega, lower_triangle
 )
@@ -548,14 +548,16 @@ smallworld_weights <- function(
   network <- matrix(0, nrow = nodes, ncol = nodes)
 
   # Generate edges
-  edges <- generate_edges(nonzero = total_edges, p = nodes)
+  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes)
   sorted_edges <- sort(edges, decreasing = TRUE)
 
   # Set up for smallworld Schur complement
   ## ASPL component
-  distance_normed <- lattice[lower_triangle][nonzero] / (neighbors + 1)
+  distance_normed <- 0.50 * min_max(lattice[lower_triangle][nonzero])
+  ## wTO component
+  wto_normed <- 0.50 * (1 - min_max(wto(A)[lower_triangle][nonzero]))
   ## Set weights order
-  weight_order <- rank((1 - distance_normed), ties.method = "random")
+  weight_order <- rank(distance_normed + wto_normed, ties.method = "random")
   network[lower_triangle][nonzero] <- sorted_edges[weight_order]
   network <- network + t(network) # make symmetric
 
@@ -658,3 +660,39 @@ determine_signs <- function(network, nodes, negative_proportion)
 
 }
 
+#' @noRd
+# Weighted topological overlap from {EGAnet} 2.4.1 ----
+# Updated 11.03.2026
+wto <- function(network)
+{
+
+  # Get dimensions of the network
+  dimensions <- dim(network)
+
+  # Obtain absolute network values
+  absolute_network <- abs(network)
+
+  # Obtain node strengths
+  node_strengths <- colSums(absolute_network, na.rm = TRUE)
+
+  # Obtain variable pair minimums
+  strength_each <- rep(node_strengths, each = dimensions[2])
+  strength_times <- rep(node_strengths, times = dimensions[2])
+
+  # Create minimum matrix
+  minimum_matrix <- matrix(
+    swiftelse(
+      strength_each < strength_times,
+      strength_each, strength_times
+    ),
+    nrow = dimensions[2], ncol = dimensions[2]
+  )
+
+  # Divide numerator by denominator
+  omega <- (crossprod(network) + network) /
+    (minimum_matrix + 1 - absolute_network)
+
+  # Return weighted topological overlap
+  return(abs(omega))
+
+}
