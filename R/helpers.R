@@ -1947,12 +1947,25 @@ is_positive_definite <- function(data)
 }
 
 #' @noRd
+# Fast kappa exact ----
+# Updated 11.03.2026
+fast_kappa <- function(X)
+{
+  # Obtain eigenvalues
+  E <- abs(eigen(X, symmetric = TRUE, only.values = TRUE)$values)
+
+  # Return kappa
+  return(max(E) / min(E))
+
+}
+
+#' @noRd
 # Wrapper for `eigen` ----
 # Extracts eigenvalues only
-# Updated 29.06.2023
-matrix_eigenvalues <- function(data)
+# Updated 11.03.2026
+matrix_eigenvalues <- function(X)
 {
-  return(eigen(data, symmetric = TRUE, only.values = TRUE)$values)
+  return(eigen(X, symmetric = TRUE, only.values = TRUE)$values)
 }
 
 #' @noRd

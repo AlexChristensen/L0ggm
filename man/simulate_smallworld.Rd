@@ -12,7 +12,7 @@ simulate_smallworld(
   sample_size,
   skew = 0,
   skew_range = NULL,
-  target_condition = 10,
+  target_condition = 30,
   max_correlation = 0.8,
   max_iterations = 100
 )
@@ -54,11 +54,11 @@ Randomly selects skews within in the range.
 Somewhat redundant with \code{skew} but more flexible}
 
 \item{target_condition}{Numeric (length = 1).
-Target condition number (using \code{\link{kappa}}) used
+Target condition number (using \code{\link{kappa}} with \code{exact = TRUE}) used
 when ridge regularization is applied to an ill-conditioned precision matrix.
 A lower value produces a better-conditioned (more stable) matrix.
-Defaults to \code{10}.
-For looser constraints, up to \code{30} is accepted but not recommended}
+Defaults to \code{30}.
+For looser constraints, up to \code{100} is accepted but not recommended}
 
 \item{max_correlation}{Numeric (length = 1).
 Maximum allowed absolute correlation between any pair of nodes in the

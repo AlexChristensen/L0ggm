@@ -72,11 +72,11 @@
 #' Both values must be between 0 and 1
 #'
 #' @param target_condition Numeric (length = 1).
-#' Target condition number (using \code{\link{kappa}}) used
+#' Target condition number (using \code{\link{kappa}} with \code{exact = TRUE}) used
 #' when ridge regularization is applied to an ill-conditioned precision matrix.
 #' A lower value produces a better-conditioned (more stable) matrix.
-#' Defaults to \code{15}.
-#' For looser constraints, up to \code{30} is accepted but not recommended
+#' Defaults to \code{30}.
+#' For looser constraints, up to \code{100} is accepted but not recommended
 #'
 #' @param max_correlation Numeric (length = 1).
 #' Maximum allowed absolute correlation between any pair of nodes in the
@@ -241,7 +241,7 @@ simulate_sbm <- function(
     negative_proportion, sample_size,
     skew = 0, skew_range = NULL,
     mixing = 0, mixing_range = NULL,
-    target_condition = 15, max_correlation = 0.80,
+    target_condition = 30, max_correlation = 0.80,
     max_iterations = 100
 )
 {
@@ -324,7 +324,7 @@ simulate_sbm <- function(
     )
 
     # Check block matrix
-    if(!igraph::is_connected(convert2igraph(block_matrix + t(block_matrix)))){
+    if(!igraph::is_connected(convert2igraph(block_matrix))){
 
       # Add rejection reason
       rejections[iter] <- "Could not find structure where every node was connected."
@@ -456,7 +456,7 @@ simulate_sbm_errors <- function(
   # Errors for 'target_condition'
   typeof_error(target_condition, "numeric")
   length_error(target_condition, 1)
-  range_error(target_condition, c(1, 30))
+  range_error(target_condition, c(1, 100))
 
   # Errors for 'max_correlation'
   typeof_error(max_correlation, "numeric")
@@ -587,7 +587,7 @@ sbm_weights <- function(
   )
 
   # Set upper triangle to zero
-  block_matrix[upper.tri(block_matrix)] <- 0
+  block_matrix[!lower_triangle] <- 0
 
   # Make symmetric
   network <- block_matrix + t(block_matrix)
@@ -644,8 +644,8 @@ sbm_weights <- function(
   }
 
   # Check for condition
-  condition <- kappa(R)
-  if(condition > (target_condition + 5)){
+  condition <- fast_kappa(R)
+  if(condition > (target_condition + 10)){
     stop("Condition number exceeds target")
   }
 

@@ -44,11 +44,11 @@
 #' Somewhat redundant with \code{skew} but more flexible
 #'
 #' @param target_condition Numeric (length = 1).
-#' Target condition number (using \code{\link{kappa}}) used
+#' Target condition number (using \code{\link{kappa}} with \code{exact = TRUE}) used
 #' when ridge regularization is applied to an ill-conditioned precision matrix.
 #' A lower value produces a better-conditioned (more stable) matrix.
-#' Defaults to \code{10}.
-#' For looser constraints, up to \code{30} is accepted but not recommended
+#' Defaults to \code{30}.
+#' For looser constraints, up to \code{100} is accepted but not recommended
 #'
 #' @param max_correlation Numeric (length = 1).
 #' Maximum allowed absolute correlation between any pair of nodes in the
@@ -187,7 +187,7 @@
 simulate_smallworld <- function(
     nodes, density, rewire, negative_proportion,
     sample_size, skew = 0, skew_range = NULL,
-    target_condition = 10, max_correlation = 0.80,
+    target_condition = 30, max_correlation = 0.80,
     max_iterations = 100
 )
 {
@@ -217,6 +217,9 @@ simulate_smallworld <- function(
 
   # Create lattice network
   lattice <- smallworld_generate(nodes, neighbors, 0)
+
+  # Obtain lower triangle
+  lower_triangle <- lower.tri(lattice)
 
   # Initialize iterations
   iter <- 0
@@ -286,7 +289,7 @@ simulate_smallworld <- function(
       smallworld_weights(
         A, lattice, nodes, sample_size, neighbors,
         negative_proportion, target_condition,
-        max_correlation, omega
+        max_correlation, omega, lower_triangle
       ), silent = TRUE
     )
 
@@ -342,7 +345,7 @@ simulate_smallworld <- function(
 # nodes = 20; density = 0.50; rewire = 0.10
 # negative_proportion = 0.35; sample_size = 1000
 # skew = 0; skew_range = NULL
-# target_condition = 10;
+# target_condition = 30;
 # max_correlation = 0.80; max_iterations = 100
 
 #' @noRd
@@ -387,7 +390,7 @@ simulate_smallworld_errors <- function(
   # Errors for 'target_condition'
   typeof_error(target_condition, "numeric")
   length_error(target_condition, 1)
-  range_error(target_condition, c(1, 30))
+  range_error(target_condition, c(1, 100))
 
   # Errors for 'max_correlation'
   typeof_error(max_correlation, "numeric")
@@ -496,11 +499,11 @@ smallworldness <- function (A, nodes, neighbors, iter = 100)
 
 #' @noRd
 # Smallworld weight generation ----
-# Updated 10.03.2026
+# Updated 11.03.2026
 smallworld_weights <- function(
     A, lattice, nodes, sample_size, neighbors,
     negative_proportion, target_condition,
-    max_correlation, omega
+    max_correlation, omega, lower_triangle
 )
 {
 
@@ -534,9 +537,6 @@ smallworld_weights <- function(
       sparse_lattice$weight[i]
   }
 
-  # Obtain lower triangle
-  lower_triangle <- lower.tri(A)
-
   # Obtain nonzero edges
   nonzero <- A[lower_triangle] != 0
 
@@ -545,9 +545,6 @@ smallworld_weights <- function(
 
   # Initialize network
   network <- matrix(0, nrow = nodes, ncol = nodes)
-
-  # Get signs
-  signs <- swiftelse(runif_xoshiro(total_edges) < negative_proportion, -1, 1)
 
   # Generate edges
   edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes)
@@ -558,8 +555,11 @@ smallworld_weights <- function(
   distance_normed <- lattice[lower_triangle][nonzero] / (neighbors + 1)
   ## Set weights order
   weight_order <- rank((1 - distance_normed), ties.method = "random")
-  network[lower_triangle][nonzero] <- sorted_edges[weight_order] * signs
+  network[lower_triangle][nonzero] <- sorted_edges[weight_order]
   network <- network + t(network) # make symmetric
+
+  # Get signs
+  network <- determine_signs(network, nodes, negative_proportion)
 
   # Get population values
   R <- silent_call(pcor2cor(network))
@@ -608,8 +608,8 @@ smallworld_weights <- function(
   }
 
   # Check for condition
-  condition <- kappa(R)
-  if(condition > (target_condition + 5)){
+  condition <- fast_kappa(R)
+  if(condition > (target_condition + 10)){
     stop("Condition number exceeds target")
   }
 
@@ -629,6 +629,31 @@ smallworld_weights <- function(
       condition = condition
     )
   )
+
+}
+
+#' @noRd
+# Determine balance of signs ----
+# Updated 11.03.2026
+determine_signs <- function(network, nodes, negative_proportion)
+{
+
+  # Convert negative_proportion (edge-level) to node flip proportion
+  flip_proportion <- (1 - sqrt(1 - 2 * negative_proportion)) / 2
+  flip_number <- round(nodes * flip_proportion)
+
+  # Flip at least one
+  flip_number <- max(1, min(flip_number, floor(nodes / 2)))
+
+  # Determine node indices
+  index <- shuffle(seq_len(nodes), flip_number)
+
+  # Flip nodes
+  network[index,] <- -network[index,]
+  network[,index] <- -network[,index]
+
+  # Return the network
+  return(network)
 
 }
 

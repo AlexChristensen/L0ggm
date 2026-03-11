@@ -57,7 +57,7 @@ generate_edges <- function(nonzero, n, p)
 
 #' @noRd
 # Minimally condition the network
-# Updated 08.03.2026
+# Updated 11.03.2026
 condition_network <- function(network, target_condition)
 {
 
@@ -65,38 +65,34 @@ condition_network <- function(network, target_condition)
   Omega <- -network
   diag(Omega) <- 1
 
-  # Compute minimum eigenvalue
-  min_eigen <- min(matrix_eigenvalues(Omega))
-
-  # Pre-compute lower triangle
-  lower_triangle <- lower.tri(network)
+  # Compute one plus minimum eigenvalue
+  min_eigen <- 1 + abs(min(matrix_eigenvalues(Omega)))
 
   # Condition network
   opt <- uniroot(
     f = function(lambda){
 
       # Create precision
-      diag(Omega) <- 1 + abs(min_eigen) + lambda
+      diag(Omega) <- min_eigen + lambda
 
-      # Compute correlation matrix
-      R <- try(cov2cor(solve(Omega)), silent = TRUE)
+      # Compute the precision matrix
+      K <- try(solve(Omega), silent = TRUE)
 
       # Catch bad matrices
-      if(is(R, "try-error")){
+      if(is(K, "try-error")){
         return(target_condition)
       }else{
-        return(kappa(R) - target_condition)
+        return(fast_kappa(cov2cor(K)) - target_condition)
       }
 
     }, interval = c(0.001, 1)
   )
 
   # Set diagonal on precision
-  diag(Omega) <- 1 + abs(min_eigen) + opt$root
-  R <- cov2cor(solve(Omega))
+  diag(Omega) <- min_eigen + opt$root
 
   # Return results
-  return(list(R = R, lambda = opt$root))
+  return(list(R = cov2cor(solve(Omega)), lambda = opt$root))
 
 }
 
