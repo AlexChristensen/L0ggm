@@ -47,25 +47,24 @@ that differ between the two SUR equations:
   \item{\code{beta_min}}{A noise-to-signal proxy defined as
     \eqn{\sqrt{\log(p) / n}}, where \eqn{p} is the number of nodes and
     \eqn{n} is the sample size. Larger values indicate sparser, noisier
-    estimation conditions. Used in the shape equation only.}
+    estimation conditions. Used in both the shape and scale equations.}
 }
 
 These predictors enter two SUR equations whose coefficients are stored in
 the internal \code{weibull_weights} dataset. SUR was used to account for the
 correlated residuals between the shape and scale equations across networks
-(residual correlation = 0.498). Model fit was acceptable: the shape equation
-achieved \eqn{R^2 = 0.209} (RMSE = 0.119) and the scale equation achieved
-\eqn{R^2 = 0.686} (RMSE = 0.017). Residuals were normally distributed for
-both equations (Shapiro-Wilk p = 0.865 and p = 0.143, respectively).
+(residual correlation = 0.471). Model fit was acceptable: the shape equation
+achieved \eqn{R^2 = 0.253} (RMSE = 0.115) and the scale equation achieved
+\eqn{R^2 = 0.853} (RMSE = 0.132, on the log scale). Residuals were normally
+distributed for the shape equation (Shapiro-Wilk p = 0.555) but showed mild
+departure from normality for the scale equation (Shapiro-Wilk p = 0.018).
 Heteroskedasticity was detected in the shape equation (Breusch-Pagan
-p < 0.001) but not the scale equation (p = 0.344); robust standard errors
-(HC3) were used for inference. Multicollinearity among shape predictors was
+p < 0.001) but not the scale equation (p = 0.083); robust standard errors
+(HC3) were used for inference. Multicollinearity among predictors was
 negligible (VIF < 1.001, condition number = 42.0).
 
-Notably, the scale equation includes only \code{rlp} and no
-sample-size-dependent term, making predicted scale invariant to \code{n}.
-Shape predictions vary with both \code{nodes} and \code{sample_size} via
-\code{beta_min}.
+Both \code{nodes} and \code{sample_size} influence predicted shape and scale
+via \code{rlp} and \code{beta_min}, respectively.
 
 Empirically, shape values ranged from approximately 0.72 to 1.48
 (M = 1.07, SD = 0.13) and scale values from approximately 0.03 to 0.16
