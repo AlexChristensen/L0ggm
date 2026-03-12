@@ -23,7 +23,7 @@ weibull_xoshiro <- function(n, shape, scale)
 #' @noRd
 # Generate edge values
 # Updated 08.03.2026
-generate_edges <- function(nonzero, n, p)
+generate_edges <- function(nonzero, n, p, snr)
 {
 
   # Check for empirical parameter bounds and maximal partial correlation
@@ -33,7 +33,7 @@ generate_edges <- function(nonzero, n, p)
   while(greater_than | outside_bounds){
 
     # Generate Weibull parameters
-    params <- weibull_parameters(nodes = p, sample_size = n, bootstrap = TRUE)
+    params <- weibull_parameters(nodes = p, sample_size = n, snr = snr, bootstrap = TRUE)
 
     # Generate edge weights
     weights <- weibull_xoshiro(nonzero, shape = params[["shape"]], scale = params[["scale"]])

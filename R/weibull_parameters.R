@@ -16,6 +16,13 @@
 #' @param sample_size Integer. The sample size of the dataset from which the
 #' network is estimated.
 #'
+#' @param snr Numeric (length = 1).
+#' Signal-to-noise ratio of partial correlations (\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
+#' Values less than 1 indicate wider range of partial correlations (\eqn{w}) whereas
+#' values greater than 1 indicate narrower range.
+#' Defaults to \code{1} where the mean of the partial correlations (\eqn{\bar{|w|}})
+#' is equal to the standard deviation (\eqn{\mathrm{SD}(|w|)})
+#'
 #' @param bootstrap Logical. If \code{TRUE}, a randomly sampled residual from
 #' the SUR model fit is added to each predicted parameter, introducing
 #' empirically grounded variability suitable for use in simulation or
@@ -86,14 +93,14 @@
 #'
 # Predict Weibull parameters ----
 # Updated 12.03.2026
-weibull_parameters <- function(nodes, sample_size, bootstrap = FALSE)
+weibull_parameters <- function(nodes, sample_size, snr = 1, bootstrap = FALSE)
 {
 
   # Get Weibull model
   weibull_weights <- get(data("weibull_weights", package = "L0ggm", envir = environment()))
 
   # Compute descriptive parameters
-  parameters <- c(beta_min = sqrt(log(nodes) / sample_size), rlp = 1 / log(nodes))
+  parameters <- c(snr = snr, rlp = 1 / log(nodes), beta_min = sqrt(log(nodes) / sample_size))
 
   # Compute Weibull parameters
   shape <- unname(

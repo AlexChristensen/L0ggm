@@ -10,12 +10,16 @@ each containing:
 \describe{
   \item{\code{coefficients}}{A named numeric vector of regression
   coefficients from the SUR model. Both equations include an intercept
-  and two predictors (\code{beta_min}, \code{rlp}). Predictors are
-  defined as follows:
+  and three predictors (\code{snr}, \code{rlp}, \code{beta_min}).
+  Predictors are defined as follows:
   \describe{
+    \item{\code{snr}}{Signal-to-noise ratio of the absolute partial
+    correlations, computed as the mean divided by the standard deviation
+    of the absolute edge weights.}
+    \item{\code{rlp}}{Reciprocal log of node count, \eqn{1 / \log(p)},
+    where \eqn{p} is the number of nodes.}
     \item{\code{beta_min}}{A noise-to-signal proxy, \eqn{\sqrt{\log(p)/n}},
     where \eqn{p} is the number of nodes and \eqn{n} is the sample size.}
-    \item{\code{rlp}}{Reciprocal log of node count, \eqn{1 / \log(p)}.}
   }}
   \item{\code{residuals}}{A numeric vector of residuals from the fitted SUR
   equation, used by \code{\link{weibull_parameters}} to introduce
@@ -45,16 +49,12 @@ The resulting Weibull shape and scale parameters were then jointly modelled
 as a function of network descriptors using Seemingly Unrelated Regression
 (\code{systemfit}), which accounts for correlated residuals between the
 shape and scale equations across networks. Prior to fitting, networks with
+fewer than eight nodes (\eqn{p < 8}), more than 300,000 observations, or
 fewer than one observation per edge (\eqn{\text{ope} \leq 1}) were excluded,
 as Huth et al. (2025) demonstrated that networks in this regime show the
 weakest statistical evidence for edge presence or absence, yielding unstable
-parameter estimates (n = 31 excluded). One additional network was excluded
-as a shape outlier, leaving n = 190 networks for analysis. The scale
-parameter was log-transformed prior to modelling to satisfy the normality
-assumption; residuals from the log-scale equation were approximately normal
-(Shapiro-Wilk W = 0.983, p = 0.023), with the marginal p-value reflecting
-test sensitivity at n = 190 rather than a substantive violation, as
-confirmed by visual inspection of the residual histogram.
+parameter estimates (n = 31 excluded). This left n = 190 networks for
+analysis. Shape and scale parameters were modelled on their original scales.
 
 Variance inflation factors (< 1.01) and the condition number of the design
 matrix (kappa = 40.0) confirmed the absence of problematic multicollinearity.
@@ -62,7 +62,10 @@ Breusch-Pagan tests indicated statistically significant heteroskedasticity
 in both equations; however, HC3-robust standard errors were substantively
 identical to OLS standard errors, indicating no material effect on inference.
 Shape residuals were normally distributed (Shapiro-Wilk W = 0.993,
-p = 0.565).
+p = 0.565). Scale residuals were approximately normal (Shapiro-Wilk
+W = 0.983, p = 0.023), with the marginal p-value reflecting test sensitivity
+at n = 190 rather than a substantive violation, as confirmed by visual
+inspection of the residual histogram.
 }
 \examples{
 data("weibull_weights")

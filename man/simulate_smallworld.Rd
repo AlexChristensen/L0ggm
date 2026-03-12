@@ -8,6 +8,7 @@ simulate_smallworld(
   nodes,
   density,
   rewire,
+  snr = 1,
   negative_proportion,
   sample_size,
   skew = 0,
@@ -32,6 +33,13 @@ Probability of rewiring each edge in the Watts-Strogatz model.
 Higher values produce more random networks; lower values preserve
 the lattice structure.
 Must be between 0 and 1}
+
+\item{snr}{Numeric (length = 1).
+Signal-to-noise ratio of partial correlations (\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
+Values less than 1 indicate wider range of partial correlations (\eqn{w}) whereas
+values greater than 1 indicate narrower range.
+Defaults to \code{1} where the mean of the partial correlations (\eqn{\bar{|w|}})
+is equal to the standard deviation (\eqn{\mathrm{SD}(|w|)})}
 
 \item{negative_proportion}{Numeric (length = 1).
 Proportion of edges that are negative (inhibitory).

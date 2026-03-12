@@ -23,6 +23,13 @@
 #' the lattice structure.
 #' Must be between 0 and 1
 #'
+#' @param snr Numeric (length = 1).
+#' Signal-to-noise ratio of partial correlations (\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
+#' Values less than 1 indicate wider range of partial correlations (\eqn{w}) whereas
+#' values greater than 1 indicate narrower range.
+#' Defaults to \code{1} where the mean of the partial correlations (\eqn{\bar{|w|}})
+#' is equal to the standard deviation (\eqn{\mathrm{SD}(|w|)})
+#'
 #' @param negative_proportion Numeric (length = 1).
 #' Proportion of edges that are negative (inhibitory).
 #' Must be between 0 and 1.
@@ -183,9 +190,9 @@
 #' @export
 #'
 # Simulate Small-world GGM data ----
-# Updated 10.03.2026
+# Updated 12.03.2026
 simulate_smallworld <- function(
-    nodes, density, rewire, negative_proportion,
+    nodes, density, rewire, snr = 1, negative_proportion,
     sample_size, skew = 0, skew_range = NULL,
     target_condition = 30, max_correlation = 0.80,
     max_iterations = 100
@@ -208,7 +215,7 @@ simulate_smallworld <- function(
 
   # Check for input errors
   simulate_smallworld_errors(
-    nodes, density, rewire, negative_proportion, sample_size,
+    nodes, density, rewire, snr, negative_proportion, sample_size,
     skew, target_condition, max_correlation, max_iterations
   )
 
@@ -288,7 +295,7 @@ simulate_smallworld <- function(
     output <- try(
       smallworld_weights(
         A, lattice, nodes, neighbors, sample_size,
-        negative_proportion, target_condition,
+        snr, negative_proportion, target_condition,
         max_correlation, omega, lower_triangle
       ), silent = TRUE
     )
@@ -350,9 +357,9 @@ simulate_smallworld <- function(
 
 #' @noRd
 # Errors ----
-# Updated 10.03.2026
+# Updated 12.03.2026
 simulate_smallworld_errors <- function(
-    nodes, density, rewire, negative_proportion, sample_size,
+    nodes, density, rewire, snr, negative_proportion, sample_size,
     skew, target_condition, max_correlation, max_iterations
 )
 {
@@ -371,6 +378,19 @@ simulate_smallworld_errors <- function(
   typeof_error(rewire, "numeric")
   length_error(rewire, 1)
   range_error(rewire, c(0, 1))
+
+  # Error for 'snr'
+  typeof_error(snr, "numeric")
+  length_error(snr, 1)
+  range_error(snr, c(0.01, Inf))
+
+  # Send warning if beyond bounds
+  if((snr < 0.64) | (snr > 1.72)){
+    warning(paste0(
+      "The signal-to-ratio specified (", round(snr, 2), ") is beyond ",
+      "the bounds of cataloged empirical data (0.64-1.72). "
+    ))
+  }
 
   # Errors for 'negative_proportion'
   typeof_error(negative_proportion, "numeric")
@@ -499,10 +519,10 @@ smallworldness <- function (A, nodes, neighbors, iter = 100)
 
 #' @noRd
 # Smallworld weight generation ----
-# Updated 11.03.2026
+# Updated 12.03.2026
 smallworld_weights <- function(
     A, lattice, nodes, neighbors, sample_size,
-    negative_proportion, target_condition,
+    snr, negative_proportion, target_condition,
     max_correlation, omega, lower_triangle
 )
 {
@@ -547,7 +567,7 @@ smallworld_weights <- function(
   network <- matrix(0, nrow = nodes, ncol = nodes)
 
   # Generate edges
-  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes)
+  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes, snr = snr)
   sorted_edges <- sort(edges, decreasing = TRUE)
 
   # Set up for smallworld Schur complement

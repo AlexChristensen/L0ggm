@@ -34,6 +34,13 @@
 #' there are blocks.
 #' Must be between 0 and 1
 #'
+#' @param snr Numeric (length = 1).
+#' Signal-to-noise ratio of partial correlations (\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
+#' Values less than 1 indicate wider range of partial correlations (\eqn{w}) whereas
+#' values greater than 1 indicate narrower range.
+#' Defaults to \code{1} where the mean of the partial correlations (\eqn{\bar{|w|}})
+#' is equal to the standard deviation (\eqn{\mathrm{SD}(|w|)})
+#'
 #' @param negative_proportion Numeric (length = 1).
 #' Proportion of edges that are negative (inhibitory).
 #' Must be between 0 and 1.
@@ -235,10 +242,10 @@
 #' @export
 #'
 # Simulate SBM GGM data ----
-# Updated 10.03.2026
+# Updated 12.03.2026
 simulate_sbm <- function(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size,
+    snr = 1, negative_proportion, sample_size,
     skew = 0, skew_range = NULL,
     mixing = 0, mixing_range = NULL,
     target_condition = 30, max_correlation = 0.80,
@@ -262,7 +269,7 @@ simulate_sbm <- function(
   # Check for input errors
   simulate_sbm_errors(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size, skew, mixing,
+    snr, negative_proportion, sample_size, skew, mixing,
     target_condition, max_correlation, max_iterations
   )
 
@@ -337,7 +344,7 @@ simulate_sbm <- function(
     output <- try(
       sbm_weights(
         block_matrix, membership, membership_matrix, sample_size,
-        total_nodes, negative_proportion,
+        snr, total_nodes, negative_proportion,
         mixing, mixing_range, target_condition,
         max_correlation, lower_triangle
       ), silent = TRUE
@@ -397,17 +404,18 @@ simulate_sbm <- function(
 # Bug checking ----
 # nodes = c(4, 6, 8); blocks = 3; sample_size = 1000
 # within_density = 0.90; between_density = 0.20
-# negative_proportion = 0.35; skew = 0; skew_range = NULL
+# snr = 1; negative_proportion = 0.35
+# skew = 0; skew_range = NULL
 # mixing = 0; mixing_range = c(0.05, 0.15)
 # target_condition = 10;
 # max_correlation = 0.80; max_iterations = 100
 
 #' @noRd
 # Errors ----
-# Updated 10.03.2026
+# Updated 12.03.2026
 simulate_sbm_errors <- function(
     nodes, blocks, within_density, between_density,
-    negative_proportion, sample_size, skew, mixing,
+    snr, negative_proportion, sample_size, skew, mixing,
     target_condition, max_correlation, max_iterations
 )
 {
@@ -431,6 +439,19 @@ simulate_sbm_errors <- function(
   typeof_error(between_density, "numeric")
   length_error(between_density, c(1, blocks))
   range_error(between_density, c(0, 1))
+
+  # Error for 'snr'
+  typeof_error(snr, "numeric")
+  length_error(snr, 1)
+  range_error(snr, c(0.01, Inf))
+
+  # Send warning if beyond bounds
+  if((snr < 0.64) | (snr > 1.72)){
+    warning(paste0(
+      "The signal-to-ratio specified (", round(snr, 2), ") is beyond ",
+      "the bounds of cataloged empirical data (0.64-1.72). "
+    ))
+  }
 
   # Errors for 'negative_proportion'
   typeof_error(negative_proportion, "numeric")
@@ -525,10 +546,10 @@ generate_sbm <- function(
 
 #' @noRd
 # SBM weight generation ----
-# Updated 10.03.2026
+# Updated 12.03.2026
 sbm_weights <- function(
     block_matrix, membership, membership_matrix, sample_size,
-    total_nodes, negative_proportion,
+    snr, total_nodes, negative_proportion,
     mixing, mixing_range, target_condition,
     max_correlation, lower_triangle
 )
@@ -553,7 +574,7 @@ sbm_weights <- function(
 
   # Generate edges
   total_edges <- sum(block_lower)
-  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = total_nodes)
+  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = total_nodes, snr = snr)
 
   # Sort edges
   sorted_edges <- sort(abs(edges), decreasing = TRUE)
