@@ -576,8 +576,12 @@ sbm_weights <- function(
   # Remaining edge weights
   remaining_weights <- shuffle(sorted_edges[-reserved_index])
 
+  # Divide by number of between edges
+  n_between <- length(between_index)
+  negative_proportion <- min(negative_proportion / (n_between / total_edges), 1)
+
   # Get signs
-  signs <- swiftelse(runif_xoshiro(length(between_index)) < negative_proportion, -1, 1)
+  signs <- swiftelse(runif_xoshiro(n_between) < negative_proportion, -1, 1)
 
   # Set edges
   block_matrix[lower_triangle][!membership_lower & block_lower] <- shuffle(remaining_weights[between_index]) * signs

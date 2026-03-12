@@ -9,7 +9,7 @@ check_bounds <- function(shape, scale)
   # (see `?weibull_descriptives` for selection criterion)
   # These ranges will be updated as more empirical data
   # are aggregated
-  (shape < 0.70) | (shape > 1.50) | (scale < 0.03) | (scale > 0.19)
+  (shape < 0.70) | (shape > 1.50) | (scale < 0.03) | (scale > 0.17)
 }
 
 #' @noRd
