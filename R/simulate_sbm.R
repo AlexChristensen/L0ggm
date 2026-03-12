@@ -252,10 +252,9 @@ simulate_sbm <- function(
     # Compute proportion of negative edges based on empirical values
     negative_proportion <- pmin(
       pmax(
-        0.3511293 + rnorm_ziggurat(1) * 0.08295474, # empirical mean +/- 1 SD
-        0.08333333 # empirical minimum
-      ),
-      0.54945055 # empirical maximum
+        0.35 + rnorm_ziggurat(1) * 0.083, # empirical mean +/- 1 SD
+        0.083 # empirical minimum
+      ), 0.55 # empirical maximum
     )
 
   }
@@ -645,7 +644,7 @@ sbm_weights <- function(
 
   # Check for condition
   condition <- fast_kappa(R)
-  if(condition > (target_condition + 10)){
+  if(condition > (target_condition + 1)){
     stop("Condition number exceeds target")
   }
 

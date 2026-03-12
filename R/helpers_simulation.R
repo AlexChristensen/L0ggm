@@ -85,7 +85,7 @@ condition_network <- function(network, target_condition)
         return(fast_kappa(cov2cor(K)) - target_condition)
       }
 
-    }, interval = c(0.001, 1)
+    }, interval = c(1e-05, 0.30) # max ~23% shrinkage (Peeters et al., 2020)
   )
 
   # Set diagonal on precision
