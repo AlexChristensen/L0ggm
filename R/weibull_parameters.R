@@ -39,22 +39,22 @@
 #' These predictors enter two SUR equations whose coefficients are stored in
 #' the internal \code{weibull_weights} dataset. SUR was used to account for the
 #' correlated residuals between the shape and scale equations across networks
-#' (residual correlation = 0.471). Model fit was acceptable: the shape equation
-#' achieved \eqn{R^2 = 0.253} (RMSE = 0.115) and the scale equation achieved
-#' \eqn{R^2 = 0.853} (RMSE = 0.132, on the log scale). Residuals were normally
-#' distributed for the shape equation (Shapiro-Wilk p = 0.555) but showed mild
-#' departure from normality for the scale equation (Shapiro-Wilk p = 0.018).
-#' Heteroskedasticity was detected in the shape equation (Breusch-Pagan
-#' p < 0.001) but not the scale equation (p = 0.083); robust standard errors
-#' (HC3) were used for inference. Multicollinearity among predictors was
-#' negligible (VIF < 1.001, condition number = 42.0).
+#' (residual correlation = 0.513). Model fit was acceptable: the shape equation
+#' achieved \eqn{R^2 = 0.282} (RMSE = 0.120) and the scale equation achieved
+#' \eqn{R^2 = 0.846} (RMSE = 0.012). Residuals showed mild departure from
+#' normality in both the shape equation (Shapiro-Wilk p = 0.049) and the scale
+#' equation (Shapiro-Wilk p < 0.001). Heteroskedasticity was detected in both
+#' the shape equation (Breusch-Pagan p < 0.001) and the scale equation
+#' (Breusch-Pagan p < 0.001); robust standard errors (HC3) were used for
+#' inference. Multicollinearity among predictors was negligible
+#' (VIF < 1.002, condition number = 40.1).
 #'
 #' Both \code{nodes} and \code{sample_size} influence predicted shape and scale
 #' via \code{rlp} and \code{beta_min}, respectively.
 #'
-#' Empirically, shape values ranged from approximately 0.72 to 1.48
-#' (M = 1.07, SD = 0.13) and scale values from approximately 0.03 to 0.16
-#' (M = 0.10, SD = 0.03) across the 189 networks used to fit the model. Shape
+#' Empirically, shape values ranged from approximately 0.72 to 1.63
+#' (M = 1.07, SD = 0.14) and scale values from approximately 0.03 to 0.19
+#' (M = 0.10, SD = 0.03) across the 191 networks used to fit the model. Shape
 #' values near 1 indicate approximately exponential edge weight distributions;
 #' values above 1 indicate a rising hazard (mode-bearing distribution).
 #'
@@ -111,11 +111,13 @@ weibull_parameters <- function(nodes, sample_size, bootstrap = FALSE)
     # Draw index
     index <- shuffle(seq_along(weibull_weights$shape$residuals), 1)
 
+    # Set parameters with residuals
     shape <- shape + weibull_weights$shape$residuals[index]
     scale <- scale + weibull_weights$scale$residuals[index]
+
   }
 
-  # Return parameters (scale needs a back-transform)
-  return(c(shape = shape, scale = exp(scale)))
+  # Return parameters
+  return(c(shape = shape, scale = scale))
 
 }
