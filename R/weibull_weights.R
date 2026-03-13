@@ -1,11 +1,10 @@
 #' SUR Model Coefficients and Residuals for Weibull Parameter Prediction
 #'
 #' A named list encoding the Seemingly Unrelated Regression (SUR) model fitted
-#' to Weibull shape and log-transformed scale parameters derived from 190
-#' empirical networks in \code{\link{weibull_descriptives}}. The object is
-#' consumed internally by \code{\link{weibull_parameters}} to generate
-#' data-driven Weibull parameter estimates given a network's number of nodes
-#' and sample size.
+#' to Weibull shape and scale parameters derived from 194
+#' empirical networks. The object is consumed internally by \code{\link{weibull_parameters}}
+#' to generate data-driven Weibull parameter estimates given a network's
+#' number of nodes and sample size.
 #'
 #' @name weibull_weights
 #'
@@ -39,8 +38,8 @@
 #' (Huth et al., 2025) were fitted to Beta, Gamma, log-normal, and Weibull
 #' distributions via maximum likelihood. Weibull provided the best fit most
 #' consistently: it outperformed each alternative by more than 2 log-likelihood
-#' units far more often than the reverse (vs. Beta: 60--1; vs. Gamma: 16--3;
-#' vs. log-normal: 184--12).
+#' units far more often than the reverse (vs. Beta: 56--0; vs. Gamma: 15--2;
+#' vs. log-normal: 155--13; vs. Exponential: 54--0).
 #'
 #' The resulting Weibull shape and scale parameters were then jointly modelled
 #' as a function of network descriptors using Seemingly Unrelated Regression
@@ -50,19 +49,20 @@
 #' fewer than one observation per edge (\eqn{\text{ope} \leq 1}) were excluded,
 #' as Huth et al. (2025) demonstrated that networks in this regime show the
 #' weakest statistical evidence for edge presence or absence, yielding unstable
-#' parameter estimates (n = 31 excluded). This left n = 190 networks for
+#' parameter estimates (n = 28 excluded). This left n = 194 networks for
 #' analysis. Shape and scale parameters were modelled on their original scales.
 #'
-#' Variance inflation factors (< 1.01) and the condition number of the design
-#' matrix (kappa = 40.0) confirmed the absence of problematic multicollinearity.
-#' Breusch-Pagan tests indicated statistically significant heteroskedasticity
-#' in both equations; however, HC3-robust standard errors were substantively
-#' identical to OLS standard errors, indicating no material effect on inference.
-#' Shape residuals were normally distributed (Shapiro-Wilk W = 0.993,
-#' p = 0.565). Scale residuals were approximately normal (Shapiro-Wilk
-#' W = 0.983, p = 0.023), with the marginal p-value reflecting test sensitivity
-#' at n = 190 rather than a substantive violation, as confirmed by visual
-#' inspection of the residual histogram.
+#' Variance inflation factors (\eqn{\leq} 1.62) and the condition number of the
+#' design matrix (kappa = 61.1) confirmed the absence of problematic
+#' multicollinearity. Breusch-Pagan tests indicated statistically significant
+#' heteroskedasticity in both equations; however, all predictors remained
+#' significant under HC3-robust standard errors, indicating no material effect
+#' on inference. Shape residuals were normally distributed (Shapiro-Wilk
+#' W = 0.995, p = 0.814). Scale residuals showed a modest departure from
+#' normality (Shapiro-Wilk W = 0.973, p < 0.001), consistent with slight right
+#' skew in the scale outcome and test sensitivity at n = 194 rather than a
+#' substantive violation, as confirmed by visual inspection of the residual
+#' histogram.
 #'
 #' @keywords datasets
 #'

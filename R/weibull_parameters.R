@@ -46,22 +46,24 @@
 #' These predictors enter two SUR equations whose coefficients are stored in
 #' the internal \code{weibull_weights} dataset. SUR was used to account for the
 #' correlated residuals between the shape and scale equations across networks
-#' (residual correlation = 0.513). Model fit was acceptable: the shape equation
-#' achieved \eqn{R^2 = 0.282} (RMSE = 0.120) and the scale equation achieved
-#' \eqn{R^2 = 0.846} (RMSE = 0.012). Residuals showed mild departure from
-#' normality in both the shape equation (Shapiro-Wilk p = 0.049) and the scale
-#' equation (Shapiro-Wilk p < 0.001). Heteroskedasticity was detected in both
+#' (residual correlation = 0.264). Model fit was strong: the shape equation
+#' achieved \eqn{R^2 = 0.891} (RMSE = 0.047) and the scale equation achieved
+#' \eqn{R^2 = 0.885} (RMSE = 0.011). Shape residuals were normally distributed
+#' (Shapiro-Wilk W = 0.995, p = 0.814). Scale residuals showed a modest
+#' departure from normality (Shapiro-Wilk W = 0.973, p < 0.001), consistent
+#' with slight right skew in the scale outcome and test sensitivity at n = 194
+#' rather than a substantive violation. Heteroskedasticity was detected in both
 #' the shape equation (Breusch-Pagan p < 0.001) and the scale equation
 #' (Breusch-Pagan p < 0.001); robust standard errors (HC3) were used for
 #' inference. Multicollinearity among predictors was negligible
-#' (VIF < 1.002, condition number = 40.1).
+#' (VIF \eqn{\leq} 1.62, condition number = 61.1).
 #'
 #' Both \code{nodes} and \code{sample_size} influence predicted shape and scale
 #' via \code{rlp} and \code{beta_min}, respectively.
 #'
 #' Empirically, shape values ranged from approximately 0.72 to 1.63
 #' (M = 1.07, SD = 0.14) and scale values from approximately 0.03 to 0.19
-#' (M = 0.10, SD = 0.03) across the 191 networks used to fit the model. Shape
+#' (M = 0.10, SD = 0.03) across the 194 networks used to fit the model. Shape
 #' values near 1 indicate approximately exponential edge weight distributions;
 #' values above 1 indicate a rising hazard (mode-bearing distribution).
 #'
@@ -92,7 +94,7 @@
 #' @export
 #'
 # Predict Weibull parameters ----
-# Updated 12.03.2026
+# Updated 13.03.2026
 weibull_parameters <- function(nodes, sample_size, snr = 1, bootstrap = FALSE)
 {
 
