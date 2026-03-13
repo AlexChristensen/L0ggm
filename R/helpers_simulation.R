@@ -132,7 +132,7 @@ simulate_data <- function(n, R, skew, skew_range)
   # Loop through columns
   node_sequence <- seq_len(output$p)
   for(i in node_sequence){
-    data[,i] <- skew_continuous(skewness = skew[i], data = data[,i])
+    data[,i] <- skew_continuous(skew = skew[i], data = data[,i])
   }
 
   # Add column names to data
