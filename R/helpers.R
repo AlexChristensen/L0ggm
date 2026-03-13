@@ -523,9 +523,9 @@ skew_continuous <- function(skew, data = NULL, sample_size = 1e06, tolerance = 1
     data <- rnorm_ziggurat(sample_size)
   }
 
-  # Check for zero skew (skip adding skew)
+  # Check for zero skew (add minimal skew)
   if(skew == 0){
-    return(data)
+    skew <- 1e-06
   }
 
   # Obtain sign and absolute skew
