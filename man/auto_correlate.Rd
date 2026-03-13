@@ -102,6 +102,9 @@ Defaults to \code{FALSE}}
 \item{...}{Not actually used but makes it easier for general functionality
 in the package}
 }
+\value{
+Returns a p x p correlation matrix
+}
 \description{
 Automatically computes the proper correlations between
 continuous and categorical variables. \code{NA} values are not treated

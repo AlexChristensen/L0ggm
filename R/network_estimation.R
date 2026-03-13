@@ -106,7 +106,7 @@
 #'
 #' }
 #'
-#' All adaptive penalties use the 95% confidence interval from zero
+#' All adaptive penalties use the 95\% confidence interval from zero
 #'
 #' @param nlambda Numeric (length = 1).
 #' Number of lambda values to test.
