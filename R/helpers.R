@@ -528,6 +528,8 @@ skew_continuous <- function(skew, data = NULL, sample_size = 1e06, tolerance = 1
     skew <- 1e-06
   }
 
+  data <- rnorm_ziggurat(sample_size)
+
   # Obtain sign and absolute skew
   skew_sign <- sign(skew)
   absolute <- abs(skew)
@@ -554,7 +556,12 @@ skew_continuous <- function(skew, data = NULL, sample_size = 1e06, tolerance = 1
   repeat{
 
     # Get result
-    result <- objective(kurtosis)
+    result <- silent_call(objective(kurtosis))
+
+    # Check for minimum too low
+    if(is.na(result$objective)){
+      return(data)
+    }
 
     # Check for tolerance
     if(result$objective < tolerance){
