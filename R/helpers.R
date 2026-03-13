@@ -514,98 +514,60 @@ skewness <- function(x, na.rm = TRUE, type = 3)
 #
 #' @noRd
 # Generates skewed data for continuous data ----
-# Updated 24.07.2024
-skew_continuous <- function(
-    skewness,
-    data = NULL,
-    sample_size = 1000000,
-    tolerance = 0.00001
-)
+# Updated 13.03.2026
+skew_continuous <- function(skew, data = NULL, sample_size = 1e06, tolerance = 1e-05)
 {
-
-  # Check for zero skew (skip adding skew)
-  if(skewness == 0){
-    return(data)
-  }
 
   # Generate data
   if(is.null(data)){
-    data <- rnorm(sample_size)
+    data <- rnorm_ziggurat(sample_size)
   }
 
-  # Kurtosis
+  # Check for zero skew (skip adding skew)
+  if(skew == 0){
+    return(data)
+  }
+
+  # Obtain sign and absolute skew
+  skew_sign <- sign(skew)
+  absolute <- abs(skew)
+
+  # Compute arcsinh once
+  arcsinh_data <- asinh(data)
+
+  # Initialize kurtosis
   kurtosis <- 1
 
-  # Initialize increments
-  increments <- 0.01
+  # Optimize for result
+  objective <- function(kurtosis){
 
-  # Seek along a range of skews
-  skew_values <- seq(
-    -2, 2, increments
-  )
-
-  # Compute skews
-  skews <- unlist(lapply(skew_values, function(x){
-    # Skew data
-    skew_data <- sinh(
-      kurtosis * (asinh(data) + x)
+    # Optimize for skew
+    optimize(
+      f = function(x){
+        abs(absolute - skewness(sinh(kurtosis * (arcsinh_data + x))))
+      }, interval = c(0, absolute + 2), tol = tolerance
     )
-
-    # Observed skew in data
-    skewness(skew_data)
-  }))
-
-  # Compute minimum index
-  minimum <- which.min(abs(skewness - skews))
-
-  # Check for whether skewness is found
-  while(abs(skewness - skews[minimum]) > tolerance){
-
-    # Check for minimum value
-    if(minimum == 1){
-      kurtosis <- kurtosis - 0.1
-    }else if(minimum == length(skews)){
-      kurtosis <- kurtosis + 0.1
-    }else{
-
-      # Decrease increments
-      increments <- 0.01 * 0.1
-
-      # Seek along a range of skews
-      skew_values <- seq(
-        skew_values[minimum - 1],
-        skew_values[minimum + 1],
-        length.out = 100
-      )
-
-    }
-
-    # Compute skews
-    skews <- unlist(lapply(skew_values, function(x){
-      # Skew data
-      skew_data <- sinh(
-        kurtosis * (asinh(data) + x)
-      )
-
-      # Observed skew in data
-      skewness(skew_data)
-    }))
-
-    # Compute minimum index
-    minimum <- which.min(abs(skewness - skews))
 
   }
 
-  # Compute final skew data
-  skew_data <- sinh(
-    kurtosis * (asinh(data) + skew_values[minimum])
-  )
+  # Repeat until convergence
+  repeat{
 
-  # Re-scale
-  skew_data <- scale(skew_data)
+    # Get result
+    result <- objective(kurtosis)
 
-  # Return skewed data
-  return(skew_data)
+    # Check for tolerance
+    if(result$objective < tolerance){
+      break
+    }
+
+    # Update kurtosis
+    kurtosis <- kurtosis + result$objective * 0.25 # learning rate
+
+  }
+
+  # Return result
+  return(skew_sign * scale(sinh(kurtosis * (arcsinh_data + result$minimum))))
 
 }
 
