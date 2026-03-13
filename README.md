@@ -135,11 +135,11 @@ $$k = \min\left(\hat{k}, 1\right)$$
 
 If $k$ is capped at 1, $\hat{\lambda_W}$ is replaced by the sample mean of $|p_{ij}|$.
 
-**Step 3 — Set adaptive scale.** The scale parameter $\gamma$ is set to the standard deviation of the fitted Weibull distribution, normalized by $\sqrt{n}$:
+**Step 3 — Set adaptive scale.** The scale parameter $\gamma$ is set to the 95% noise floor: 1.645 times the standard error of the fitted Weibull distribution, normalized by $\sqrt{n}$:
 
-$$\gamma = \frac{\hat{\lambda}_W \sqrt{\Gamma\left(1 + \tfrac{2}{k}\right) - \Gamma\left(1 + \tfrac{1}{k}\right)^2}}{\sqrt{n}}$$
+$$\gamma = \frac{1.645 \cdot \hat{\lambda}_W \sqrt{\Gamma\left(1 + \tfrac{2}{k}\right) - \Gamma\left(1 + \tfrac{1}{k}\right)^2}}{\sqrt{n}}$$
 
-This is the standard error of the Weibull scale, which shrinks with larger samples — an appropriate regularization of $\gamma$ that reduces bias as $n$ grows. The resulting $\gamma$ is small when the partial correlations are tightly concentrated (sparse true network), driving the penalty closer to $L_0$, and larger when correlations are more diffuse.
+The standard error of the Weibull scale shrinks with larger samples — an appropriate regularization of $\gamma$ that reduces bias as $n$ grows. Multiplying by 1.645 sets $\gamma$ at the one-sided 95% confidence bound, establishing a noise floor below which partial correlations are treated as indistinguishable from zero. The resulting $\gamma$ is small when the partial correlations are tightly concentrated (sparse true network), driving the penalty closer to $L_0$, and larger when correlations are more diffuse.
 
 The derivative used in the LLA is:
 
@@ -213,19 +213,19 @@ basic_smallworld <- simulate_smallworld(
 
 # Estimate network with default adaptive Weibull penalty
 # with full LLA (iterate to convergence; recommended)
-weibull_network <- network_estimation(data = basic_smalworld$data, LLA = TRUE)
+weibull_network <- network_estimation(data = basic_smallworld$data, LLA = TRUE)
 
 # Get full output (network, precision matrix, selected lambda, etc.)
-weibull_full <- network_estimation(data = basic_smalworld$data, network_only = FALSE)
+weibull_full <- network_estimation(data = basic_smallworld$data, network_only = FALSE)
 
 # Use the Arctangent penalty
 atan_network <- network_estimation(
-  data = basic_smalworld$data, penalty = "atan", LLA = TRUE
+  data = basic_smallworld$data, penalty = "atan", LLA = TRUE
 )
 
 # Use the EXP penalty with fixed (non-adaptive) gamma
 exp_network <- network_estimation(
-  data = basic_smalworld$data, penalty = "exp", LLA = TRUE, adaptive = FALSE
+  data = basic_smallworld$data, penalty = "exp", LLA = TRUE, adaptive = FALSE
 )
 ```
 

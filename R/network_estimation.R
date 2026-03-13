@@ -98,13 +98,15 @@
 #'
 #' \itemize{
 #'
-#' \item \code{"exp"} = uses median of distribution for the scale parameter (\eqn{\frac{\log{(2)}}{\lambda}})
+#' \item \code{"exp"}
 #'
-#' \item \code{"gumbel"} = uses the mean of the distribution for the scale parameter (\eqn{\gamma \cdot \beta} where \eqn{beta} is the Euler-Mascheroni constant)
+#' \item \code{"gumbel"}
 #'
-#' \item \code{"weibull"} = uses MLE estimate of shape parameter and median of distribution for the scale parameter (\eqn{\lambda \cdot (\log{(2)})^{1/k} })
+#' \item \code{"weibull"}
 #'
 #' }
+#'
+#' All adaptive penalties use the 95% confidence interval from zero
 #'
 #' @param nlambda Numeric (length = 1).
 #' Number of lambda values to test.
@@ -183,7 +185,7 @@
 #' @param LLA_threshold Numeric (length = 1).
 #' When performing the Local Linear Approximation, the maximum threshold
 #' until convergence is met.
-#' Defaults to \code{1e-04}
+#' Defaults to \code{1e-03}
 #'
 #' @param LLA_iter Numeric (length = 1).
 #' Maximum number of iterations to perform to reach convergence.
@@ -202,7 +204,27 @@
 #'
 #' @param ... Additional arguments to be passed on to \code{auto.correlate}
 #'
-#' @return A network matrix
+#' @return When \code{network_only = TRUE} (default), returns a p x p partial
+#' correlation network matrix. When \code{network_only = FALSE}, returns a named
+#' list containing:
+#'
+#' \item{network}{Partial correlation network matrix}
+#'
+#' \item{K}{Estimated inverse covariance (precision) matrix}
+#'
+#' \item{R}{Regularized covariance matrix}
+#'
+#' \item{penalty}{Penalty used}
+#'
+#' \item{lambda}{Optimal lambda value selected by the information criterion}
+#'
+#' \item{gamma}{Gamma value used}
+#'
+#' \item{correlation}{Empirical correlation matrix}
+#'
+#' \item{criterion}{Information criterion used for model selection}
+#'
+#' \item{IC}{Value of the information criterion at the optimal lambda}
 #'
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
@@ -386,6 +408,9 @@ network_estimation <- function(
       gamma <- scale * sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2) / scaling
 
     }
+
+    # Set noise floor with p = 0.05
+    gamma <- 1.645 * gamma
 
   }
 

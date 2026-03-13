@@ -89,6 +89,8 @@
 #' Not actually used but makes it easier for general functionality
 #' in the package
 #'
+#' @return Returns a p x p correlation matrix
+#'
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @examples
