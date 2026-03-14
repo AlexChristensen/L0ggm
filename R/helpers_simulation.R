@@ -98,8 +98,8 @@ condition_network <- function(network, target_condition)
 
 #' @noRd
 # Simulate data
-# Updated 09.03.2026
-simulate_data <- function(n, R, skew, skew_range)
+# Updated 14.03.2026
+simulate_data <- function(n, p, R, skew, skew_range)
 {
 
   # Check for skew range
@@ -117,27 +117,25 @@ simulate_data <- function(n, R, skew, skew_range)
   }
 
   # Generate data
-  output <- mvrnorm_precompute(n, R)
-  data <- MASS_mvrnorm_quick(p = output$p, np = output$np, coV = output$coV)
-  data <- data %*% chol(R)
+  data <- matrix(rnorm_ziggurat(n * p), nrow = n, ncol = p) %*% chol(R)
 
   # Set skew
   n_skew <- length(skew)
   if(n_skew == 1){
-    skew <- rep(skew, output$p)
-  }else if(n_skew != output$p){
-    skew <- shuffle_replace(skew, output$p)
+    skew <- rep(skew, p)
+  }else if(n_skew != p){
+    skew <- shuffle_replace(skew, p)
   }
 
   # Loop through columns
-  node_sequence <- seq_len(output$p)
+  node_sequence <- seq_len(p)
   for(i in node_sequence){
     data[,i] <- skew_continuous(skew = skew[i], data = data[,i])
   }
 
   # Add column names to data
   names(skew) <- colnames(data) <- paste0(
-    "V", format_integer(node_sequence, digits(output$p) - 1)
+    "V", format_integer(node_sequence, digits(p) - 1)
   )
 
   # Return data and skew

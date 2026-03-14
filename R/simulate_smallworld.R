@@ -1,177 +1,218 @@
 #' Simulates Small-World GGM Data
 #'
+#' @description
 #' Simulates data from a Gaussian Graphical Model (GGM) with a small-world
 #' network structure using the Watts-Strogatz model. Nodes are arranged in a
-#' ring lattice and edges are randomly rewired with probability \code{rewire}.
-#' Edge weights are derived empirically and the resulting network is used to
-#' generate multivariate normal data. Parameters do not have default values
-#' (except \code{negative_proportion}, \code{target_condition}, and \code{max_iterations}) and must
-#' each be set. See examples to get started
+#' ring lattice where each node is connected to its \code{k} nearest neighbors,
+#' and edges are then randomly rewired with probability \code{rewire}. The
+#' number of nearest neighbors \code{k} is derived from \code{nodes} and
+#' \code{density}. Edge weights are assigned by structural priority: edges
+#' closer to their original lattice positions receive larger partial correlation
+#' weights, grounded in the empirical observation that shorter-distance
+#' connections tend to carry stronger weights in psychometric networks.
+#' The resulting network is used to generate multivariate normal data.
+#' Parameters do not have default values (except \code{negative_proportion},
+#' \code{target_condition}, and \code{max_iterations}) and must each be set.
+#' See Details and Examples to get started.
 #'
 #' @param nodes Numeric (length = 1).
 #' Number of nodes in the network.
-#' Minimum three nodes
+#' Minimum of three nodes.
 #'
 #' @param density Numeric (length = 1).
 #' Controls the initial connectivity of the ring lattice by determining the
-#' number of nearest neighbors each node is connected to before rewiring.
-#' Must be between 0 and 1
+#' number of nearest neighbors \code{k} each node is connected to before
+#' rewiring. Specifically, \code{k} is derived as
+#' \eqn{k = \mathrm{round}((\text{nodes} \times \frac{\text{nodes}-1}{2} \times
+#' \text{density}) / \text{nodes})}, subject to a minimum of 2 and a maximum
+#' of \eqn{\lfloor (\text{nodes}-1)/2 \rfloor}.
+#' Must be between 0 and 1.
 #'
 #' @param rewire Numeric (length = 1).
 #' Probability of rewiring each edge in the Watts-Strogatz model.
-#' Higher values produce more random networks; lower values preserve
-#' the lattice structure.
-#' Must be between 0 and 1
+#' Values near 0 preserve the regular lattice structure; values near 1
+#' produce approximately random networks. The small-world regime typically
+#' occurs at intermediate values (roughly 0.01 to 0.30).
+#' Must be between 0 and 1.
 #'
 #' @param snr Numeric (length = 1).
-#' Signal-to-noise ratio of partial correlations (\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
-#' Values less than 1 indicate wider range of partial correlations (\eqn{w}) whereas
-#' values greater than 1 indicate narrower range.
-#' Defaults to \code{1} where the mean of the partial correlations (\eqn{\bar{|w|}})
-#' is equal to the standard deviation (\eqn{\mathrm{SD}(|w|)})
+#' Signal-to-noise ratio of partial correlations
+#' (\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
+#' Values less than 1 indicate a wider spread of partial correlation weights
+#' whereas values greater than 1 indicate a narrower spread.
+#' Defaults to \code{1} where the mean equals the standard deviation of the
+#' absolute partial correlations.
 #'
 #' @param negative_proportion Numeric (length = 1).
 #' Proportion of edges that are negative (inhibitory).
-#' Must be between 0 and 1.
+#' Must be between 0 and 0.50. The upper bound of 0.50 is a mathematical
+#' constraint of the sign-flipping procedure used to assign negative edges
+#' (see Details).
 #' If not provided, a value is sampled from an empirical distribution with
-#' mean = 0.35 and SD = 0.09, bounded between 0.08 and 0.55
+#' mean = 0.34 and SD = 0.086, bounded between 0.083 and 0.50.
 #'
 #' @param sample_size Numeric (length = 1).
-#' Number of cases to generate from a random multivariate normal distribution
+#' Number of cases to generate from the population multivariate normal
+#' distribution.
 #'
 #' @param skew Numeric (length = 1 or \code{nodes}).
-#' Skew to be included in categorical variables. It is randomly sampled from provided values.
-#' Can be a single value or as many values as there are (total) variables.
-#' Current skew implementation is between -2 and 2 in increments of 0.05.
-#' Skews that are not in this sequence will be converted to their nearest
-#' value in the sequence. Not recommended to use with \code{variables_range}
+#' Skew applied to each variable. Can be a single value (applied to all
+#' variables) or one value per variable. Values are rounded to the nearest
+#' increment of 0.05 in the range [-2, 2].
 #'
 #' @param skew_range Numeric (length = 2).
-#' Randomly selects skews within in the range.
-#' Somewhat redundant with \code{skew} but more flexible
+#' If provided, a skew value is drawn uniformly from this range for each
+#' variable, overriding \code{skew}. Both values must be between -2 and 2.
 #'
 #' @param target_condition Numeric (length = 1).
-#' Target condition number (using \code{\link{kappa}} with \code{exact = TRUE}) used
-#' when ridge regularization is applied to an ill-conditioned precision matrix.
-#' A lower value produces a better-conditioned (more stable) matrix.
-#' Defaults to \code{30}.
-#' For looser constraints, up to \code{100} is accepted but not recommended
+#' Target condition number (using \code{\link{kappa}} with \code{exact = TRUE})
+#' applied when ridge regularization is needed to recover a positive definite
+#' precision matrix. Lower values produce better-conditioned matrices.
+#' Defaults to \code{30}. Values up to \code{100} are accepted but not
+#' recommended.
 #'
 #' @param max_correlation Numeric (length = 1).
 #' Maximum allowed absolute correlation between any pair of nodes in the
-#' population correlation matrix \code{R}.
-#' If the largest off-diagonal entry of \code{abs(R)} exceeds this threshold,
-#' the current weight draw is rejected and a new one is attempted.
-#' Must be between 0 and 1.
-#' Defaults to \code{0.80}
+#' population correlation matrix \code{R}. Draws exceeding this threshold
+#' are rejected and a new attempt is made. Must be between 0 and 1.
+#' Defaults to \code{0.80}.
 #'
 #' @param max_iterations Numeric (length = 1).
 #' Maximum number of attempts to find (1) a connected network structure,
 #' (2) a network within empirical small-world bounds, and (3) a valid set
-#' of edge weights.
-#' Defaults to \code{100}
+#' of edge weights. Defaults to \code{100}.
+#'
+#' @details
+#' \strong{Edge weight assignment}
+#'
+#' Edge weights are assigned by ranking edges according to their distance
+#' in the original ring lattice before rewiring. Edges that were retained
+#' from the lattice receive their original neighbor distance (1 = nearest
+#' neighbor, 2 = second nearest, etc.); rewired edges are assigned a
+#' distance of \code{k + 1}, placing them at the bottom of the priority
+#' order. Pre-generated Weibull weights (sorted descending) are then
+#' mapped onto this ranking so that the largest weights go to the
+#' shortest-distance edges. This assignment is a structural heuristic
+#' grounded in the Watts-Strogatz data generating process and is
+#' consistent with empirical observations that shorter-distance local
+#' connections tend to carry larger partial correlation weights in
+#' psychometric networks.
+#'
+#' \strong{Negative edge assignment}
+#'
+#' Negative edges are introduced by flipping the signs of a subset of
+#' nodes — multiplying all edges incident to those nodes by -1. The number
+#' of nodes to flip is derived from \code{negative_proportion} via the
+#' inversion formula \eqn{(1 - \sqrt{1 - 2p}) / 2}, where \eqn{p} is the
+#' target proportion of negative edges. This formula assumes that an edge
+#' is negative if and only if exactly one of its endpoints is flipped,
+#' giving an expected negative proportion of \eqn{2 \cdot (k/n) \cdot
+#' (1 - k/n)} for \eqn{k} flipped nodes out of \eqn{n} total. The formula
+#' requires \eqn{p \leq 0.50}, which is why \code{negative_proportion} is
+#' bounded at 0.50.
+#'
+#' \strong{Small-worldness screening}
+#'
+#' Each generated adjacency structure is screened using the omega statistic
+#' (Telesford et al., 2011): \eqn{\omega = (L_r / L) - (C / C_l)}, where
+#' \eqn{L} is the average shortest path length of the network, \eqn{L_r}
+#' is the mean ASPL of degree-matched random networks, \eqn{C} is the
+#' average clustering coefficient, and \eqn{C_l} is the clustering
+#' coefficient of a lattice with the same \code{k}. Networks with
+#' \eqn{|\omega| > 0.80} are rejected. Note that the lattice reference
+#' uses the Watts-Strogatz construction (p = 0) rather than a maximally
+#' regular lattice, which is internally consistent with the data generating
+#' process.
 #'
 #' @return Returns a list containing:
 #'
-#' \item{data}{Simulated data from the specified small-world network model}
+#' \item{data}{Simulated data matrix (\code{sample_size x nodes}) drawn
+#' from the population GGM.}
 #'
 #' \item{parameters}{
-#' A list containing all input, derived, and estimated parameters:
-#'
+#' A list of input, derived, and estimated parameters:
 #' \itemize{
-#'
-#' \item \code{nodes} --- Number of nodes in the network (as supplied)
-#'
-#' \item \code{density} --- Initial lattice density (as supplied)
-#'
-#' \item \code{neighbors} --- Number of nearest neighbors per node in the
-#' initial ring lattice, derived from \code{nodes} and \code{density}
-#'
-#' \item \code{rewire} --- Edge rewiring probability (as supplied)
-#'
-#' \item \code{negative_proportion} --- Proportion of negative edges used
-#'
-#' \item \code{sample_size} --- Number of simulated cases
-#'
-#' \item \code{skew} --- Named numeric vector of per-variable skew values
-#' actually applied during data generation
-#'
-#' \item \code{weibull} --- MLE parameters of the Weibull distribution fit
-#' to the absolute edge weights, containing \code{shape} and \code{scale}
-#'
-#' \item \code{omega} --- Smallworldness omega statistic of the generated
-#' network (Telesford et al., 2011); values near zero indicate small-world
-#' structure
-#'
+#'   \item \code{nodes} --- Number of nodes (as supplied)
+#'   \item \code{density} --- Initial lattice density (as supplied)
+#'   \item \code{neighbors} --- Number of nearest neighbors \code{k} in the
+#'   initial ring lattice, derived from \code{nodes} and \code{density}
+#'   \item \code{rewire} --- Edge rewiring probability (as supplied)
+#'   \item \code{negative_proportion} --- Proportion of negative edges used
+#'   \item \code{sample_size} --- Number of simulated cases
+#'   \item \code{skew} --- Named numeric vector of per-variable skew values
+#'   actually applied
+#'   \item \code{weibull} --- Weibull \code{shape} and \code{scale} parameters
+#'   of the absolute edge weight distribution
+#'   \item \code{omega} --- Smallworldness omega statistic of the generated
+#'   network; values near zero indicate small-world structure, negative values
+#'   indicate lattice-like structure, and positive values indicate random-like
+#'   structure
 #' }
-#'
 #' }
 #'
 #' \item{population}{
-#' A list containing the population-level network parameters:
-#'
+#' Population-level network parameters:
 #' \itemize{
-#'
-#' \item \code{R} --- Population correlation matrix derived from the GGM
-#'
-#' \item \code{Omega} --- Population partial correlation network (GGM)
-#'
+#'   \item \code{R} --- Population correlation matrix derived from the GGM
+#'   \item \code{Omega} --- Population partial correlation matrix (GGM edge
+#'   weights)
 #' }
-#'
 #' }
 #'
 #' \item{convergence}{
-#' A list containing iteration counts and conditioning information:
-#'
+#' Iteration and conditioning diagnostics:
 #' \itemize{
-#'
-#' \item \code{iterations} --- Number of iterations needed
-#'
-#' \item \code{rejections} --- Reasons each pass was rejected (informative for challenging structures)
-#'
-#' \item \code{lambda} --- Ridge regularization parameter used to condition
-#' the precision matrix when it was not initially positive definite;
-#' \code{NA} if no conditioning was required
-#'
-#' \item \code{condition} --- Condition number (ratio of largest to smallest
-#' eigenvalue) of the population correlation matrix \code{R}
-#'
+#'   \item \code{iterations} --- Number of iterations needed to find a valid
+#'   network
+#'   \item \code{rejections} --- Character vector of rejection reasons across
+#'   iterations, useful for diagnosing convergence failures
+#'   \item \code{lambda} --- Ridge regularization parameter applied to
+#'   condition the precision matrix; \code{NA} if no conditioning was required
+#'   \item \code{condition} --- Condition number of the population correlation
+#'   matrix \code{R}
 #' }
-#'
 #' }
 #'
 #' @examples
-#' # Generate small-world data with default settings
-#' basic_smallworld <- simulate_smallworld(
-#'   nodes = 20, # 20 nodes in the network
-#'   density = 0.30, # moderate initial lattice connectivity
-#'   rewire = 0.20, # 20% rewiring probability
-#'   sample_size = 1000 # number of cases = 1000
+#' # Basic small-world network (moderate density, moderate rewiring)
+#' result <- simulate_smallworld(
+#'   nodes = 20,
+#'   density = 0.30,
+#'   rewire = 0.20,
+#'   sample_size = 500
 #' )
 #'
-#' # Generate a more lattice-like network (low rewiring)
-#' lattice_like <- simulate_smallworld(
-#'   nodes = 20, # 20 nodes in the network
-#'   density = 0.50, # moderate initial lattice connectivity
-#'   rewire = 0.05, # 5% rewiring probability (closer to regular lattice)
-#'   sample_size = 1000 # number of cases = 1000
+#' # Lattice-like structure (low rewiring preserves local connectivity)
+#' result <- simulate_smallworld(
+#'   nodes = 20,
+#'   density = 0.30,
+#'   rewire = 0.01,
+#'   sample_size = 500
 #' )
 #'
-#' # Generate a more random network (high rewiring)
-#' random_like <- simulate_smallworld(
-#'   nodes = 20, # 20 nodes in the network
-#'   density = 0.30, # moderate initial lattice connectivity
-#'   rewire = 0.80, # 80% rewiring probability (closer to random graph)
-#'   sample_size = 1000 # number of cases = 1000
+#' # Random-like structure (high rewiring destroys lattice regularity)
+#' result <- simulate_smallworld(
+#'   nodes = 20,
+#'   density = 0.30,
+#'   rewire = 0.80,
+#'   sample_size = 500
 #' )
 #'
-#' # Control the proportion of negative edges
-#' with_negatives <- simulate_smallworld(
-#'   nodes = 20, # 20 nodes in the network
-#'   density = 0.30, # moderate initial lattice connectivity
-#'   rewire = 0.20, # 20% rewiring probability
-#'   sample_size = 1000, # number of cases = 1000
-#'   negative_proportion = 0.20 # 20% of edges are negative
+#' # Fix the proportion of negative edges
+#' result <- simulate_smallworld(
+#'   nodes = 20,
+#'   density = 0.30,
+#'   rewire = 0.20,
+#'   sample_size = 500,
+#'   negative_proportion = 0.20
+#' )
+#'
+#' # Larger network with higher density
+#' result <- simulate_smallworld(
+#'   nodes = 40,
+#'   density = 0.50,
+#'   rewire = 0.10,
+#'   sample_size = 1000
 #' )
 #'
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
@@ -183,7 +224,8 @@
 #' \emph{Nature}, \emph{393}(6684), 440--442.
 #'
 #' \strong{Omega statistic for smallworldness} \cr
-#' Telesford, Q. K., Joyce, K. E., Hayasaka, S., Burdette, J. H., & Laurienti, P. J. (2011).
+#' Telesford, Q. K., Joyce, K. E., Hayasaka, S., Burdette, J. H., &
+#' Laurienti, P. J. (2011).
 #' The ubiquity of small-world networks.
 #' \emph{Brain Connectivity}, \emph{1}(5), 367--375.
 #'
@@ -205,7 +247,7 @@ simulate_smallworld <- function(
     # Compute proportion of negative edges based on empirical values
     negative_proportion <- pmin(
       pmax(
-        0.35 + rnorm_ziggurat(1) * 0.083, # empirical mean +/- 1 SD
+        0.34 + rnorm_ziggurat(1) * 0.086, # empirical mean +/- 1 SD
         0.083 # empirical minimum
       ), 0.50 # empirical maximum (0.54945055)
       # needs to be capped at 0.50 due to flipping variables
@@ -280,8 +322,8 @@ simulate_smallworld <- function(
     # Estimate small-worldness (|0.50| based on Telesford et al., 2011)
     omega <- smallworldness(A, nodes, neighbors)[["omega"]]
 
-    # Check for smallworldness
-    if((omega < -0.30) | (omega > 0.70)){
+    # Check for smallworldness (based on empirical range of -0.580 to 0.70)
+    if(abs(omega) > 0.80){
 
       # Add rejection reason
       rejections[iter] <- "Could not find structure where network was small-world."
@@ -319,7 +361,9 @@ simulate_smallworld <- function(
   }
 
   # Generate data
-  data_output <- simulate_data(n = sample_size, R = output$R, skew = skew, skew_range = skew_range)
+  data_output <- simulate_data(
+    n = sample_size, p = nodes, R = output$R, skew = skew, skew_range = skew_range
+  )
 
   # Return parameters
   return(
@@ -357,7 +401,7 @@ simulate_smallworld <- function(
 
 #' @noRd
 # Errors ----
-# Updated 12.03.2026
+# Updated 14.03.2026
 simulate_smallworld_errors <- function(
     nodes, density, rewire, snr, negative_proportion, sample_size,
     skew, target_condition, max_correlation, max_iterations
@@ -365,24 +409,24 @@ simulate_smallworld_errors <- function(
 {
 
   # Errors for 'nodes'
-  typeof_error(nodes, "numeric")
-  length_error(nodes, c(1, Inf))
-  range_error(nodes, c(3, Inf))
+  typeof_error(nodes, "numeric", "simulate_smallworld")
+  length_error(nodes, 1, "simulate_smallworld")
+  range_error(nodes, c(3, Inf), "simulate_smallworld")
 
   # Errors for 'density'
-  typeof_error(density, "numeric")
-  length_error(density, 1)
-  range_error(density, c(0, 1))
+  typeof_error(density, "numeric", "simulate_smallworld")
+  length_error(density, 1, "simulate_smallworld")
+  range_error(density, c(0, 1), "simulate_smallworld")
 
   # Errors for 'rewire'
-  typeof_error(rewire, "numeric")
-  length_error(rewire, 1)
-  range_error(rewire, c(0, 1))
+  typeof_error(rewire, "numeric", "simulate_smallworld")
+  length_error(rewire, 1, "simulate_smallworld")
+  range_error(rewire, c(0, 1), "simulate_smallworld")
 
   # Error for 'snr'
-  typeof_error(snr, "numeric")
-  length_error(snr, 1)
-  range_error(snr, c(0.01, Inf))
+  typeof_error(snr, "numeric", "simulate_smallworld")
+  length_error(snr, 1, "simulate_smallworld")
+  range_error(snr, c(0.01, Inf), "simulate_smallworld")
 
   # Send warning if beyond bounds
   if((snr < 0.64) | (snr > 1.72)){
@@ -393,39 +437,39 @@ simulate_smallworld_errors <- function(
   }
 
   # Errors for 'negative_proportion'
-  typeof_error(negative_proportion, "numeric")
-  length_error(negative_proportion, 1)
-  range_error(negative_proportion, c(0, 1))
+  typeof_error(negative_proportion, "numeric", "simulate_smallworld")
+  length_error(negative_proportion, 1, "simulate_smallworld")
+  range_error(negative_proportion, c(0, 0.50), "simulate_smallworld")
 
   # Errors for 'sample_size'
-  typeof_error(sample_size, "numeric")
-  length_error(sample_size, 1)
-  range_error(sample_size, c(1, Inf))
+  typeof_error(sample_size, "numeric", "simulate_smallworld")
+  length_error(sample_size, 1, "simulate_smallworld")
+  range_error(sample_size, c(1, Inf), "simulate_smallworld")
 
   # Errors for 'skew'
-  typeof_error(skew, "numeric")
-  length_error(skew, c(1, nodes))
-  range_error(skew, c(-2, 2))
+  typeof_error(skew, "numeric", "simulate_smallworld")
+  length_error(skew, c(1, nodes), "simulate_smallworld")
+  range_error(skew, c(-2, 2), "simulate_smallworld")
 
   # Errors for 'target_condition'
-  typeof_error(target_condition, "numeric")
-  length_error(target_condition, 1)
-  range_error(target_condition, c(1, 100))
+  typeof_error(target_condition, "numeric", "simulate_smallworld")
+  length_error(target_condition, 1, "simulate_smallworld")
+  range_error(target_condition, c(1, 100), "simulate_smallworld")
 
   # Errors for 'max_correlation'
-  typeof_error(max_correlation, "numeric")
-  length_error(max_correlation, 1)
-  range_error(max_correlation, c(0, 1))
+  typeof_error(max_correlation, "numeric", "simulate_smallworld")
+  length_error(max_correlation, 1, "simulate_smallworld")
+  range_error(max_correlation, c(0, 1), "simulate_smallworld")
 
   # Errors for 'max_iterations'
-  typeof_error(max_iterations, "numeric")
-  length_error(max_iterations, 1)
-  range_error(max_iterations, c(1, Inf))
+  typeof_error(max_iterations, "numeric", "simulate_smallworld")
+  length_error(max_iterations, 1, "simulate_smallworld")
+  range_error(max_iterations, c(1, Inf), "simulate_smallworld")
 
 }
 
 #' @noRd
-# Get number of neighbors based on density
+# Get number of neighbors based on density ----
 # Updated 08.03.2026
 get_neighbors <- function(nodes, density)
 {
@@ -519,7 +563,7 @@ smallworldness <- function (A, nodes, neighbors, iter = 100)
 
 #' @noRd
 # Smallworld weight generation ----
-# Updated 12.03.2026
+# Updated 14.03.2026
 smallworld_weights <- function(
     A, lattice, nodes, neighbors, sample_size,
     snr, negative_proportion, target_condition,
@@ -570,13 +614,8 @@ smallworld_weights <- function(
   edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes, snr = snr)
   sorted_edges <- sort(edges, decreasing = TRUE)
 
-  # Set up for smallworld Schur complement
-  ## ASPL component
-  distance_normed <- 0.50 * (1 - min_max(lattice[lower_triangle][nonzero]))
-  ## wTO component
-  wto_normed <- 0.50 * (1 - min_max(wto(A)[lower_triangle][nonzero]))
-  ## Set weights order
-  weight_order <- rank(distance_normed + wto_normed, ties.method = "random")
+  # Set weights order
+  weight_order <- rank(lattice[lower_triangle][nonzero], ties.method = "random")
   network[lower_triangle][nonzero] <- sorted_edges[weight_order]
   network <- network + t(network) # make symmetric
 
@@ -660,6 +699,11 @@ smallworld_weights <- function(
 determine_signs <- function(network, nodes, negative_proportion)
 {
 
+  # Check for zero negative weights
+  if(negative_proportion == 0){
+    return(network)
+  }
+
   # Convert negative_proportion (edge-level) to node flip proportion
   flip_proportion <- (1 - sqrt(1 - 2 * negative_proportion)) / 2
   flip_number <- round(nodes * flip_proportion)
@@ -676,42 +720,5 @@ determine_signs <- function(network, nodes, negative_proportion)
 
   # Return the network
   return(network)
-
-}
-
-#' @noRd
-# Weighted topological overlap from {EGAnet} 2.4.1 ----
-# Updated 11.03.2026
-wto <- function(network)
-{
-
-  # Get dimensions of the network
-  dimensions <- dim(network)
-
-  # Obtain absolute network values
-  absolute_network <- abs(network)
-
-  # Obtain node strengths
-  node_strengths <- colSums(absolute_network, na.rm = TRUE)
-
-  # Obtain variable pair minimums
-  strength_each <- rep(node_strengths, each = dimensions[2])
-  strength_times <- rep(node_strengths, times = dimensions[2])
-
-  # Create minimum matrix
-  minimum_matrix <- matrix(
-    swiftelse(
-      strength_each < strength_times,
-      strength_each, strength_times
-    ),
-    nrow = dimensions[2], ncol = dimensions[2]
-  )
-
-  # Divide numerator by denominator
-  omega <- (crossprod(network) + network) /
-    (minimum_matrix + 1 - absolute_network)
-
-  # Return weighted topological overlap
-  return(abs(omega))
 
 }

@@ -5,13 +5,13 @@
 \alias{basic_smallworld}
 \title{Toy Small-world Network Data Example}
 \format{
-A 1000 \eqn{\times} 20 continuous response matrix
+A 500 \eqn{\times} 20 continuous response matrix
 }
 \usage{
 data(basic_smallworld)
 }
 \description{
-A toy small-world network example (\emph{n} = 1000)
+A toy small-world network example (\emph{n} = 500)
 }
 \examples{
 # Generated using:
@@ -19,7 +19,7 @@ A toy small-world network example (\emph{n} = 1000)
 #  nodes = 20, # 20 nodes in the network
 #  density = 0.30, # moderate initial lattice connectivity
 #  rewire = 0.20, # 20\% rewiring probability
-#  sample_size = 1000 # number of cases = 1000
+#  sample_size = 500 # number of cases = 500
 # )
 data("basic_smallworld")
 

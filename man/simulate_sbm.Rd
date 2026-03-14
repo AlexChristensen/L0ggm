@@ -7,8 +7,7 @@
 simulate_sbm(
   nodes,
   blocks,
-  within_density,
-  between_density,
+  density_matrix,
   snr = 1,
   diffusion = 0.5,
   diffusion_range = NULL,
@@ -25,212 +24,246 @@ simulate_sbm(
 \item{nodes}{Numeric (length = 1 or \code{blocks}).
 Number of nodes per community block.
 Can be a single value (applied to all blocks) or as many values as there
-are blocks (corresponding to each block).
-Minimum three nodes per block}
+are blocks (corresponding to each block in order).
+Minimum of three nodes per block.}
 
 \item{blocks}{Numeric (length = 1).
-Number of community blocks}
+Number of community blocks.}
 
-\item{within_density}{Numeric (length = 1 or \code{blocks}).
-Probability that an edge exists between any two nodes within the same
-community block.
-Can be a single value (applied to all blocks) or as many values as there
-are blocks.
-Must be between 0 and 1}
-
-\item{between_density}{Numeric (length = 1 or \code{blocks}).
-Probability that an edge exists between any two nodes in different
-community blocks.
-Can be a single value (applied to all block pairs) or as many values as
-there are blocks.
-Must be between 0 and 1}
+\item{density_matrix}{Matrix (dim = \code{blocks x blocks}).
+A symmetric numeric matrix specifying edge probabilities within and between
+community blocks. Diagonal entries give the within-block edge probability
+for each community; off-diagonal entries give the between-block edge
+probability for each pair of communities. All values must be between 0
+and 1, and the matrix must be symmetric (i.e., \code{density_matrix[i,j] ==
+density_matrix[j,i]}). See Details for construction guidance.}
 
 \item{snr}{Numeric (length = 1).
-Signal-to-noise ratio of partial correlations (\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
-Values less than 1 indicate wider range of partial correlations (\eqn{w}) whereas
-values greater than 1 indicate narrower range.
-Defaults to \code{1} where the mean of the partial correlations (\eqn{\bar{|w|}})
-is equal to the standard deviation (\eqn{\mathrm{SD}(|w|)})}
+Signal-to-noise ratio of partial correlations
+(\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
+Values less than 1 indicate a wider spread of partial correlation weights
+whereas values greater than 1 indicate a narrower spread.
+Defaults to \code{1} where the mean equals the standard deviation of the
+absolute partial correlations.}
 
 \item{diffusion}{Numeric (length = 1).
-Proportion of the strongest edges that are randomly assigned to
-within-block and between-block positions rather than being reserved for within-block
-positions only. At \code{diffusion = 0.50} (default), 50\% of the strongest edges are
-placed within communities. Higher values randomly redistribute more top-weighted edges
-across the network.
-Must be between 0 and 1}
+Proportion of the strongest edges that are randomly assigned to either
+within-block or between-block positions rather than being reserved for
+within-block positions only. At \code{diffusion = 0.50} (default), 50\%
+of the strongest edges are placed within communities. Higher values
+redistribute more top-weighted edges across the network, weakening the
+community contrast. Must be between 0 and 1.}
 
 \item{diffusion_range}{Numeric (length = 2).
-If provided, the diffusion proportion is drawn uniformly from this range on
-each call, overriding \code{diffusion}. Useful for introducing variability
-across simulation replications. For example, \code{diffusion_range = c(0.05, 0.20)}
-samples a diffusion value between 5\% and 20\% on each draw.
-Both values must be between 0 and 1}
+If provided, the diffusion proportion is drawn uniformly from this range
+on each call, overriding \code{diffusion}. Useful for introducing
+variability across simulation replications. For example,
+\code{diffusion_range = c(0.05, 0.20)} samples a diffusion value between
+5\% and 20\% on each draw. Both values must be between 0 and 1.}
 
 \item{negative_proportion}{Numeric (length = 1).
-Proportion of edges that are negative (inhibitory).
+Proportion of between-community edges that are negative (inhibitory).
 Must be between 0 and 1.
 If not provided, a value is sampled from an empirical distribution with
-mean = 0.35 and SD = 0.09, bounded between 0.08 and 0.55}
+mean = 0.35 and SD = 0.09, bounded between 0.08 and 0.55.}
 
 \item{sample_size}{Numeric (length = 1).
-Number of cases to generate from a random multivariate normal distribution}
+Number of cases to generate from the population multivariate normal
+distribution.}
 
-\item{skew}{Numeric (length = 1 or \code{nodes * blocks}).
-Skew to be included in categorical variables. It is randomly sampled from provided values.
-Can be a single value or as many values as there are (total) variables.
-Current skew implementation is between -2 and 2 in increments of 0.05.
-Skews that are not in this sequence will be converted to their nearest
-value in the sequence}
+\item{skew}{Numeric (length = 1 or \code{sum(nodes)}).
+Skew applied to each variable. Can be a single value (applied to all
+variables) or one value per variable. Values are rounded to the nearest
+increment of 0.05 in the range [-2, 2].}
 
 \item{skew_range}{Numeric (length = 2).
-Randomly selects skews within in the range.
-Somewhat redundant with \code{skew} but more flexible}
+If provided, a skew value is drawn uniformly from this range for each
+variable, overriding \code{skew}. Both values must be between -2 and 2.}
 
 \item{target_condition}{Numeric (length = 1).
-Target condition number (using \code{\link{kappa}} with \code{exact = TRUE}) used
-when ridge regularization is applied to an ill-conditioned precision matrix.
-A lower value produces a better-conditioned (more stable) matrix.
-Defaults to \code{30}.
-For looser constraints, up to \code{100} is accepted but not recommended}
+Target condition number (using \code{\link{kappa}} with \code{exact = TRUE})
+applied when ridge regularization is needed to recover a positive definite
+precision matrix. Lower values produce better-conditioned matrices.
+Defaults to \code{30}. Values up to \code{100} are accepted but not
+recommended.}
 
 \item{max_correlation}{Numeric (length = 1).
 Maximum allowed absolute correlation between any pair of nodes in the
-population correlation matrix \code{R}.
-If the largest off-diagonal entry of \code{abs(R)} exceeds this threshold,
-the current weight draw is rejected and a new one is attempted.
-Must be between 0 and 1.
-Defaults to \code{0.80}}
+population correlation matrix \code{R}. Draws exceeding this threshold
+are rejected and a new attempt is made. Must be between 0 and 1.
+Defaults to \code{0.80}.}
 
 \item{max_iterations}{Numeric (length = 1).
-Maximum number of attempts to find (1) a connected network structure and
-(2) a valid set of edge weights.
-Defaults to \code{100}}
+Maximum number of attempts to find a connected network structure with a
+valid set of edge weights. Defaults to \code{100}.}
 }
 \value{
 Returns a list containing:
 
-\item{data}{Simulated data from the specified SBM network model}
+\item{data}{Simulated data matrix (\code{sample_size x sum(nodes)}) drawn
+from the population GGM.}
 
 \item{parameters}{
-A list containing all input, derived, and estimated parameters:
-
+A list of input, derived, and estimated parameters:
 \itemize{
-
-\item \code{nodes} --- Number of nodes per community block (as supplied)
-
-\item \code{blocks} --- Number of community blocks
-
-\item \code{sample_size} --- Number of simulated cases
-
-\item \code{skew} --- Named numeric vector of per-variable skew values
-actually applied during data generation
-
-\item \code{within_density} --- Within-block edge density (as supplied)
-
-\item \code{between_density} --- Between-block edge density (as supplied)
-
-\item \code{negative_proportion} --- Proportion of negative edges used
-
-\item \code{weibull} --- MLE parameters of the Weibull distribution fit
-to the absolute edge weights, containing \code{shape} and \code{scale}
-
-\item \code{diffusion} --- Numeric vector of length 2 giving the within-block
-reservation range used during weight assignment. When \code{diffusion_range}
-is provided, this equals \code{1 - diffusion_range}; otherwise both values
-equal \code{1 - diffusion}
-
-\item \code{Q} --- Modularity of the population network with respect to
-the block membership structure, computed via \code{igraph::modularity}
-
+  \item \code{nodes} --- Number of nodes per block (expanded to length
+  \code{blocks})
+  \item \code{blocks} --- Number of community blocks
+  \item \code{sample_size} --- Number of simulated cases
+  \item \code{skew} --- Named numeric vector of per-variable skew values
+  actually applied
+  \item \code{density_matrix} --- The \code{blocks x blocks} density matrix
+  as supplied
+  \item \code{negative_proportion} --- Proportion of negative between-block
+  edges used
+  \item \code{weibull} --- Weibull \code{shape} and \code{scale} parameters
+  of the absolute edge weight distribution
+  \item \code{diffusion} --- Numeric vector of length 2 giving the
+  within-block reservation range. Both values equal \code{1 - diffusion}
+  when \code{diffusion} is scalar; equals \code{1 - diffusion_range} when
+  \code{diffusion_range} is provided
+  \item \code{Q} --- Newman-Girvan modularity of the population network
+  with respect to the block membership, computed via
+  \code{igraph::modularity}
 }
-
 }
 
 \item{population}{
-A list containing the population-level network parameters:
-
+Population-level network parameters:
 \itemize{
-
-\item \code{R} --- Population correlation matrix derived from the GGM
-
-\item \code{Omega} --- Population partial correlation network (GGM)
-
-\item \code{membership} --- Named integer vector of community block
-assignments for each node
-
+  \item \code{R} --- Population correlation matrix derived from the GGM
+  \item \code{Omega} --- Population partial correlation matrix (GGM edge
+  weights)
+  \item \code{membership} --- Named integer vector of community block
+  assignments for each node
 }
-
 }
 
 \item{convergence}{
-A list containing iteration counts and conditioning information:
-
+Iteration and conditioning diagnostics:
 \itemize{
-
-\item \code{iterations} --- Number of iterations needed
-
-\item \code{rejections} --- Reasons each pass was rejected (informative for challenging structures)
-
-\item \code{lambda} --- Ridge regularization parameter used to condition
-the precision matrix when it was not initially positive definite;
-\code{NA} if no conditioning was required
-
-\item \code{condition} --- Condition number (ratio of largest to smallest
-eigenvalue) of the population correlation matrix \code{R}
-
+  \item \code{iterations} --- Number of iterations needed to find a valid
+  network
+  \item \code{rejections} --- Character vector of rejection reasons across
+  iterations, useful for diagnosing convergence failures
+  \item \code{lambda} --- Ridge regularization parameter applied to
+  condition the precision matrix; \code{NA} if no conditioning was required
+  \item \code{condition} --- Condition number of the population correlation
+  matrix \code{R}
 }
-
 }
 }
 \description{
 Simulates data from a Gaussian Graphical Model (GGM) with a stochastic
 block model (SBM) structure. Nodes are partitioned into communities, with
-edge density controlled separately within and between communities. Edge
-weights are derived empirically and the resulting network is used to
-generate multivariate normal data. A \code{diffusion} parameter controls the
-proportion of the strongest edges that are allowed to appear between
-communities rather than being reserved for within-community positions.
+edge density controlled separately within and between communities via a
+\code{blocks x blocks} density matrix. Edge weights are derived empirically
+from a Weibull distribution fit to real psychometric network data, and the
+resulting network is used to generate multivariate normal data. A
+\code{diffusion} parameter controls the proportion of the strongest edges
+that are reserved for within-community positions versus allowed to appear
+between communities.
 Parameters do not have default values (except \code{negative_proportion},
 \code{diffusion}, \code{target_condition}, and \code{max_iterations}) and
-must each be set. See examples to get started
+must each be set. See Details and Examples to get started.
+}
+\details{
+\strong{Constructing \code{density_matrix}}
+
+The \code{density_matrix} is a \code{blocks x blocks} symmetric matrix
+where entry \eqn{[i,i]} gives the within-block edge probability for
+community \eqn{i}, and entry \eqn{[i,j]} (for \eqn{i \neq j}) gives the
+between-block edge probability for communities \eqn{i} and \eqn{j}. The
+simplest construction uses a uniform off-diagonal density with
+block-specific diagonals:
+
+\preformatted{
+# Uniform within (0.90) and between (0.20) density for 3 blocks
+dm <- matrix(0.20, nrow = 3, ncol = 3)
+diag(dm) <- 0.90
+}
+
+For asymmetric community structure, each diagonal entry can differ:
+
+\preformatted{
+# Varying within-block density per community
+dm <- matrix(0.20, nrow = 3, ncol = 3)
+diag(dm) <- c(0.85, 0.90, 0.95)
+}
+
+For full pairwise control over between-block densities, specify the
+complete symmetric matrix directly:
+
+\preformatted{
+dm <- matrix(c(
+  0.90, 0.20, 0.10,
+  0.20, 0.85, 0.30,
+  0.10, 0.30, 0.95
+), nrow = 3, ncol = 3)
+}
 }
 \examples{
-# Generate SBM data with equal-sized blocks
-three_block <- simulate_sbm(
-  nodes = 6, # 6 nodes per block
-  blocks = 3, # 3 community blocks = 18 total nodes
-  sample_size = 1000, # number of cases = 1000
-  within_density = 0.90, # 90\% edge probability within blocks
-  between_density = 0.20 # 20\% edge probability between blocks
+# Construct density matrix for 3 blocks with uniform densities
+dm <- matrix(0.20, nrow = 3, ncol = 3)
+diag(dm) <- 0.90
+
+# Basic 3-block simulation with equal-sized communities
+result <- simulate_sbm(
+  nodes = 6, # 6 nodes per block = 18 total
+  blocks = 3,
+  sample_size = 500,
+  density_matrix = dm
 )
 
-# Generate SBM data with unequal block sizes
-unequal_blocks <- simulate_sbm(
-  nodes = c(4, 6, 8), # 4, 6, and 8 nodes per block = 18 total nodes
-  blocks = 3, # 3 community blocks
-  sample_size = 1000, # number of cases = 1000
-  within_density = 0.90, # 90\% edge probability within blocks
-  between_density = 0.20 # 20\% edge probability between blocks
+# Unequal block sizes
+result <- simulate_sbm(
+  nodes = c(4, 6, 8), # 18 total nodes
+  blocks = 3,
+  sample_size = 500,
+  density_matrix = dm
 )
 
-# Generate SBM data with varying density per block
-varying_density <- simulate_sbm(
-  nodes = 6, # 6 nodes per block
-  blocks = 3, # 3 community blocks
-  sample_size = 1000, # number of cases = 1000
-  within_density = c(0.85, 0.90, 0.95), # density varies by block
-  between_density = 0.15 # 15\% edge probability between blocks
+# Varying within-block density per community
+dm_varying <- matrix(0.20, nrow = 3, ncol = 3)
+diag(dm_varying) <- c(0.85, 0.90, 0.95)
+
+result <- simulate_sbm(
+  nodes = 6,
+  blocks = 3,
+  sample_size = 500,
+  density_matrix = dm_varying
 )
 
-# Control the proportion of negative edges
-with_negatives <- simulate_sbm(
-  nodes = 6, # 6 nodes per block
-  blocks = 3, # 3 community blocks
-  sample_size = 1000, # number of cases = 1000
-  within_density = 0.90, # 90\% edge probability within blocks
-  between_density = 0.20, # 20\% edge probability between blocks
-  negative_proportion = 0.20 # 20\% of edges are negative
+# Full pairwise between-block density control
+dm_pairwise <- matrix(c(
+  0.90, 0.20, 0.10,
+  0.20, 0.85, 0.30,
+  0.10, 0.30, 0.95
+), nrow = 3, ncol = 3)
+
+result <- simulate_sbm(
+  nodes = 6,
+  blocks = 3,
+  sample_size = 500,
+  density_matrix = dm_pairwise
+)
+
+# Fix the proportion of negative edges
+result <- simulate_sbm(
+  nodes = 6,
+  blocks = 3,
+  sample_size = 500,
+  density_matrix = dm,
+  negative_proportion = 0.20
+)
+
+# Introduce variability in diffusion across replications
+result <- simulate_sbm(
+  nodes = 6,
+  blocks = 3,
+  sample_size = 500,
+  density_matrix = dm,
+  diffusion_range = c(0.30, 0.70)
 )
 
 }
