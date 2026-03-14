@@ -4,11 +4,11 @@
 #' block model (SBM) structure. Nodes are partitioned into communities, with
 #' edge density controlled separately within and between communities. Edge
 #' weights are derived empirically and the resulting network is used to
-#' generate multivariate normal data. A \code{mixing} parameter controls the
+#' generate multivariate normal data. A \code{diffusion} parameter controls the
 #' proportion of the strongest edges that are allowed to appear between
 #' communities rather than being reserved for within-community positions.
 #' Parameters do not have default values (except \code{negative_proportion},
-#' \code{mixing}, \code{target_condition}, and \code{max_iterations}) and
+#' \code{diffusion}, \code{target_condition}, and \code{max_iterations}) and
 #' must each be set. See examples to get started
 #'
 #' @param nodes Numeric (length = 1 or \code{blocks}).
@@ -47,6 +47,21 @@
 #' If not provided, a value is sampled from an empirical distribution with
 #' mean = 0.35 and SD = 0.09, bounded between 0.08 and 0.55
 #'
+#' @param diffusion Numeric (length = 1).
+#' Proportion of the strongest edges that are randomly assigned to
+#' within-block and between-block positions rather than being reserved for within-block
+#' positions only. At \code{diffusion = 0.50} (default), 50\% of the strongest edges are
+#' placed within communities. Higher values randomly redistribute more top-weighted edges
+#' across the network.
+#' Must be between 0 and 1
+#'
+#' @param diffusion_range Numeric (length = 2).
+#' If provided, the diffusion proportion is drawn uniformly from this range on
+#' each call, overriding \code{diffusion}. Useful for introducing variability
+#' across simulation replications. For example, \code{diffusion_range = c(0.05, 0.20)}
+#' samples a diffusion value between 5\% and 20\% on each draw.
+#' Both values must be between 0 and 1
+#'
 #' @param sample_size Numeric (length = 1).
 #' Number of cases to generate from a random multivariate normal distribution
 #'
@@ -60,23 +75,6 @@
 #' @param skew_range Numeric (length = 2).
 #' Randomly selects skews within in the range.
 #' Somewhat redundant with \code{skew} but more flexible
-#'
-#' @param mixing Numeric (length = 1).
-#' Proportion of the strongest edges that are randomly assigned to
-#' between-block positions rather than being reserved for within-block
-#' positions. At \code{mixing = 0} (default), all of the strongest edges are
-#' placed within communities, producing well-separated blocks. Higher values
-#' redistribute more top-weighted edges to between-block positions, reducing
-#' the weight separation between communities.
-#' Must be between 0 and 1
-#'
-#' @param mixing_range Numeric (length = 2).
-#' If provided, the mixing proportion is drawn uniformly from this range on
-#' each call, overriding \code{mixing}. Useful for introducing variability
-#' across simulation replications. For example,
-#' \code{mixing_range = c(0.05, 0.20)} samples a mixing value between 5\%
-#' and 20\% on each draw.
-#' Both values must be between 0 and 1
 #'
 #' @param target_condition Numeric (length = 1).
 #' Target condition number (using \code{\link{kappa}} with \code{exact = TRUE}) used
@@ -125,10 +123,10 @@
 #' \item \code{weibull} --- MLE parameters of the Weibull distribution fit
 #' to the absolute edge weights, containing \code{shape} and \code{scale}
 #'
-#' \item \code{mixing} --- Numeric vector of length 2 giving the within-block
-#' reservation range used during weight assignment. When \code{mixing_range}
-#' is provided, this equals \code{1 - mixing_range}; otherwise both values
-#' equal \code{1 - mixing}
+#' \item \code{diffusion} --- Numeric vector of length 2 giving the within-block
+#' reservation range used during weight assignment. When \code{diffusion_range}
+#' is provided, this equals \code{1 - diffusion_range}; otherwise both values
+#' equal \code{1 - diffusion}
 #'
 #' \item \code{Q} --- Modularity of the population network with respect to
 #' the block membership structure, computed via \code{igraph::modularity}
@@ -211,26 +209,6 @@
 #'   negative_proportion = 0.20 # 20% of edges are negative
 #' )
 #'
-#' # Control community separation via mixing
-#' mixed_blocks <- simulate_sbm(
-#'   nodes = 6, # 6 nodes per block
-#'   blocks = 3, # 3 community blocks
-#'   sample_size = 1000, # number of cases = 1000
-#'   within_density = 0.90, # 90% edge probability within blocks
-#'   between_density = 0.20, # 20% edge probability between blocks
-#'   mixing = 0.10 # 10% of strongest edges can appear between blocks
-#' )
-#'
-#' # Variable mixing across simulation replications
-#' variable_mixing <- simulate_sbm(
-#'   nodes = 6, # 6 nodes per block
-#'   blocks = 3, # 3 community blocks
-#'   sample_size = 1000, # number of cases = 1000
-#'   within_density = 0.90, # 90% edge probability within blocks
-#'   between_density = 0.20, # 20% edge probability between blocks
-#'   mixing_range = c(0.05, 0.20) # mixing sampled uniformly from 5-20%
-#' )
-#'
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @references
@@ -242,12 +220,12 @@
 #' @export
 #'
 # Simulate SBM GGM data ----
-# Updated 12.03.2026
+# Updated 14.03.2026
 simulate_sbm <- function(
     nodes, blocks, within_density, between_density,
-    snr = 1, negative_proportion, sample_size,
+    snr = 1, diffusion = 0.50, diffusion_range = NULL,
+    negative_proportion, sample_size,
     skew = 0, skew_range = NULL,
-    mixing = 0, mixing_range = NULL,
     target_condition = 30, max_correlation = 0.80,
     max_iterations = 100
 )
@@ -259,7 +237,7 @@ simulate_sbm <- function(
     # Compute proportion of negative edges based on empirical values
     negative_proportion <- pmin(
       pmax(
-        0.35 + rnorm_ziggurat(1) * 0.083, # empirical mean +/- 1 SD
+        0.34 + rnorm_ziggurat(1) * 0.086, # empirical mean +/- 1 SD
         0.083 # empirical minimum
       ), 0.55 # empirical maximum
     )
@@ -269,7 +247,7 @@ simulate_sbm <- function(
   # Check for input errors
   simulate_sbm_errors(
     nodes, blocks, within_density, between_density,
-    snr, negative_proportion, sample_size, skew, mixing,
+    snr, negative_proportion, sample_size, skew, diffusion,
     target_condition, max_correlation, max_iterations
   )
 
@@ -345,7 +323,7 @@ simulate_sbm <- function(
       sbm_weights(
         block_matrix, membership, membership_matrix, sample_size,
         snr, total_nodes, negative_proportion,
-        mixing, mixing_range, target_condition,
+        diffusion, diffusion_range, target_condition,
         max_correlation, lower_triangle
       ), silent = TRUE
     )
@@ -382,7 +360,7 @@ simulate_sbm <- function(
         between_density = between_density,
         negative_proportion = negative_proportion,
         weibull = output$params,
-        mixing = output$mixing,
+        diffusion = output$diffusion,
         Q = igraph::modularity(convert2igraph(abs(output$network)), output$membership)
       ),
       population = list(
@@ -406,7 +384,7 @@ simulate_sbm <- function(
 # within_density = 0.90; between_density = 0.20
 # snr = 1; negative_proportion = 0.35
 # skew = 0; skew_range = NULL
-# mixing = 0; mixing_range = c(0.05, 0.15)
+# diffusion = 0; diffusion_range = c(0.70, 0.80)
 # target_condition = 10;
 # max_correlation = 0.80; max_iterations = 100
 
@@ -415,7 +393,7 @@ simulate_sbm <- function(
 # Updated 12.03.2026
 simulate_sbm_errors <- function(
     nodes, blocks, within_density, between_density,
-    snr, negative_proportion, sample_size, skew, mixing,
+    snr, negative_proportion, sample_size, skew, diffusion,
     target_condition, max_correlation, max_iterations
 )
 {
@@ -468,10 +446,10 @@ simulate_sbm_errors <- function(
   length_error(skew, c(1, swiftelse(length(nodes) == 1, nodes * blocks, sum(nodes))))
   range_error(skew, c(-2, 2))
 
-  # Errors for 'mixing'
-  typeof_error(mixing, "numeric")
-  length_error(mixing, 1)
-  range_error(mixing, c(0, 1))
+  # Errors for 'diffusion'
+  typeof_error(diffusion, "numeric")
+  length_error(diffusion, 1)
+  range_error(diffusion, c(0, 1))
 
   # Errors for 'target_condition'
   typeof_error(target_condition, "numeric")
@@ -550,23 +528,23 @@ generate_sbm <- function(
 sbm_weights <- function(
     block_matrix, membership, membership_matrix, sample_size,
     snr, total_nodes, negative_proportion,
-    mixing, mixing_range, target_condition,
+    diffusion, diffusion_range, target_condition,
     max_correlation, lower_triangle
 )
 {
 
-  # Check for mixing range
-  if(!is.null(mixing_range)){
-    typeof_error(mixing_range, "numeric") # object type error
-    length_error(mixing_range, 2) # object length error
-    range_error(mixing_range, c(0, 1)) # object range error
-    mixing <- mixing_range
+  # Check for diffusion range
+  if(!is.null(diffusion_range)){
+    typeof_error(diffusion_range, "numeric") # object type error
+    length_error(diffusion_range, 2) # object length error
+    range_error(diffusion_range, c(0, 1)) # object range error
+    diffusion <- diffusion_range
   }else{
-    mixing <- c(mixing, mixing)
+    diffusion <- c(diffusion, diffusion)
   }
 
-  # Reverse mixing
-  mixing <- range(1 - mixing)
+  # Reverse diffusion
+  diffusion <- range(1 - diffusion)
 
   # Set lower triangles
   block_lower <- block_matrix[lower_triangle]
@@ -583,8 +561,8 @@ sbm_weights <- function(
   within_index <- membership_lower & block_lower
   total_within <- sum(within_index)
 
-  # Set mixing parameter
-  within_reserved <- round(total_within * runif_xoshiro(1, min = mixing[1], max = mixing[2]))
+  # Set diffusion parameter
+  within_reserved <- round(total_within * runif_xoshiro(1, min = diffusion[1], max = diffusion[2]))
   within_random <- total_within - within_reserved
 
   # Top edges guaranteed to go into communities
@@ -681,7 +659,7 @@ sbm_weights <- function(
       network = network,
       membership = membership,
       params = attr(edges, "params"),
-      mixing = mixing,
+      diffusion = diffusion,
       lambda = lambda,
       condition = condition
     )

@@ -10,12 +10,12 @@ simulate_sbm(
   within_density,
   between_density,
   snr = 1,
+  diffusion = 0.5,
+  diffusion_range = NULL,
   negative_proportion,
   sample_size,
   skew = 0,
   skew_range = NULL,
-  mixing = 0,
-  mixing_range = NULL,
   target_condition = 30,
   max_correlation = 0.8,
   max_iterations = 100
@@ -52,6 +52,21 @@ values greater than 1 indicate narrower range.
 Defaults to \code{1} where the mean of the partial correlations (\eqn{\bar{|w|}})
 is equal to the standard deviation (\eqn{\mathrm{SD}(|w|)})}
 
+\item{diffusion}{Numeric (length = 1).
+Proportion of the strongest edges that are randomly assigned to
+within-block and between-block positions rather than being reserved for within-block
+positions only. At \code{diffusion = 0.50} (default), 50\% of the strongest edges are
+placed within communities. Higher values randomly redistribute more top-weighted edges
+across the network.
+Must be between 0 and 1}
+
+\item{diffusion_range}{Numeric (length = 2).
+If provided, the diffusion proportion is drawn uniformly from this range on
+each call, overriding \code{diffusion}. Useful for introducing variability
+across simulation replications. For example, \code{diffusion_range = c(0.05, 0.20)}
+samples a diffusion value between 5\% and 20\% on each draw.
+Both values must be between 0 and 1}
+
 \item{negative_proportion}{Numeric (length = 1).
 Proportion of edges that are negative (inhibitory).
 Must be between 0 and 1.
@@ -71,23 +86,6 @@ value in the sequence}
 \item{skew_range}{Numeric (length = 2).
 Randomly selects skews within in the range.
 Somewhat redundant with \code{skew} but more flexible}
-
-\item{mixing}{Numeric (length = 1).
-Proportion of the strongest edges that are randomly assigned to
-between-block positions rather than being reserved for within-block
-positions. At \code{mixing = 0} (default), all of the strongest edges are
-placed within communities, producing well-separated blocks. Higher values
-redistribute more top-weighted edges to between-block positions, reducing
-the weight separation between communities.
-Must be between 0 and 1}
-
-\item{mixing_range}{Numeric (length = 2).
-If provided, the mixing proportion is drawn uniformly from this range on
-each call, overriding \code{mixing}. Useful for introducing variability
-across simulation replications. For example,
-\code{mixing_range = c(0.05, 0.20)} samples a mixing value between 5\%
-and 20\% on each draw.
-Both values must be between 0 and 1}
 
 \item{target_condition}{Numeric (length = 1).
 Target condition number (using \code{\link{kappa}} with \code{exact = TRUE}) used
@@ -137,10 +135,10 @@ actually applied during data generation
 \item \code{weibull} --- MLE parameters of the Weibull distribution fit
 to the absolute edge weights, containing \code{shape} and \code{scale}
 
-\item \code{mixing} --- Numeric vector of length 2 giving the within-block
-reservation range used during weight assignment. When \code{mixing_range}
-is provided, this equals \code{1 - mixing_range}; otherwise both values
-equal \code{1 - mixing}
+\item \code{diffusion} --- Numeric vector of length 2 giving the within-block
+reservation range used during weight assignment. When \code{diffusion_range}
+is provided, this equals \code{1 - diffusion_range}; otherwise both values
+equal \code{1 - diffusion}
 
 \item \code{Q} --- Modularity of the population network with respect to
 the block membership structure, computed via \code{igraph::modularity}
@@ -190,11 +188,11 @@ Simulates data from a Gaussian Graphical Model (GGM) with a stochastic
 block model (SBM) structure. Nodes are partitioned into communities, with
 edge density controlled separately within and between communities. Edge
 weights are derived empirically and the resulting network is used to
-generate multivariate normal data. A \code{mixing} parameter controls the
+generate multivariate normal data. A \code{diffusion} parameter controls the
 proportion of the strongest edges that are allowed to appear between
 communities rather than being reserved for within-community positions.
 Parameters do not have default values (except \code{negative_proportion},
-\code{mixing}, \code{target_condition}, and \code{max_iterations}) and
+\code{diffusion}, \code{target_condition}, and \code{max_iterations}) and
 must each be set. See examples to get started
 }
 \examples{
@@ -233,26 +231,6 @@ with_negatives <- simulate_sbm(
   within_density = 0.90, # 90\% edge probability within blocks
   between_density = 0.20, # 20\% edge probability between blocks
   negative_proportion = 0.20 # 20\% of edges are negative
-)
-
-# Control community separation via mixing
-mixed_blocks <- simulate_sbm(
-  nodes = 6, # 6 nodes per block
-  blocks = 3, # 3 community blocks
-  sample_size = 1000, # number of cases = 1000
-  within_density = 0.90, # 90\% edge probability within blocks
-  between_density = 0.20, # 20\% edge probability between blocks
-  mixing = 0.10 # 10\% of strongest edges can appear between blocks
-)
-
-# Variable mixing across simulation replications
-variable_mixing <- simulate_sbm(
-  nodes = 6, # 6 nodes per block
-  blocks = 3, # 3 community blocks
-  sample_size = 1000, # number of cases = 1000
-  within_density = 0.90, # 90\% edge probability within blocks
-  between_density = 0.20, # 20\% edge probability between blocks
-  mixing_range = c(0.05, 0.20) # mixing sampled uniformly from 5-20\%
 )
 
 }
