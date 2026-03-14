@@ -707,7 +707,7 @@ sbm_weights <- function(
 
   # Remaining edges within-block edges
   remaining_index <- seq_len(within_random)
-  between_index <- (within_random + 1):(total_edges - within_reserved)
+  between_index <- seq_len(total_edges - within_reserved)[-remaining_index]
 
   # Remaining edge weights
   remaining_weights <- shuffle(edges[-reserved_index])

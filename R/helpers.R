@@ -286,6 +286,25 @@ shuffle <- function(x, size = length(x), seed = NULL)
 }
 
 #' @noRd
+# Weighted Shuffle (without replacement) ----
+# Uses xoshiro256++ random number generation: https://prng.di.unimi.it/
+# Updated 14.04.2026
+weighted_shuffle <- function(x, size = length(x), prob, seed = NULL)
+{
+
+  # Return call from C
+  return(
+    x[.Call(
+      "r_xoshiro_weighted_shuffle",
+      as.integer(seq_along(x)), prob,
+      swiftelse(is.null(seed), 0, seed),
+      PACKAGE = "L0ggm"
+    )][seq_len(size)]
+  )
+
+}
+
+#' @noRd
 # Shuffle (with replacement) ----
 # Uses xoshiro256++ random number generation: https://prng.di.unimi.it/
 # Updated 10.03.2026

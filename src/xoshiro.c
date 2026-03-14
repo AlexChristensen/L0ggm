@@ -227,6 +227,80 @@ SEXP r_xoshiro_shuffle(SEXP r_vector, SEXP r_seed) {
 
 }
 
+// Function to weighted shuffle indices without replacement
+SEXP r_xoshiro_weighted_shuffle(SEXP r_vector, SEXP r_prob, SEXP r_seed) {
+
+    // Get length of R vector
+    int vector_length = length(r_vector);
+
+    // Initialize seed
+    uint64_t seed_value = (uint64_t) REAL(r_seed)[0];
+
+    // For random seed, use zero
+    if(seed_value == 0) { // Use clocktime in nanoseconds
+        seed_value = get_time_ns();
+    }
+
+    // Seed the random number generator
+    xoshiro256_state state;
+    seed_xoshiro256(&state, seed_value);
+
+    // Protect inputs
+    PROTECT(r_vector);
+    PROTECT(r_prob);
+
+    // Get pointers to vector and probability data
+    int    *vec_data = INTEGER(r_vector);
+    double *prob     = REAL(r_prob);
+
+    // Copy probs into working array and compute total weight
+    double *w = (double*) R_alloc(vector_length, sizeof(double));
+    double  total = 0.0;
+    for(int i = 0; i < vector_length; i++) {
+        w[i]  = prob[i];
+        total += prob[i];
+    }
+
+    // Weighted Fisher-Yates shuffle over full vector
+    for(int i = 0; i < vector_length - 1; i++) {
+
+        // Draw uniform on remaining total weight
+        double u      = ((next(&state) >> 11) * (1.0 / (UINT64_C(1) << 53))) * total;
+        double cumsum = 0.0;
+        int    j      = i; // fallback to current position
+
+        // Find the index whose cumulative weight first exceeds u
+        for(int k = i; k < vector_length; k++) {
+            cumsum += w[k];
+            if(u <= cumsum) {
+                j = k;
+                break;
+            }
+        }
+
+        // Swap vector elements
+        int tmp_v   = vec_data[j];
+        vec_data[j] = vec_data[i];
+        vec_data[i] = tmp_v;
+
+        // Swap weight elements to keep indices and weights aligned
+        double tmp_w = w[j];
+        w[j]   = w[i];
+        w[i]   = tmp_w;
+
+        // Remove selected weight from total
+        total -= tmp_w;
+
+    }
+
+    // Unprotect inputs
+    UNPROTECT(2);
+
+    // Return vector
+    return r_vector;
+
+}
+
 // Function to shuffle indices with replacement
 SEXP r_xoshiro_shuffle_replace(SEXP r_vector, SEXP r_size, SEXP r_seed) {
 
