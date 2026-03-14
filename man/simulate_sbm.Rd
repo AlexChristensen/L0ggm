@@ -22,109 +22,150 @@ simulate_sbm(
 }
 \arguments{
 \item{nodes}{Numeric (length = 1 or \code{blocks}).
-Number of nodes per community block.
-Can be a single value (applied to all blocks) or as many values as there
-are blocks (corresponding to each block in order).
-Minimum of three nodes per block.}
+Number of nodes per community block. Can be a single value applied to all
+blocks, or a vector of length \code{blocks} specifying each block's size
+individually. Minimum of three nodes per block. The total number of nodes
+(\code{sum(nodes)}) should be between 8 and 54 to remain within the range
+of the empirical networks used to fit the Weibull parameter model; values
+outside this range are accepted but will trigger extrapolation and may
+produce a warning from \code{\link{weibull_parameters}}.}
 
 \item{blocks}{Numeric (length = 1).
 Number of community blocks.}
 
 \item{density_matrix}{Matrix (dim = \code{blocks x blocks}).
 A symmetric numeric matrix specifying edge probabilities within and between
-community blocks. Diagonal entries give the within-block edge probability
-for each community; off-diagonal entries give the between-block edge
-probability for each pair of communities. All values must be between 0
-and 1, and the matrix must be symmetric (i.e., \code{density_matrix[i,j] ==
+community blocks. Diagonal entry \eqn{[i,i]} gives the within-block edge
+probability for community \eqn{i}; off-diagonal entry \eqn{[i,j]}
+(\eqn{i \neq j}) gives the between-block edge probability for the pair of
+communities \eqn{i} and \eqn{j}. All entries must be in \eqn{[0, 1]} and
+the matrix must be symmetric (i.e., \code{density_matrix[i,j] ==
 density_matrix[j,i]}). See Details for construction guidance.}
 
 \item{snr}{Numeric (length = 1).
-Signal-to-noise ratio of partial correlations
-(\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
-Values less than 1 indicate a wider spread of partial correlation weights
-whereas values greater than 1 indicate a narrower spread.
-Defaults to \code{1} where the mean equals the standard deviation of the
-absolute partial correlations.}
+Signal-to-noise ratio of the absolute partial correlation weights,
+defined as \eqn{\bar{|w|} / \mathrm{SD}(|w|)}. This ratio governs the
+shape and scale of the Weibull distribution used to generate edge weights:
+values below 1 produce wider, more heterogeneous weight distributions;
+values above 1 produce narrower, more homogeneous distributions. Note that
+the same SNR can arise from different combinations of mean and standard
+deviation (e.g., mean = 0.05, SD = 0.05 and mean = 0.15, SD = 0.15 both
+give SNR = 1), so SNR alone does not determine the absolute magnitude of
+edge weights, which is additionally governed by \code{nodes} and
+\code{sample_size} via \code{\link{weibull_parameters}}. Empirically
+observed SNR values ranged from 0.648 to 1.712; values outside this range
+are accepted but will trigger a warning. Defaults to \code{1}.}
 
 \item{diffusion}{Numeric (length = 1).
-Proportion of the strongest edges that are randomly assigned to either
-within-block or between-block positions rather than being reserved for
-within-block positions only. At \code{diffusion = 0.50} (default), 50\%
-of the strongest edges are placed within communities. Higher values
-redistribute more top-weighted edges across the network, weakening the
-community contrast. Must be between 0 and 1.}
+Controls the minimum proportion of the top-ranked edges (by absolute
+weight) that are guaranteed to be placed within communities rather than
+distributed freely across the network. Specifically, \code{1 - diffusion}
+of the within-community edges are reserved for the highest-weight draws;
+the remaining edges (both within- and between-community) are filled from
+a randomly shuffled pool. Because shuffled edges can land within communities
+by chance, the actual proportion of top edges that end up within communities
+will on average exceed \code{1 - diffusion}. Lower values of
+\code{diffusion} (e.g., \code{0.10}) therefore produce stronger community
+contrast than higher values (e.g., \code{0.90}), but \code{diffusion}
+should be interpreted as a floor on within-community weight concentration,
+not an exact control. Defaults to \code{0.50}. Must be between 0 and 1.}
 
 \item{diffusion_range}{Numeric (length = 2).
-If provided, the diffusion proportion is drawn uniformly from this range
-on each call, overriding \code{diffusion}. Useful for introducing
-variability across simulation replications. For example,
-\code{diffusion_range = c(0.05, 0.20)} samples a diffusion value between
-5\% and 20\% on each draw. Both values must be between 0 and 1.}
+If provided, overrides \code{diffusion} by drawing the diffusion proportion
+uniformly from this interval on each call. Useful for introducing
+replication-to-replication variability in community contrast. For example,
+\code{diffusion_range = c(0.05, 0.20)} samples a value between 5\% and
+20\% on each draw. The same floor interpretation applies as for
+\code{diffusion}. Both values must be between 0 and 1.}
 
 \item{negative_proportion}{Numeric (length = 1).
-Proportion of between-community edges that are negative (inhibitory).
-Must be between 0 and 1.
-If not provided, a value is sampled from an empirical distribution with
-mean = 0.35 and SD = 0.09, bounded between 0.08 and 0.55.}
+Proportion of between-community edges assigned a negative sign (inhibitory
+connections). Each between-community edge is independently signed negative
+with this probability (i.e., a Bernoulli draw per edge), so the realized
+proportion will vary around the specified value. Must be between 0 and 1.
+Applies only to between-community edges; all within-community edges are
+positive. If not provided, a value is sampled from a truncated normal
+distribution reflecting the empirical distribution of true negative partial
+correlations across 194 psychometric networks: mean = 0.34, SD = 0.086,
+bounded to \eqn{[0.083, 0.55]}.}
 
 \item{sample_size}{Numeric (length = 1).
-Number of cases to generate from the population multivariate normal
-distribution.}
+Number of observations to generate from the population multivariate
+distribution. Also influences the predicted Weibull scale parameter via
+\code{\link{weibull_parameters}}: larger samples are associated with
+smaller, more precisely estimated edge weights.}
 
 \item{skew}{Numeric (length = 1 or \code{sum(nodes)}).
-Skew applied to each variable. Can be a single value (applied to all
-variables) or one value per variable. Values are rounded to the nearest
-increment of 0.05 in the range [-2, 2].}
+Skew applied to each variable after generation from the multivariate
+normal. Can be a single value applied to all variables, or one value per
+variable. Values are rounded to the nearest 0.05 increment and must be
+in \eqn{[-2, 2]}. Defaults to \code{0} (no skew).}
 
 \item{skew_range}{Numeric (length = 2).
-If provided, a skew value is drawn uniformly from this range for each
-variable, overriding \code{skew}. Both values must be between -2 and 2.}
+If provided, overrides \code{skew} by drawing a skew value independently
+and uniformly from this interval for each variable. Both values must be
+in \eqn{[-2, 2]}.}
 
 \item{target_condition}{Numeric (length = 1).
-Target condition number (using \code{\link{kappa}} with \code{exact = TRUE})
-applied when ridge regularization is needed to recover a positive definite
-precision matrix. Lower values produce better-conditioned matrices.
-Defaults to \code{30}. Values up to \code{100} are accepted but not
-recommended.}
+Target condition number (computed via \code{\link{kappa}} with
+\code{exact = TRUE}) used when ridge regularization is required to recover
+a positive definite precision matrix. The smallest ridge penalty
+\eqn{\lambda} that brings the condition number to this target is found via
+root-finding (\code{\link{uniroot}}), subject to a maximum shrinkage of
+approximately 23\% following Peeters et al. (2020). After conditioning,
+the Weibull bounds are re-verified on the updated edge weights; draws that
+fall outside the empirical bounds after conditioning are rejected. Lower
+values produce better-conditioned (more stable) matrices. Defaults to
+\code{30}. Values up to \code{100} are accepted but not recommended.}
 
 \item{max_correlation}{Numeric (length = 1).
-Maximum allowed absolute correlation between any pair of nodes in the
-population correlation matrix \code{R}. Draws exceeding this threshold
-are rejected and a new attempt is made. Must be between 0 and 1.
-Defaults to \code{0.80}.}
+Maximum allowed absolute pairwise correlation in the population correlation
+matrix \code{R}. Any draw where \code{max(abs(R[lower.tri(R)])) >
+max_correlation} is rejected and a new attempt is made. Must be between
+0 and 1. Defaults to \code{0.80}.}
 
 \item{max_iterations}{Numeric (length = 1).
-Maximum number of attempts to find a connected network structure with a
-valid set of edge weights. Defaults to \code{100}.}
+Maximum number of attempts to find a connected network with valid edge
+weights before stopping with an error. The error message reports a
+frequency table of rejection reasons to assist with diagnosing convergence
+failures. Defaults to \code{100}.}
 }
 \value{
 Returns a list containing:
 
 \item{data}{Simulated data matrix (\code{sample_size x sum(nodes)}) drawn
-from the population GGM.}
+from the population GGM, with column names \code{V01}, \code{V02}, etc.}
 
 \item{parameters}{
 A list of input, derived, and estimated parameters:
 \itemize{
-  \item \code{nodes} --- Number of nodes per block (expanded to length
-  \code{blocks})
+  \item \code{nodes} --- Integer vector of length \code{blocks} giving the
+  number of nodes per block (scalar input is expanded to this length)
   \item \code{blocks} --- Number of community blocks
-  \item \code{sample_size} --- Number of simulated cases
+  \item \code{sample_size} --- Number of simulated observations
   \item \code{skew} --- Named numeric vector of per-variable skew values
-  actually applied
+  actually applied (after rounding and possible resampling)
   \item \code{density_matrix} --- The \code{blocks x blocks} density matrix
   as supplied
-  \item \code{negative_proportion} --- Proportion of negative between-block
-  edges used
-  \item \code{weibull} --- Weibull \code{shape} and \code{scale} parameters
-  of the absolute edge weight distribution
+  \item \code{negative_proportion} --- The proportion of between-community
+  edges assigned a negative sign, either as supplied or as sampled from the
+  empirical distribution
+  \item \code{weibull} --- Named numeric vector of length 2 giving the
+  Weibull \code{shape} and \code{scale} parameters of the absolute edge
+  weight distribution actually used. If ridge conditioning was applied,
+  these are re-estimated from the conditioned network via MLE.
   \item \code{diffusion} --- Numeric vector of length 2 giving the
-  within-block reservation range. Both values equal \code{1 - diffusion}
-  when \code{diffusion} is scalar; equals \code{1 - diffusion_range} when
-  \code{diffusion_range} is provided
+  within-block reservation range as a proportion of within-community edges,
+  on the internal scale used by the sampler (i.e., \code{range(1 -
+  diffusion)} or \code{range(1 - diffusion_range)}). Both values are equal
+  when \code{diffusion} is scalar. Note this is the complement of the
+  user-supplied \code{diffusion} value and represents the fraction of
+  within-community slots filled from the top-ranked draws.
   \item \code{Q} --- Newman-Girvan modularity of the population network
-  with respect to the block membership, computed via
-  \code{igraph::modularity}
+  (\code{Omega}) with respect to the block membership, computed via
+  \code{igraph::modularity} on absolute edge weights. Provides a summary
+  of the community contrast actually achieved after weight assignment and
+  any ridge conditioning.
 }
 }
 
@@ -132,24 +173,33 @@ A list of input, derived, and estimated parameters:
 Population-level network parameters:
 \itemize{
   \item \code{R} --- Population correlation matrix derived from the GGM
-  \item \code{Omega} --- Population partial correlation matrix (GGM edge
-  weights)
-  \item \code{membership} --- Named integer vector of community block
-  assignments for each node
+  via \code{pcor2cor}
+  \item \code{Omega} --- Population partial correlation matrix (the GGM
+  edge weight matrix), with zeros for absent edges
+  \item \code{membership} --- Named integer vector of length
+  \code{sum(nodes)} giving the community block assignment (1 to
+  \code{blocks}) for each node
 }
 }
 
 \item{convergence}{
 Iteration and conditioning diagnostics:
 \itemize{
-  \item \code{iterations} --- Number of iterations needed to find a valid
-  network
-  \item \code{rejections} --- Character vector of rejection reasons across
-  iterations, useful for diagnosing convergence failures
-  \item \code{lambda} --- Ridge regularization parameter applied to
-  condition the precision matrix; \code{NA} if no conditioning was required
-  \item \code{condition} --- Condition number of the population correlation
-  matrix \code{R}
+  \item \code{iterations} --- Number of sampling attempts needed to find a
+  valid network (including graph structure and edge weight draws)
+  \item \code{rejections} --- Character vector of length
+  \code{max_iterations + 1} recording the rejection reason for each failed
+  attempt; entries for successful or unused iterations are empty strings.
+  Common reasons include disconnected graph structure, condition number
+  exceeding \code{target_condition}, maximum correlation exceeding
+  \code{max_correlation}, and Weibull parameters falling outside empirical
+  bounds after ridge conditioning.
+  \item \code{lambda} --- Ridge regularization parameter \eqn{\lambda}
+  added to the diagonal of the precision matrix to ensure positive
+  definiteness; \code{NA} if no conditioning was required
+  \item \code{condition} --- Condition number of the final population
+  correlation matrix \code{R}, computed via \code{kappa} with
+  \code{exact = TRUE}
 }
 }
 }
@@ -157,15 +207,22 @@ Iteration and conditioning diagnostics:
 Simulates data from a Gaussian Graphical Model (GGM) with a stochastic
 block model (SBM) structure. Nodes are partitioned into communities, with
 edge density controlled separately within and between communities via a
-\code{blocks x blocks} density matrix. Edge weights are derived empirically
-from a Weibull distribution fit to real psychometric network data, and the
-resulting network is used to generate multivariate normal data. A
-\code{diffusion} parameter controls the proportion of the strongest edges
-that are reserved for within-community positions versus allowed to appear
-between communities.
+\code{blocks x blocks} density matrix. Absolute edge weights are drawn from
+a Weibull distribution whose parameters are predicted from the network size,
+sample size, and signal-to-noise ratio using a Seemingly Unrelated
+Regression (SUR) model fitted to 194 empirical psychometric networks
+(Huth et al., 2025). The resulting population partial correlation matrix is
+used to generate multivariate normal (or skewed) data.
+
+A \code{diffusion} parameter controls the minimum proportion of the
+strongest edges that are reserved for within-community positions. Because
+the remaining edges are shuffled randomly, the effective within-community
+advantage will generally exceed \code{1 - diffusion}; see Details.
+
 Parameters do not have default values (except \code{negative_proportion},
-\code{diffusion}, \code{target_condition}, and \code{max_iterations}) and
-must each be set. See Details and Examples to get started.
+\code{diffusion}, \code{target_condition}, \code{max_correlation}, and
+\code{max_iterations}) and must each be set. See Details and Examples to
+get started.
 }
 \details{
 \strong{Constructing \code{density_matrix}}
@@ -201,6 +258,20 @@ dm <- matrix(c(
   0.10, 0.30, 0.95
 ), nrow = 3, ncol = 3)
 }
+
+\strong{Diffusion and within-community weight concentration}
+
+The \code{diffusion} parameter does not exactly fix the proportion of
+top-ranked edges placed within communities. Instead, \code{1 - diffusion}
+of the within-community edge slots are filled deterministically from the
+highest-weight draws. The remaining edge slots (within- and
+between-community alike) are filled from a randomly shuffled pool of
+lower-ranked weights, meaning some additional high-weight edges will land
+within communities by chance. The realized within-community weight
+advantage will therefore always be at least as large as implied by
+\code{1 - diffusion}, and typically larger. The \code{Q} field in the
+returned \code{parameters} list (Newman-Girvan modularity) provides a
+post-hoc summary of the actual community contrast achieved.
 }
 \examples{
 # Construct density matrix for 3 blocks with uniform densities
@@ -248,7 +319,7 @@ result <- simulate_sbm(
   density_matrix = dm_pairwise
 )
 
-# Fix the proportion of negative edges
+# Fix the proportion of negative between-community edges
 result <- simulate_sbm(
   nodes = 6,
   blocks = 3,
@@ -272,6 +343,16 @@ result <- simulate_sbm(
 Holland, P. W., Laskey, K. B., & Leinhardt, S. (1983).
 Stochastic blockmodels: First steps.
 \emph{Social Networks}, \emph{5}(2), 109--137.
+
+\strong{Empirical network data used to fit the Weibull SUR model} \cr
+Huth, K. B. S., Haslbeck, J. M. B., Keetelaar, S., Van Holst, R. J., &
+Marsman, M. (2025). Statistical evidence in psychological networks.
+\emph{Nature Human Behaviour}.
+
+\strong{Maximum ridge shrinkage bound} \cr
+Peeters, C. F., van de Wiel, M. A., & van Wieringen, W. N. (2020).
+The spectral condition number plot for regularization parameter evaluation.
+\emph{Computational Statistics}, \emph{35}(2), 629--646.
 }
 \author{
 Alexander P. Christensen <alexpaulchristensen@gmail.com>

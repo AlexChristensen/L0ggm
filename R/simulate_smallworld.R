@@ -395,7 +395,7 @@ simulate_smallworld <- function(
 # Bug checking ----
 # nodes = 20; density = 0.50; rewire = 0.10
 # negative_proportion = 0.35; sample_size = 1000
-# skew = 0; skew_range = NULL
+# skew = 0; skew_range = NULL; snr = 1
 # target_condition = 30;
 # max_correlation = 0.80; max_iterations = 100
 
@@ -610,13 +610,12 @@ smallworld_weights <- function(
   # Initialize network
   network <- matrix(0, nrow = nodes, ncol = nodes)
 
-  # Generate edges
+  # Generate edges (returned edges are sorted)
   edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes, snr = snr)
-  sorted_edges <- sort(edges, decreasing = TRUE)
 
   # Set weights order
   weight_order <- rank(lattice[lower_triangle][nonzero], ties.method = "random")
-  network[lower_triangle][nonzero] <- sorted_edges[weight_order]
+  network[lower_triangle][nonzero] <- edges[weight_order]
   network <- network + t(network) # make symmetric
 
   # Get signs
@@ -651,19 +650,6 @@ smallworld_weights <- function(
     # Check for positive definite again
     if(anyNA(R) || !is_positive_definite(R)){
       stop("Not positive definite")
-    }
-
-    # Update parameters
-    edges <- network[lower_triangle]
-    edges <- edges[edges != 0]
-    params <- weibull_mle(abs(edges))
-
-    # Attach attributes to MLE Weibull to weights
-    attr(edges, "params") <- params
-
-    # Check bounds
-    if(any(check_bounds(params[["shape"]], params[["scale"]]))){
-      stop("Weibull edge parameteres were not in empirical bounds")
     }
 
   }

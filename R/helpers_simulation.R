@@ -1,6 +1,6 @@
 #' @noRd
 # Bounds for Weibull distribution
-# Updated 13.03.2026
+# Updated 14.03.2026
 check_bounds <- function(shape, scale)
 {
   # The bounds were derived from the 222 empirical datasets
@@ -9,7 +9,7 @@ check_bounds <- function(shape, scale)
   # (see `?weibull_descriptives` for selection criterion)
   # These ranges will be updated as more empirical data
   # are aggregated
-  (shape < 0.70) | (shape > 1.70) | (scale < 0.03) | (scale > 0.19)
+  any((shape < 0.70) | (shape > 1.70) | (scale < 0.03) | (scale > 0.19))
 }
 
 #' @noRd
@@ -22,30 +22,38 @@ weibull_xoshiro <- function(n, shape, scale)
 
 #' @noRd
 # Generate edge values
-# Updated 08.03.2026
+# Updated 14.03.2026
 generate_edges <- function(nonzero, n, p, snr)
 {
 
+  # Calculate possible edges
+  possible_edges <- p * (p - 1) / 2
+
   # Check for empirical parameter bounds and maximal partial correlation
-  outside_bounds <- greater_than <- TRUE
+  greater_than <- TRUE
 
   # Generate until no edges are greater than one
-  while(greater_than | outside_bounds){
+  while(greater_than){
 
     # Generate Weibull parameters
     params <- weibull_parameters(nodes = p, sample_size = n, snr = snr, bootstrap = TRUE)
 
+    # Check outside of bounds
+    if(check_bounds(params[["shape"]], params[["scale"]])){
+      next
+    }
+
     # Generate edge weights
-    weights <- weibull_xoshiro(nonzero, shape = params[["shape"]], scale = params[["scale"]])
+    weights <- weibull_xoshiro(possible_edges, shape = params[["shape"]], scale = params[["scale"]])
 
     # Update greater than
     greater_than <- any(weights >= 0.85)
     # No weights greater than max weight = 0.8452469
 
-    # Check outside of bounds
-    outside_bounds <- check_bounds(params[["shape"]], params[["scale"]])
-
   }
+
+  # Set weights
+  weights <- sort(weights, decreasing = TRUE)[seq_len(nonzero)]
 
   # Attach attributes to weights
   attr(weights, "params") <- params
