@@ -46,14 +46,34 @@ log_penalty <- function(x, lambda, gamma = 0.10, ...)
 }
 
 #' @noRd
-# Updated 05.02.2026
+# Updated 15.03.2026
 weibull_penalty <- function(x, lambda, gamma = 0.01, shape, ...)
 {
 
-  # Pre-compute components
+  # Pre-compute
   x <- abs(x)
 
-  # Return penalty
+  # Check for shape greater than one
+  if(shape > 1){
+
+    # Mirror derivative
+    shape_one  <- shape - 1
+    peak       <- gamma * ((shape - 1) / shape)^(1 / shape)
+    peak_gamma <- peak / gamma
+    peak_value <- (shape / gamma) * peak_gamma^shape_one * exp(-peak_gamma^shape)
+
+    # Value of Weibull penalty at peak
+    at_peak <- 1 - exp(-peak_gamma^shape)
+
+    # Shift so pieces meet at peak, anchored at zero
+    shift <- peak_value * peak - at_peak
+
+    # Return penalty
+    return(lambda * swiftelse(x <= peak, peak_value * x, 1 - exp(-(x / gamma)^shape) + shift))
+
+  }
+
+  # Otherwise, return standard penalty
   return(lambda * (1 - exp(-(x / gamma)^shape)))
 
 }

@@ -400,12 +400,11 @@ network_estimation <- function(
       # Obtain Weibull estimates
       estimates <- weibull_mle(lower_P)
 
-      # Set parameters
-      shape <- min(estimates[["shape"]], 1) # cap at EXP
-      scale <- swiftelse(shape == 1, mean(lower_P), estimates[["scale"]])
+      # Obtain shape
+      shape <- estimates[["shape"]]
 
       # Set gamma to standard error
-      gamma <- scale * sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2) / scaling
+      gamma <- estimates[["scale"]] * sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2) / scaling
 
     }
 
