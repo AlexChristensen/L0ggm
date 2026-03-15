@@ -52,14 +52,8 @@ generate_edges <- function(nonzero, n, p, snr)
 
   }
 
-  # Select weights with weighted shuffle
-  selected <- weighted_shuffle(
-    x = seq_len(possible_edges), size = nonzero,
-    prob = weights / sum(weights)
-  )
-
   # Set weights
-  weights <- sort(weights[selected], decreasing = TRUE)
+  weights <- sort(weights, decreasing = TRUE)[seq_len(nonzero)]
 
   # Attach attributes to weights
   attr(weights, "params") <- params
