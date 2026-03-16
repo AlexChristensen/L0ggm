@@ -23,11 +23,11 @@ SEXP atan_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_)
     const double lambda  = REAL(lambda_)[0];
     const double gamma   = REAL(gamma_)[0];
 
-    double gamma2        = gamma * gamma;
-    double gamma_scaled  = gamma * (gamma + 2.0 / M_PI);
+    const double gamma2 = gamma * gamma;
+    const double scale  = lambda * gamma * (gamma + 2.0 / M_PI);
 
     for (int i = 0; i < n; i++)
-        REAL(out)[i] = lambda * gamma_scaled / (gamma2 + x[i] * x[i]);
+        REAL(out)[i] = scale / (gamma2 + x[i] * x[i]);
 
     UNPROTECT(1);
     return out;
@@ -44,14 +44,15 @@ SEXP exp_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_)
     int n = length(x_);
     SEXP out = PROTECT(allocVector(REALSXP, n));
 
-    const double *x     = REAL(x_);
+    const double *x = REAL(x_);
     const double lambda = REAL(lambda_)[0];
-    const double gamma  = REAL(gamma_)[0];
+    const double gamma = REAL(gamma_)[0];
 
-    double inv_gamma    = 1.0 / gamma;
+    const double inv_gamma = 1.0 / gamma;
+    const double scale = lambda * inv_gamma;
 
     for (int i = 0; i < n; i++)
-        REAL(out)[i] = lambda * inv_gamma * exp(-fabs(x[i]) * inv_gamma);
+        REAL(out)[i] = scale * exp(-fabs(x[i]) * inv_gamma);
 
     UNPROTECT(1);
     return out;
@@ -74,11 +75,11 @@ SEXP gumbel_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_)
     const double gamma  = REAL(gamma_)[0];
 
     /* Pre-compute the scaling constant: lambda / ((1 - exp(-1)) * gamma) */
-    double scale        = lambda / ((1.0 - exp(-1.0)) * gamma);
+    const double scale = lambda / ((1.0 - exp(-1.0)) * gamma);
 
     for (int i = 0; i < n; i++) {
-        double gx       = fabs(x[i]) / gamma;
-        REAL(out)[i]    = scale * exp(-gx - exp(-gx));
+        double gx = fabs(x[i]) / gamma;
+        REAL(out)[i] = scale * exp(-gx - exp(-gx));
     }
 
     UNPROTECT(1);
@@ -101,7 +102,7 @@ SEXP log_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_)
     const double gamma  = REAL(gamma_)[0];
 
     /* log(1 + 1/gamma) is constant across observations */
-    double log_term = log1p(1.0 / gamma);
+    const double log_term = log1p(1.0 / gamma);
 
     for (int i = 0; i < n; i++)
         REAL(out)[i] = lambda / ((gamma + fabs(x[i])) * log_term);

@@ -2,100 +2,160 @@
 #'
 #' @description
 #' Simulates data from a Gaussian Graphical Model (GGM) with a small-world
-#' network structure using the Watts-Strogatz model. Nodes are arranged in a
-#' ring lattice where each node is connected to its \code{k} nearest neighbors,
-#' and edges are then randomly rewired with probability \code{rewire}. The
-#' number of nearest neighbors \code{k} is derived from \code{nodes} and
-#' \code{density}. Edge weights are assigned by structural priority: edges
-#' closer to their original lattice positions receive larger partial correlation
-#' weights, grounded in the empirical observation that shorter-distance
+#' network structure. The generative process proceeds in three stages. First,
+#' a ring lattice is constructed with \code{neighbors + 1} nearest-neighbor
+#' connections per node, where \code{neighbors} is derived from \code{nodes}
+#' and \code{density}. Second, the lattice is randomly pruned to the target
+#' \code{density}, introducing degree heterogeneity from the outset. Third,
+#' edges are rewired with probability \code{rewire}, where rewired edges are
+#' placed preferentially on node pairs with higher combined degree (degree-
+#' weighted rewiring). This approach produces more realistic degree
+#' distributions than standard Watts-Strogatz rewiring while preserving
+#' the local clustering structure of the lattice. Edge weights are assigned
+#' by structural priority: edges retained from the pruned lattice receive
+#' larger partial correlation weights based on their original neighbor
+#' distance, grounded in the empirical observation that shorter-distance
 #' connections tend to carry stronger weights in psychometric networks.
-#' The resulting network is used to generate multivariate normal data.
-#' Parameters do not have default values (except \code{negative_proportion},
-#' \code{target_condition}, and \code{max_iterations}) and must each be set.
+#' The resulting network is used to generate multivariate normal (or skewed)
+#' data. Parameters do not have default values (except
+#' \code{negative_proportion}, \code{snr}, \code{target_condition},
+#' \code{max_correlation}, and \code{max_iterations}) and must each be set.
 #' See Details and Examples to get started.
 #'
 #' @param nodes Numeric (length = 1).
 #' Number of nodes in the network.
-#' Minimum of three nodes.
+#' Minimum of three nodes. The total number of nodes should be between 8
+#' and 54 to remain within the range of the empirical networks used to fit
+#' the Weibull parameter model; values outside this range are accepted but
+#' will trigger extrapolation and may produce a warning from
+#' \code{\link{weibull_parameters}}.
 #'
 #' @param density Numeric (length = 1).
-#' Controls the initial connectivity of the ring lattice by determining the
-#' number of nearest neighbors \code{k} each node is connected to before
-#' rewiring. Specifically, \code{k} is derived as
-#' \eqn{k = \mathrm{round}((\text{nodes} \times \frac{\text{nodes}-1}{2} \times
-#' \text{density}) / \text{nodes})}, subject to a minimum of 2 and a maximum
-#' of \eqn{\lfloor (\text{nodes}-1)/2 \rfloor}.
-#' Must be between 0 and 1.
+#' Target edge density of the network after pruning the initial ring lattice.
+#' Controls the number of nearest neighbors \code{k} each node is connected
+#' to via \eqn{k = \mathrm{round}((\text{nodes} \times
+#' \frac{\text{nodes}-1}{2} \times \text{density}) / \text{nodes})}, subject
+#' to a minimum of 2 and a maximum of
+#' \eqn{\lfloor (\text{nodes}-1)/2 \rfloor}. A ring lattice with
+#' \code{neighbors + 1} connections per node is first generated and then
+#' pruned to this density, introducing degree heterogeneity before rewiring.
+#' Must be between 0 and 1. A minimum density sufficient to maintain a
+#' connected graph is enforced; values below this threshold will produce an
+#' informative error.
 #'
 #' @param rewire Numeric (length = 1).
-#' Probability of rewiring each edge in the Watts-Strogatz model.
-#' Values near 0 preserve the regular lattice structure; values near 1
-#' produce approximately random networks. The small-world regime typically
-#' occurs at intermediate values (roughly 0.01 to 0.30).
-#' Must be between 0 and 1.
+#' Probability of rewiring each edge. Unlike the standard Watts-Strogatz
+#' model, rewired edges are placed using degree-weighted random selection:
+#' node pairs with higher combined degree have a greater probability of
+#' receiving a rewired edge (see Details). Values near 0 preserve the
+#' pruned lattice structure; values near 1 produce approximately random
+#' networks. The small-world regime typically occurs at intermediate values
+#' (roughly 0.01 to 0.30). Must be between 0 and 1.
 #'
 #' @param snr Numeric (length = 1).
-#' Signal-to-noise ratio of partial correlations
-#' (\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
-#' Values less than 1 indicate a wider spread of partial correlation weights
-#' whereas values greater than 1 indicate a narrower spread.
-#' Defaults to \code{1} where the mean equals the standard deviation of the
-#' absolute partial correlations.
+#' Signal-to-noise ratio of the absolute partial correlation weights,
+#' defined as \eqn{\bar{|w|} / \mathrm{SD}(|w|)}. Values less than 1
+#' produce wider, more heterogeneous weight distributions; values greater
+#' than 1 produce narrower, more homogeneous distributions. Empirically
+#' observed SNR values ranged from 0.648 to 1.712; values outside this
+#' range are accepted but will trigger a warning. Defaults to \code{1}.
 #'
 #' @param negative_proportion Numeric (length = 1).
 #' Proportion of edges that are negative (inhibitory).
 #' Must be between 0 and 0.50. The upper bound of 0.50 is a mathematical
 #' constraint of the sign-flipping procedure used to assign negative edges
-#' (see Details).
-#' If not provided, a value is sampled from an empirical distribution with
-#' mean = 0.34 and SD = 0.086, bounded between 0.083 and 0.50.
+#' (see Details). If not provided, a value is sampled from a truncated
+#' normal distribution reflecting the empirical distribution of true
+#' negative partial correlations across 194 psychometric networks:
+#' mean = 0.34, SD = 0.086, bounded to \eqn{[0.083, 0.50]}.
 #'
 #' @param sample_size Numeric (length = 1).
-#' Number of cases to generate from the population multivariate normal
-#' distribution.
+#' Number of observations to generate from the population multivariate
+#' normal distribution. Also influences the predicted Weibull scale
+#' parameter via \code{\link{weibull_parameters}}: larger samples are
+#' associated with smaller, more precisely estimated edge weights.
 #'
 #' @param skew Numeric (length = 1 or \code{nodes}).
-#' Skew applied to each variable. Can be a single value (applied to all
-#' variables) or one value per variable. Values are rounded to the nearest
-#' increment of 0.05 in the range [-2, 2].
+#' Skew applied to each variable after generation from the multivariate
+#' normal. Can be a single value (applied to all variables) or one value
+#' per variable. Values are rounded to the nearest increment of 0.05 in
+#' the range \eqn{[-2, 2]}. Defaults to \code{0} (no skew).
 #'
 #' @param skew_range Numeric (length = 2).
 #' If provided, a skew value is drawn uniformly from this range for each
 #' variable, overriding \code{skew}. Both values must be between -2 and 2.
 #'
 #' @param target_condition Numeric (length = 1).
-#' Target condition number (using \code{\link{kappa}} with \code{exact = TRUE})
-#' applied when ridge regularization is needed to recover a positive definite
-#' precision matrix. Lower values produce better-conditioned matrices.
-#' Defaults to \code{30}. Values up to \code{100} are accepted but not
-#' recommended.
+#' Target condition number (using \code{\link{kappa}} with \code{exact =
+#' TRUE}) applied when ridge regularization is needed to recover a positive
+#' definite precision matrix. The smallest ridge penalty \eqn{\lambda} that
+#' brings the condition number to this target is found via root-finding
+#' (\code{\link{uniroot}}), subject to a maximum shrinkage of approximately
+#' 23\% following Peeters et al. (2020). Lower values produce
+#' better-conditioned matrices. Defaults to \code{30}. Values up to
+#' \code{100} are accepted but not recommended.
 #'
 #' @param max_correlation Numeric (length = 1).
-#' Maximum allowed absolute correlation between any pair of nodes in the
-#' population correlation matrix \code{R}. Draws exceeding this threshold
-#' are rejected and a new attempt is made. Must be between 0 and 1.
-#' Defaults to \code{0.80}.
+#' Maximum allowed absolute pairwise correlation in the population
+#' correlation matrix \code{R}. Any draw where
+#' \code{max(abs(R[lower.tri(R)])) > max_correlation} is rejected and a
+#' new attempt is made. Must be between 0 and 1. Defaults to \code{0.80}.
 #'
 #' @param max_iterations Numeric (length = 1).
 #' Maximum number of attempts to find (1) a connected network structure,
-#' (2) a network within empirical small-world bounds, and (3) a valid set
-#' of edge weights. Defaults to \code{100}.
+#' (2) a network satisfying the small-world screening criterion, and (3) a
+#' valid set of edge weights. The error message reports a frequency table
+#' of rejection reasons to assist with diagnosing convergence failures.
+#' Defaults to \code{100}.
 #'
 #' @details
+#' \strong{Lattice generation and pruning}
+#'
+#' The generative process begins by constructing a ring lattice with
+#' \code{neighbors + 1} nearest-neighbor connections per node via
+#' \code{\link[igraph]{sample_smallworld}} with \code{p = 0}. The
+#' \code{+1} overshoot ensures the lattice always has more edges than the
+#' target density, guaranteeing that pruning can proceed. The lattice is
+#' then randomly pruned to the target \code{density} by removing edges
+#' uniformly at random, subject to the constraint that the pruned graph
+#' remains connected. Because removal is random, different nodes lose
+#' different numbers of edges, producing a heterogeneous degree distribution
+#' before any rewiring occurs. This heterogeneity provides a non-uniform
+#' prior for the subsequent degree-weighted rewiring step.
+#'
+#' \strong{Degree-weighted rewiring}
+#'
+#' Each edge in the pruned lattice is independently selected for rewiring
+#' with probability \code{rewire}. For each selected edge \eqn{(i, j)},
+#' node \eqn{i} is kept fixed and the \eqn{j} endpoint is redirected to a
+#' new target node. Valid targets are restricted to node pairs involving
+#' node \eqn{i} that (1) are not currently connected, and (2) have never
+#' been occupied during the current rewiring pass (i.e., were absent in
+#' the original pruned lattice). Among valid targets, the new endpoint is
+#' selected with probability proportional to \eqn{\sqrt{d_i + d_k}}, where
+#' \eqn{d_i} and \eqn{d_k} are the current degrees of the two nodes in
+#' the candidate pair. The square-root transformation moderates the
+#' rich-get-richer tendency of linear preferential attachment, producing
+#' degree heterogeneity consistent with the empirical range of psychometric
+#' networks without generating extreme hubs. Node degrees are updated
+#' incrementally after each rewire so that subsequent rewiring steps
+#' reflect the current graph state.
+#'
 #' \strong{Edge weight assignment}
 #'
 #' Edge weights are assigned by ranking edges according to their distance
-#' in the original ring lattice before rewiring. Edges that were retained
-#' from the lattice receive their original neighbor distance (1 = nearest
-#' neighbor, 2 = second nearest, etc.); rewired edges are assigned a
-#' distance of \code{k + 1}, placing them at the bottom of the priority
-#' order. Pre-generated Weibull weights (sorted descending) are then
-#' mapped onto this ranking so that the largest weights go to the
-#' shortest-distance edges. This assignment is a structural heuristic
-#' grounded in the Watts-Strogatz data generating process and is
-#' consistent with empirical observations that shorter-distance local
-#' connections tend to carry larger partial correlation weights in
+#' in the pruned lattice before rewiring. Edges retained from the pruned
+#' lattice receive their original neighbor distance (1 = nearest neighbor,
+#' 2 = second nearest, etc.); rewired edges are assigned a distance of
+#' \code{neighbors + 1}, placing them at the bottom of the priority order.
+#' Absolute edge weights are drawn from a Weibull distribution whose
+#' parameters are predicted from the network size, sample size, and signal-
+#' to-noise ratio using a Seemingly Unrelated Regression (SUR) model fitted
+#' to 194 empirical psychometric networks (Huth et al., 2025). The sorted
+#' (descending) Weibull weights are then mapped onto the distance ranking
+#' so that the largest weights go to the shortest-distance edges. This
+#' assignment is grounded in the empirical observation that shorter-distance
+#' local connections tend to carry larger partial correlation weights in
 #' psychometric networks.
 #'
 #' \strong{Negative edge assignment}
@@ -115,38 +175,60 @@
 #'
 #' Each generated adjacency structure is screened using the omega statistic
 #' (Telesford et al., 2011): \eqn{\omega = (L_r / L) - (C / C_l)}, where
-#' \eqn{L} is the average shortest path length of the network, \eqn{L_r}
-#' is the mean ASPL of degree-matched random networks, \eqn{C} is the
-#' average clustering coefficient, and \eqn{C_l} is the clustering
-#' coefficient of a lattice with the same \code{k}. Networks with
-#' \eqn{|\omega| > 0.80} are rejected. Note that the lattice reference
-#' uses the Watts-Strogatz construction (p = 0) rather than a maximally
-#' regular lattice, which is internally consistent with the data generating
-#' process.
+#' \eqn{L} is the average shortest path length (ASPL) of the network,
+#' \eqn{L_r} is the expected ASPL of a random graph with the same degree
+#' sequence, \eqn{C} is the average clustering coefficient, and \eqn{C_l}
+#' is the clustering coefficient of the pruned lattice (before rewiring).
+#' Networks with \eqn{|\omega| > 0.80} are rejected. The random-graph ASPL
+#' \eqn{L_r} is computed analytically via Equation 54 of Newman, Strogatz,
+#' and Watts (2001):
+#' \eqn{L_r = \ln(N / z_1) / \ln(z_2 / z_1) + 1}, where \eqn{z_1} is the
+#' mean degree and \eqn{z_2 = \overline{k^2} - \overline{k}} is the mean
+#' number of second neighbors, when the conditions \eqn{N > z_1} and
+#' \eqn{z_2 > z_1} are satisfied. When these conditions are not met, a
+#' simulation-based estimate using \code{iter = 100} degree-sequence-matched
+#' random graphs is used as a fallback. Note that the lattice clustering
+#' reference \eqn{C_l} is computed from the pruned lattice rather than from
+#' an idealized regular ring, which is internally consistent with the
+#' data generating process.
 #'
 #' @return Returns a list containing:
 #'
 #' \item{data}{Simulated data matrix (\code{sample_size x nodes}) drawn
-#' from the population GGM.}
+#' from the population GGM, with column names \code{V01}, \code{V02}, etc.}
 #'
 #' \item{parameters}{
 #' A list of input, derived, and estimated parameters:
 #' \itemize{
 #'   \item \code{nodes} --- Number of nodes (as supplied)
-#'   \item \code{density} --- Initial lattice density (as supplied)
-#'   \item \code{neighbors} --- Number of nearest neighbors \code{k} in the
-#'   initial ring lattice, derived from \code{nodes} and \code{density}
+#'   \item \code{density} --- Target edge density (as supplied)
+#'   \item \code{neighbors} --- Number of nearest neighbors \code{k} derived
+#'   from \code{nodes} and \code{density}; the initial ring lattice uses
+#'   \code{neighbors + 1} connections before pruning
 #'   \item \code{rewire} --- Edge rewiring probability (as supplied)
-#'   \item \code{negative_proportion} --- Proportion of negative edges used
-#'   \item \code{sample_size} --- Number of simulated cases
+#'   \item \code{negative_proportion} --- Proportion of negative edges,
+#'   either as supplied or as sampled from the empirical distribution
+#'   \item \code{sample_size} --- Number of simulated observations
 #'   \item \code{skew} --- Named numeric vector of per-variable skew values
-#'   actually applied
-#'   \item \code{weibull} --- Weibull \code{shape} and \code{scale} parameters
-#'   of the absolute edge weight distribution
+#'   actually applied (after rounding and possible resampling)
+#'   \item \code{weibull} --- Named numeric vector of length 2 giving the
+#'   Weibull \code{shape} and \code{scale} parameters of the absolute edge
+#'   weight distribution actually used. If ridge conditioning was applied,
+#'   these are re-estimated from the conditioned network via MLE.
 #'   \item \code{omega} --- Smallworldness omega statistic of the generated
-#'   network; values near zero indicate small-world structure, negative values
-#'   indicate lattice-like structure, and positive values indicate random-like
-#'   structure
+#'   network (Telesford et al., 2011). Values near zero indicate small-world
+#'   structure; negative values indicate lattice-like structure; positive
+#'   values indicate random-like structure
+#'   \item \code{Q} --- Newman-Girvan modularity of the population network
+#'   (\code{Omega}) computed via \code{igraph::modularity} on absolute edge
+#'   weights, using the community partition that maximizes modularity
+#'   (\code{igraph::cluster_optimal}). Because \code{cluster_optimal} finds
+#'   the exact modularity maximum, \code{Q} represents an upper bound on
+#'   recoverable community structure in the network rather than the result
+#'   of a heuristic partition. Values near zero indicate absence of community
+#'   structure, consistent with the network theory of psychopathology.
+#'   Note that \code{cluster_optimal} is computationally intensive for large
+#'   networks; runtime increases substantially beyond 50 nodes
 #' }
 #' }
 #'
@@ -154,22 +236,27 @@
 #' Population-level network parameters:
 #' \itemize{
 #'   \item \code{R} --- Population correlation matrix derived from the GGM
-#'   \item \code{Omega} --- Population partial correlation matrix (GGM edge
-#'   weights)
+#'   via \code{pcor2cor}
+#'   \item \code{Omega} --- Population partial correlation matrix (the GGM
+#'   edge weight matrix), with zeros for absent edges
 #' }
 #' }
 #'
 #' \item{convergence}{
 #' Iteration and conditioning diagnostics:
 #' \itemize{
-#'   \item \code{iterations} --- Number of iterations needed to find a valid
-#'   network
-#'   \item \code{rejections} --- Character vector of rejection reasons across
-#'   iterations, useful for diagnosing convergence failures
-#'   \item \code{lambda} --- Ridge regularization parameter applied to
-#'   condition the precision matrix; \code{NA} if no conditioning was required
-#'   \item \code{condition} --- Condition number of the population correlation
-#'   matrix \code{R}
+#'   \item \code{iterations} --- Number of sampling attempts needed to find
+#'   a valid network
+#'   \item \code{rejections} --- Character vector recording the rejection
+#'   reason for each failed attempt. Common reasons include disconnected
+#'   graph structure, omega exceeding the small-world threshold, condition
+#'   number exceeding \code{target_condition}, and maximum correlation
+#'   exceeding \code{max_correlation}
+#'   \item \code{lambda} --- Ridge regularization parameter \eqn{\lambda}
+#'   added to the diagonal of the precision matrix to ensure positive
+#'   definiteness; \code{NA} if no conditioning was required
+#'   \item \code{condition} --- Condition number of the final population
+#'   correlation matrix \code{R}
 #' }
 #' }
 #'
@@ -224,15 +311,29 @@
 #' \emph{Nature}, \emph{393}(6684), 440--442.
 #'
 #' \strong{Omega statistic for smallworldness} \cr
-#' Telesford, Q. K., Joyce, K. E., Hayasaka, S., Burdette, J. H., &
-#' Laurienti, P. J. (2011).
+#' Telesford, Q. K., Joyce, K. E., Hayasaka, S., Burdette, J. H., & Laurienti, P. J. (2011).
 #' The ubiquity of small-world networks.
 #' \emph{Brain Connectivity}, \emph{1}(5), 367--375.
+#'
+#' \strong{Analytical approximation of random-graph average path length} \cr
+#' Newman, M. E. J., Strogatz, S. H., & Watts, D. J. (2001).
+#' Random graphs with arbitrary degree distributions and their applications.
+#' \emph{Physical Review E}, \emph{64}(2), 026118.
+#'
+#' \strong{Empirical network data used to fit the Weibull SUR model} \cr
+#' Huth, K. B. S., Haslbeck, J. M. B., Keetelaar, S., Van Holst, R. J., &
+#' Marsman, M. (2025). Statistical evidence in psychological networks.
+#' \emph{Nature Human Behaviour}.
+#'
+#' \strong{Maximum ridge shrinkage bound} \cr
+#' Peeters, C. F., van de Wiel, M. A., & van Wieringen, W. N. (2020).
+#' The spectral condition number plot for regularization parameter evaluation.
+#' \emph{Computational Statistics}, \emph{35}(2), 629--646.
 #'
 #' @export
 #'
 # Simulate Small-world GGM data ----
-# Updated 12.03.2026
+# Updated 16.03.2026
 simulate_smallworld <- function(
     nodes, density, rewire, snr = 1, negative_proportion,
     sample_size, skew = 0, skew_range = NULL,
@@ -265,7 +366,7 @@ simulate_smallworld <- function(
   neighbors <- get_neighbors(nodes, density)
 
   # Create lattice network
-  lattice <- smallworld_generate(nodes, neighbors, 0)
+  lattice <- lattice_generate(nodes, neighbors + 1)
 
   # Obtain lower triangle
   lower_triangle <- lower.tri(lattice)
@@ -305,8 +406,11 @@ simulate_smallworld <- function(
 
     }
 
+    # Prune lattice
+    pruned_lattice <- prune2density(lattice, density, nodes, lower_triangle)
+
     # Small-world adjacency
-    A <- smallworld_generate(nodes, neighbors, rewire)
+    A <- smallworld_generate(pruned_lattice, nodes, density, rewire, lower_triangle)
 
     # Check adjacency
     if(!igraph::is_connected(convert2igraph(A))){
@@ -320,10 +424,10 @@ simulate_smallworld <- function(
     }
 
     # Estimate small-worldness (|0.50| based on Telesford et al., 2011)
-    omega <- smallworldness(A, nodes, neighbors)[["omega"]]
+    omega <- smallworldness(A = A, lattice = pruned_lattice, nodes = nodes)[["omega"]]
 
     # Check for smallworldness (based on empirical range of -0.580 to 0.70)
-    if(abs(omega) > 0.80){
+    if(is.na(omega) || (abs(omega) > 0.80)){
 
       # Add rejection reason
       rejections[iter] <- "Could not find structure where network was small-world."
@@ -336,7 +440,7 @@ simulate_smallworld <- function(
     # Try to get good weights
     output <- try(
       smallworld_weights(
-        A, lattice, nodes, neighbors, sample_size,
+        A, pruned_lattice, nodes, neighbors, sample_size,
         snr, negative_proportion, target_condition,
         max_correlation, omega, lower_triangle
       ), silent = TRUE
@@ -365,6 +469,9 @@ simulate_smallworld <- function(
     n = sample_size, p = nodes, R = output$R, skew = skew, skew_range = skew_range
   )
 
+  # Estimate modularity using optimal modularity detection
+  igraph_network <- convert2igraph(abs(output$network))
+
   # Return parameters
   return(
     list(
@@ -378,7 +485,10 @@ simulate_smallworld <- function(
         sample_size = sample_size,
         skew = data_output$skew,
         weibull = output$params,
-        omega = output$omega
+        omega = output$omega,
+        Q = igraph::modularity(
+          igraph_network, igraph::cluster_optimal(igraph_network)$membership
+        )
       ),
       population = list(R = output$R, Omega = output$network),
       convergence = list(
@@ -401,7 +511,7 @@ simulate_smallworld <- function(
 
 #' @noRd
 # Errors ----
-# Updated 14.03.2026
+# Updated 16.03.2026
 simulate_smallworld_errors <- function(
     nodes, density, rewire, snr, negative_proportion, sample_size,
     skew, target_condition, max_correlation, max_iterations
@@ -417,6 +527,21 @@ simulate_smallworld_errors <- function(
   typeof_error(density, "numeric", "simulate_smallworld")
   length_error(density, 1, "simulate_smallworld")
   range_error(density, c(0, 1), "simulate_smallworld")
+
+  # Minimum edges required for a connected graph
+  min_edges <- nodes - 1
+  target_edges <- round(density * (nodes * (nodes - 1) / 2))
+
+  # Check for whether connected graph is possible
+  if(target_edges < min_edges){
+    stop(
+      paste0(
+        "Target density (", round(density, 3), ") is too low to maintain ",
+        "a connected graph for ", nodes, " nodes. ",
+        "Minimum required density: ", round(min_edges / (nodes * (nodes - 1) / 2), 3)
+      )
+    )
+  }
 
   # Errors for 'rewire'
   typeof_error(rewire, "numeric", "simulate_smallworld")
@@ -493,9 +618,9 @@ get_neighbors <- function(nodes, density)
 }
 
 #' @noRd
-# Generate smallworld ----
-# Updated 08.03.2026
-smallworld_generate <- function(nodes, neighbors, rewire)
+# Generate lattice ----
+# Updated 16.03.2026
+lattice_generate <- function(nodes, neighbors)
 {
 
   return(
@@ -504,7 +629,7 @@ smallworld_generate <- function(nodes, neighbors, rewire)
         igraph::as_adjacency_matrix(
           igraph::sample_smallworld(
             dim = 1, size = nodes,
-            nei = neighbors, p = rewire
+            nei = neighbors, p = 0
           )
         )
       )
@@ -514,9 +639,161 @@ smallworld_generate <- function(nodes, neighbors, rewire)
 }
 
 #' @noRd
+# Prune neighbors to density ----
+# Updated 16.03.2026
+prune2density <- function(lattice, density, nodes, lower_triangle)
+{
+
+  # Store original lattice
+  original_lattice <- lattice
+
+  # Iniitialize lower triangle
+  lattice_lower <- original_lattice[lower_triangle]
+
+  # Initilaize connectedness
+  connected <- FALSE
+
+  # Connecteness loop
+  while(!connected){
+
+    # Obtain current edges
+    nonzero <- which(lattice_lower != 0)
+    current_edges <- length(nonzero)
+
+    # Obtain number of nodes to remove
+    remove_edges <- current_edges - round(density * (nodes * (nodes - 1) / 2))
+
+    # Check for whether edges is zero or negative
+    if(remove_edges < 1){
+      return(lattice)
+    }
+
+    # Select edges and remove them
+    lattice_lower[shuffle(nonzero, remove_edges)] <- 0
+
+    # Reconstruct lattice
+    lattice[] <- 0
+    lattice[lower_triangle] <- lattice_lower
+    lattice <- lattice + t(lattice)
+
+    # Check connectedness
+    connected <- igraph::is_connected(convert2igraph(lattice))
+
+  }
+
+  # Return lattice
+  return(lattice)
+
+}
+
+#' @noRd
+# Generate smallworld ----
+# Updated 16.03.2026
+smallworld_generate <- function(lattice, nodes, density, rewire, lower_triangle)
+{
+
+  # Obtain degree
+  degree <- colSums(lattice, na.rm = TRUE)
+
+  # Create sparse network data frame
+  sparse_lattice <- sparse_network(lattice)
+
+  # Add degrees
+  sparse_lattice$degree <- outer(degree, degree, "+")[lower_triangle]
+
+  # Determine rewired edges
+  current_edges <- sparse_lattice$weight != 0
+  edge_indices <- which(current_edges)
+  valid_targets <- which(!current_edges)
+  rewire_edges <- edge_indices[runif_xoshiro(length(edge_indices)) < rewire]
+  n_rewire <- length(rewire_edges)
+
+  # Check for no rewiring
+  if(n_rewire > 0){
+
+    # Loop over edges to rewire
+    for(edge in rewire_edges){
+
+      # Update zero edges
+      zero_edges <- intersect(which(sparse_lattice$weight == 0), valid_targets)
+
+      # Check for no more updates
+      if(length(zero_edges) == 0){
+        break
+      }
+
+      # Get edge indices
+      node_i <- sparse_lattice$row[edge]
+      node_j <- swiftelse(
+        sparse_lattice$row[edge] == node_i,
+        sparse_lattice$col[edge],
+        sparse_lattice$row[edge]
+      )
+
+      # Get candidate edges
+      candidate_edges <- intersect(
+        which((sparse_lattice$row == node_i) | (sparse_lattice$col == node_i)),
+        zero_edges
+      )
+
+      # Check for candidate edges
+      if(length(candidate_edges) == 0){
+        next
+      }
+
+      # Get weights based on degree
+      zero_degree <- sqrt(sparse_lattice$degree[candidate_edges])
+
+      # Get rewire location
+      location <- weighted_shuffle(x = candidate_edges, size = 1, prob = zero_degree / sum(zero_degree))
+
+      # Update edges
+      sparse_lattice$weight[edge] <- 0
+      sparse_lattice$weight[location] <- 1
+
+      # Get rewired index
+      rewired_j <- swiftelse(
+        sparse_lattice$row[location] == node_i,
+        sparse_lattice$col[location],
+        sparse_lattice$row[location]
+      )
+
+      # Obtain indices
+      node_j_index <- (sparse_lattice$row == node_j) | (sparse_lattice$col == node_j)
+      rewired_j_index <- (sparse_lattice$row == rewired_j) | (sparse_lattice$col == rewired_j)
+
+      # Update degrees
+      sparse_lattice$degree[node_j_index] <- sparse_lattice$degree[node_j_index] - 1
+      sparse_lattice$degree[rewired_j_index] <- sparse_lattice$degree[rewired_j_index] + 1
+
+      # Update valid_targets
+      valid_targets <- setdiff(valid_targets, location)
+
+    }
+
+  }
+
+  # Obtain nonzeros
+  nonzero_network <- sparse_lattice[sparse_lattice$weight == 1,]
+
+  # Rebuild network
+  lattice[] <- 0
+
+  # Loop over and fill
+  for(i in 1:nrow(nonzero_network)){
+    lattice[nonzero_network$row[i], nonzero_network$col[i]] <-
+    lattice[nonzero_network$col[i], nonzero_network$row[i]] <- 1
+  }
+
+  # Return network
+  return(lattice)
+
+}
+
+#' @noRd
 # Compute smallworldness ----
-# Updated 08.03.2026
-smallworldness <- function (A, nodes, neighbors, iter = 100)
+# Updated 16.03.2026
+smallworldness <- function(A, lattice, nodes, neighbors, iter = 100)
 {
 
   # Obtain edges
@@ -529,32 +806,67 @@ smallworldness <- function (A, nodes, neighbors, iter = 100)
   ASPL <- igraph::mean_distance(I)
   CC <- igraph::transitivity(I, type = "average")
 
-  # Create lattice network
-  lattice <- igraph::sample_smallworld(
-    dim = 1, size = nodes,
-    nei = neighbors, p = 0
-  )
+  # Check if lattice is missing
+  if(missing(lattice)){
+
+    # Check for whether neighbors is missing
+    if(missing(neighbors)){
+
+      # Ensure binary network
+      A[A != 0] <- 1
+
+      # Get neighbors
+      neighbors <- max(round((sum(A) / 2) / nodes), 1)
+
+    }
+
+    # Generate generic lattice
+    lattice <- igraph::sample_smallworld(
+      dim = 1, size = nodes, nei = neighbors, p = 0
+    )
+
+  }
 
   # Obtain lattice values
-  lattice_CC <- igraph::transitivity(lattice, type = "average")
+  lattice_CC <- igraph::transitivity(convert2igraph(lattice), type = "average")
   # Not technically correct based on Telesford et al. (2011);
   # however, matches the data generating process and therefore
   # is the correct choice for determine smallworldness
 
-  # Collect random networks
-  random_ASPL <- mean(
-    nvapply(seq_len(iter), function(i){
-      igraph::mean_distance(igraph::sample_degseq(out.deg = degree, method = "vl"))
-    }), na.rm = TRUE
-  )
+  # Check if analytical approximation of ASPL for random graphs
+  # can be used rather than simulation-based
+  # From Eq. 54 in Newman, Strogatz, & Watts (2001)
+  z1 <- mean(degree, na.rm = TRUE)
+  z2 <- mean(degree^2, na.rm = TRUE) - mean(degree)
+  # Check analytic conditions
+  if((nodes > z1) & (z2 > z1)){
+    random_ASPL <- log(nodes / z1) / log(z2 / z1) + 1
+  }else{
 
-  # Compute omega
-  omega <- (random_ASPL / ASPL) - (CC / lattice_CC)
+    # Collect random networks
+    random_ASPL <- mean(
+      nvapply(seq_len(iter), function(i){
+        igraph::mean_distance(igraph::sample_degseq(out.deg = degree, method = "vl"))
+      }), na.rm = TRUE
+    )
+
+  }
+
+  # Guard against zero lattice clustering
+  if((lattice_CC == 0) || is.na(lattice_CC)){
+    return(
+      c(
+        "omega" = NA, "aspl" = ASPL, "cc" = CC,
+        "random_aspl" = random_ASPL, "lattice_cc" = lattice_CC
+      )
+    )
+  }
 
   # Return values
   return(
     c(
-      "omega" = omega, "aspl" = ASPL, "cc" = CC,
+      "omega" = (random_ASPL / ASPL) - (CC / lattice_CC),
+      "aspl" = ASPL, "cc" = CC,
       "random_aspl" = random_ASPL, "lattice_cc" = lattice_CC
     )
   )

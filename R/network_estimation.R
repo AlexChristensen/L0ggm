@@ -382,18 +382,15 @@ network_estimation <- function(
     # Set partial correlations
     P <- inv2pcor(K); lower_P <- abs(P[lower_triangle])
 
-    # Compute for standard error
-    scaling <- sqrt(n)
-
     if(penalty == "exp"){
 
-      # Set gamma to standard error
-      gamma <- mean(lower_P) / scaling
+      # Set gamma to standard deviation
+      gamma <- mean(lower_P)
 
     }else if(penalty == "gumbel"){
 
-      # Set gamma to standard error
-      gamma <- gumbel_mle(lower_P) * (pi / sqrt(6)) / scaling
+      # Set gamma to standard deviation
+      gamma <- gumbel_mle(lower_P) * (pi / sqrt(6))
 
     }else if(penalty == "weibull"){
 
@@ -403,13 +400,13 @@ network_estimation <- function(
       # Obtain shape
       shape <- estimates[["shape"]]
 
-      # Set gamma to standard error
-      gamma <- estimates[["scale"]] * sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2) / scaling
+      # Set gamma to standard deviation
+      gamma <- estimates[["scale"]] * sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2)
 
     }
 
     # Set noise floor with p = 0.05
-    gamma <- 1.645 * gamma
+    gamma <- 1.645 * gamma / sqrt(n)
 
   }
 
