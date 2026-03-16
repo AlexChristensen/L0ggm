@@ -74,7 +74,15 @@ based on \code{empty_method}. For \code{empty_method = "zero"},
 argument passing}
 }
 \value{
-Returns a polychoric correlation matrix
+A symmetric numeric matrix of dimension \eqn{p \times p}, where
+\eqn{p} is the number of variables (columns) in \code{data}. Each
+off-diagonal entry \eqn{[i,j]} is the polychoric correlation between
+variables \eqn{i} and \eqn{j} — the estimated Pearson correlation between
+the latent continuous variables assumed to underlie the observed ordinal
+categories — with values in \eqn{[-1, 1]}. Diagonal entries are \eqn{1}.
+Row and column names are inherited from \code{data}. If any variable has
+zero variance, its corresponding row and column are set to \code{NA} and
+a warning is issued.
 }
 \description{
 A fast implementation of polychoric correlations in C.

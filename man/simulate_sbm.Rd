@@ -9,7 +9,7 @@ simulate_sbm(
   blocks,
   density_matrix,
   snr = 1,
-  diffusion = 0.5,
+  diffusion = 0.3,
   diffusion_range = NULL,
   negative_proportion,
   sample_size,
@@ -68,7 +68,7 @@ will on average exceed \code{1 - diffusion}. Lower values of
 \code{diffusion} (e.g., \code{0.10}) therefore produce stronger community
 contrast than higher values (e.g., \code{0.90}), but \code{diffusion}
 should be interpreted as a floor on within-community weight concentration,
-not an exact control. Defaults to \code{0.50}. Must be between 0 and 1.}
+not an exact control. Defaults to \code{0.30}. Must be between 0 and 1.}
 
 \item{diffusion_range}{Numeric (length = 2).
 If provided, overrides \code{diffusion} by drawing the diffusion proportion
@@ -131,10 +131,14 @@ frequency table of rejection reasons to assist with diagnosing convergence
 failures. Defaults to \code{100}.}
 }
 \value{
-Returns a list containing:
+A named list with four elements:
 
-\item{data}{Simulated data matrix (\code{sample_size x sum(nodes)}) drawn
-from the population GGM, with column names \code{V01}, \code{V02}, etc.}
+\item{data}{Numeric matrix of dimension \code{sample_size x sum(nodes)}
+containing the simulated observations drawn from the population GGM.
+Rows are cases; columns are variables named \code{V01}, \code{V02},
+etc. Values are continuous (or skewed continuous when \code{skew != 0}).
+To produce ordinal data, pass the columns through
+\code{\link{categorize}}.}
 
 \item{parameters}{
 A list of input, derived, and estimated parameters:

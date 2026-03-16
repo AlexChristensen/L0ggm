@@ -22,7 +22,7 @@ weibull_xoshiro <- function(n, shape, scale)
 
 #' @noRd
 # Generate edge values
-# Updated 15.03.2026
+# Updated 16.03.2026
 generate_edges <- function(nonzero, n, p, snr, misfit = FALSE)
 {
 
@@ -57,7 +57,7 @@ generate_edges <- function(nonzero, n, p, snr, misfit = FALSE)
 
   # Set weights
   weights <- sort(
-    L0ggm:::weighted_shuffle(
+    weighted_shuffle(
       x = weights, size = nonzero, prob = weighted_weights / sum(weighted_weights)
     ), decreasing = TRUE
   )

@@ -103,7 +103,19 @@ Defaults to \code{FALSE}}
 in the package}
 }
 \value{
-Returns a p x p correlation matrix
+A symmetric numeric matrix of dimension \eqn{p \times p}, where
+\eqn{p} is the number of variables in \code{data}, with values in
+\eqn{[-1, 1]} and ones on the diagonal. The correlation method used for
+each pair of variables depends on their types when \code{corr = "pearson"}
+(the default): polychoric for ordinal-ordinal pairs, polyserial for
+ordinal-continuous pairs, and Pearson's for continuous-continuous pairs,
+where \emph{ordinal} means having at most \code{ordinal_categories} unique
+values. When \code{corr} is \code{"kendall"} or \code{"spearman"},
+\code{\link[stats]{cor}} is used for all pairs regardless of variable
+type. Row and column names are inherited from \code{data}. When
+\code{forcePD = TRUE} (default) and the resulting matrix is not positive
+definite, the nearest positive definite matrix is returned via
+\code{\link[Matrix]{nearPD}}.
 }
 \description{
 Automatically computes the proper correlations between

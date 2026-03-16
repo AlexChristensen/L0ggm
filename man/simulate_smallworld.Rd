@@ -106,10 +106,14 @@ of rejection reasons to assist with diagnosing convergence failures.
 Defaults to \code{100}.}
 }
 \value{
-Returns a list containing:
+A named list with four elements:
 
-\item{data}{Simulated data matrix (\code{sample_size x nodes}) drawn
-from the population GGM, with column names \code{V01}, \code{V02}, etc.}
+\item{data}{Numeric matrix of dimension \code{sample_size x nodes}
+containing the simulated observations drawn from the population GGM.
+Rows are cases; columns are variables named \code{V01}, \code{V02},
+etc. Values are continuous (or skewed continuous when \code{skew != 0}).
+To produce ordinal data, pass the columns through
+\code{\link{categorize}}.}
 
 \item{parameters}{
 A list of input, derived, and estimated parameters:

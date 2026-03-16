@@ -68,7 +68,17 @@ Defaults to \code{FALSE}.
 Set to \code{TRUE} for full names}
 }
 \value{
-Returns a named vector of confusion matrix metrics
+A named numeric vector of the requested confusion matrix metrics.
+Values are generally in \eqn{[0, 1]}, with the exception of \code{"mcc"}
+(Matthews Correlation Coefficient), which ranges from \eqn{-1} to \eqn{1}
+where 1 indicates perfect agreement, 0 indicates chance-level performance,
+and -1 indicates perfect disagreement. The vector contains only the elements
+specified by \code{metric} (all ten metrics when \code{metric = "all"},
+which is the default). Names are abbreviated (e.g., \code{"sen"}) when
+\code{full.names = FALSE} (default), or expanded
+(e.g., \code{"Sensitivity"}) when \code{full.names = TRUE}. Any metric
+whose denominator is zero (e.g., sensitivity when no edges exist in
+\code{base}) is returned as \code{NA}.
 }
 \description{
 Computes many commonly used confusion matrix metrics

@@ -228,27 +228,54 @@ Set to \code{TRUE} to see all messages and warnings for every function call}
 \item{...}{Additional arguments to be passed on to \code{auto.correlate}}
 }
 \value{
-When \code{network_only = TRUE} (default), returns a p x p partial
-correlation network matrix. When \code{network_only = FALSE}, returns a named
-list containing:
+When \code{network_only = TRUE} (default), returns a \eqn{p \times p}
+numeric matrix of partial correlations representing the estimated Gaussian
+graphical model. Off-diagonal entry \eqn{[i,j]} is the partial correlation
+between variables \eqn{i} and \eqn{j} controlling for all other variables,
+with values in \eqn{[-1, 1]}; a value of zero indicates the absence of an
+edge. Diagonal entries are zero. Row and column names are inherited from
+\code{data}.
 
-\item{network}{Partial correlation network matrix}
+When \code{network_only = FALSE}, returns a named list with the following
+elements:
 
-\item{K}{Estimated inverse covariance (precision) matrix}
+\describe{
 
-\item{R}{Regularized covariance matrix}
+\item{\code{network}}{The \eqn{p \times p} partial correlation matrix
+described above}
 
-\item{penalty}{Penalty used}
+\item{\code{K}}{The \eqn{p \times p} estimated inverse covariance
+(precision) matrix at the optimal lambda. Diagonal entries are the
+conditional precisions; off-diagonal entries are proportional to
+partial covariances}
 
-\item{lambda}{Optimal lambda value selected by the information criterion}
+\item{\code{R}}{The \eqn{p \times p} regularized covariance matrix
+returned by GLASSO at the optimal lambda (the \code{w} component of the
+GLASSO solution)}
 
-\item{gamma}{Gamma value used}
+\item{\code{penalty}}{Character string naming the penalty function used
+(one of \code{"atan"}, \code{"exp"}, \code{"gumbel"}, \code{"log"},
+\code{"weibull"})}
 
-\item{correlation}{Empirical correlation matrix}
+\item{\code{lambda}}{Numeric scalar giving the regularization parameter
+value selected by the information criterion. Larger values correspond
+to sparser networks}
 
-\item{criterion}{Information criterion used for model selection}
+\item{\code{gamma}}{Numeric scalar giving the shape parameter of the
+penalty actually used. For adaptive penalties (\code{adaptive = TRUE}),
+this is the data-derived value; otherwise it is the default or
+user-supplied value}
 
-\item{IC}{Value of the information criterion at the optimal lambda}
+\item{\code{correlation}}{The \eqn{p \times p} empirical correlation
+matrix computed from \code{data}, used as input to the GLASSO}
+
+\item{\code{criterion}}{Character string naming the information criterion
+used for model selection (e.g., \code{"bic"})}
+
+\item{\code{IC}}{Numeric scalar giving the value of the information
+criterion at the optimal lambda}
+
+}
 }
 \description{
 A general function to estimate Gaussian graphical models using

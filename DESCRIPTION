@@ -2,7 +2,8 @@ Package: L0ggm
 Title: Smooth L0 Penalty Approximations for Gaussian Graphical Models
 Version: 0.0.1
 Date: 2026-03-09
-Authors@R: c(person("Alexander", "Christensen", email = "alexpaulchristensen@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9798-7037")))
+Authors@R: c(person("Alexander", "Christensen", email = "alexpaulchristensen@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9798-7037")),
+			 person("Jeongwon", "Choi", email = "jungwon799@gmail.com", role = "ctb", comment = c(ORCID = "0000-0001-6087-2124")))
 Description: Provides smooth approximations to the L0 norm penalty for
     estimating sparse Gaussian graphical models (GGMs). Network estimation
     is performed using the Local Linear Approximation (LLA) framework

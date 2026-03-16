@@ -19,7 +19,11 @@
 #' the nearest value in this sequence.
 #' Defaults to \code{0} or no skew
 #'
-#' @return Returns a numeric vector of the categorize data
+#' @return An integer vector of length \code{n} with values from \code{1} to
+#' \code{categories}, giving the category assignment for each observation.
+#' Category \code{1} corresponds to the lowest values of \code{data} and
+#' category \code{categories} to the highest. When \code{categories > 6},
+#' \code{\link[base]{cut}} is used and skew is not applied.
 #'
 #' @examples
 #' # Dichotomous data (no skew)

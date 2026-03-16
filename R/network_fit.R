@@ -10,7 +10,7 @@
 #'
 #' \item confirmatory fit index (CFI)
 #'
-#' \item Tucker-Lewis inded (TLI)
+#' \item Tucker-Lewis index (TLI)
 #'
 #' \item standardized root mean residual (SRMR)
 #'
@@ -23,7 +23,7 @@
 #' }
 #'
 #' @param network Matrix or data frame.
-#' A p by p sqaure network matrix
+#' A p by p square network matrix
 #'
 #' @param n Numeric (length = 1).
 #' Sample size
@@ -33,9 +33,61 @@
 #' with the input \code{network}
 #'
 #' @param ci Numeric (length = 1).
-#' Confidence interval for RMSEA
+#' Confidence interval for RMSEA.
+#' Defaults to \code{0.95}
 #'
-#' @return Returns a named vector of fit statistics
+#' @return A named numeric vector of traditional and likelihood-based fit
+#' indices. The vector always contains the following elements:
+#'
+#' \describe{
+#'
+#' \item{\code{chisq}}{Chi-square statistic
+#' (\eqn{\chi^2 = n \cdot F_{ML}}), where \eqn{F_{ML}} is the maximum
+#' likelihood discrepancy function between the model-implied and empirical
+#' correlation matrices}
+#'
+#' \item{\code{df}}{Degrees of freedom: total number of unique off-diagonal
+#' correlations minus the number of non-zero edges in \code{network}}
+#'
+#' \item{\code{chisq.p.value}}{p-value for the chi-square test of exact fit
+#' (H0: model-implied covariance equals the population covariance)}
+#'
+#' \item{\code{RMSEA}}{Root mean square error of approximation. Values
+#' \eqn{\leq} 0.05 indicate close fit; values \eqn{\leq} 0.08 indicate
+#' acceptable fit}
+#'
+#' \item{\code{RMSEA.XX.lower}, \code{RMSEA.XX.upper}}{Lower and upper
+#' bounds of the \code{ci}-level confidence interval for RMSEA, where
+#' \code{XX} is the integer percentage (e.g., \code{RMSEA.95.lower} and
+#' \code{RMSEA.95.upper} for a 95\% CI)}
+#'
+#' \item{\code{RMSEA.p.value}}{p-value for the one-sided test of close fit
+#' (H0: RMSEA \eqn{\leq} 0.05)}
+#'
+#' \item{\code{CFI}}{Comparative fit index, comparing the target model to
+#' an independence (null) baseline. Values \eqn{\geq} 0.95 indicate
+#' acceptable fit}
+#'
+#' \item{\code{TLI}}{Tucker-Lewis index (non-normed fit index). Values
+#' \eqn{\geq} 0.95 indicate acceptable fit; can fall outside \eqn{[0, 1]}
+#' for severely misspecified models}
+#'
+#' \item{\code{SRMR}}{Standardized root mean residual: the root mean squared
+#' difference between the model-implied and observed correlation matrices.
+#' Values \eqn{\leq} 0.08 indicate acceptable fit}
+#'
+#' \item{\code{logLik}}{Gaussian log-likelihood of the model-implied
+#' correlation matrix, assuming zero mean structure (means are not
+#' estimated)}
+#'
+#' \item{\code{AIC}}{Akaike's information criterion:
+#' \eqn{-2 \cdot \log L + 2 \cdot E}, where \eqn{E} is the number of
+#' non-zero edges in \code{network}}
+#'
+#' \item{\code{BIC}}{Bayesian information criterion:
+#' \eqn{-2 \cdot \log L + E \cdot \log(n)}}
+#'
+#' }
 #'
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
