@@ -411,14 +411,13 @@ network_estimation <- function(
 
     if(penalty == "exp"){
 
-      # Set gamma to p = 0.05
-      gamma <- -log(0.95) / mean(lower_P)
+      # Set standard deviation
+      SD <- mean(lower_P)
 
     }else if(penalty == "gumbel"){
 
-      # Set gamma to p = 0.05
-      gamma <- -gumbel_mle(lower_P) * log(-log(0.05))
-        # (pi / sqrt(6))
+      # Set standard deviation
+      SD <- -gumbel_mle(lower_P) * (pi / sqrt(6))
 
     }else if(penalty == "weibull"){
 
@@ -428,14 +427,13 @@ network_estimation <- function(
       # Obtain shape
       shape <- estimates[["shape"]]
 
-      # Set gamma to p = 0.05
-      gamma <- estimates[["scale"]] * (-log(0.95))^(1 / shape)
-        # sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2)
+      # Set standard deviation
+      SD <- estimates[["scale"]] * sqrt(gamma(1 + 2 / shape) - gamma(1 + 1 / shape)^2)
 
     }
 
-    # # Set noise floor with p = 0.05
-    # gamma <- 1.645 * gamma / sqrt(n)
+    # Set noise floor with p = 0.10
+    gamma <- 1.281552 * SD / sqrt(n)
 
   }
 
