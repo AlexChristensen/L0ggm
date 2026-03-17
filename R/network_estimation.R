@@ -417,7 +417,7 @@ network_estimation <- function(
     }else if(penalty == "gumbel"){
 
       # Set standard deviation
-      SD <- -gumbel_mle(lower_P) * (pi / sqrt(6))
+      SD <- gumbel_mle(lower_P) * (pi / sqrt(6))
 
     }else if(penalty == "weibull"){
 
