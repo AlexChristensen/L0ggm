@@ -20,7 +20,7 @@ A toy small-world network example (\emph{n} = 500)
 #  density = 0.30, # moderate initial lattice connectivity
 #  rewire = 0.20, # 20\% rewiring probability
 #  sample_size = 500 # number of cases = 500
-# )
+# )$data
 data("basic_smallworld")
 
 }

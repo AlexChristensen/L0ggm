@@ -10,7 +10,7 @@
 #' log-normal alternatives.
 #'
 #' @param nodes Integer. The number of nodes (variables) in the network.
-#' Must be between 8 and 40, reflecting the range of the empirical networks
+#' Must be between 8 and 54, reflecting the range of the empirical networks
 #' used to fit the underlying SUR model.
 #'
 #' @param sample_size Integer. The sample size of the dataset from which the
