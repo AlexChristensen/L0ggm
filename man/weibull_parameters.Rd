@@ -51,29 +51,43 @@ that differ between the two SUR equations:
     \eqn{1 / \log(p)}, capturing the diminishing marginal effect of network
     size on edge weight distributions. Used in both the shape and scale
     equations.}
-  \item{\code{beta_min}}{A noise-to-signal proxy defined as
-    \eqn{\sqrt{\log(p) / n}}, where \eqn{p} is the number of nodes and
-    \eqn{n} is the sample size. Larger values indicate sparser, noisier
-    estimation conditions. Used in both the shape and scale equations.}
+  \item{\code{scaling}}{The standard error of partial correlations defined as
+    \eqn{\sqrt{1 / (n - p - 2)}}, where \eqn{n} is the sample size and
+    \eqn{p} is the number of nodes. Larger values indicate greater sampling
+    uncertainty in the partial correlation estimates. Used in the scale
+    equation only.}
 }
+
+The two SUR equations have an asymmetric structure reflecting different
+theoretical roles for sampling precision. Shape — which governs the
+concentration of the edge weight distribution — is determined solely by
+signal characteristics of the network via \code{snr} and \code{rlp}.
+Scale — which governs the typical magnitude of edge weights — additionally
+depends on \code{scaling}, as the expected size of partial correlations is
+directly affected by estimation precision. This asymmetry is both
+empirically supported (dropping \code{scaling} from the shape equation
+costs \eqn{\Delta R^2 < 0.006}) and theoretically coherent.
 
 These predictors enter two SUR equations whose coefficients are stored in
 the internal \code{weibull_weights} dataset. SUR was used to account for the
 correlated residuals between the shape and scale equations across networks
-(residual correlation = 0.264). Model fit was strong: the shape equation
-achieved \eqn{R^2 = 0.891} (RMSE = 0.047) and the scale equation achieved
+(residual correlation = 0.261). Model fit was strong: the shape equation
+achieved \eqn{R^2 = 0.887} (RMSE = 0.048) and the scale equation achieved
 \eqn{R^2 = 0.885} (RMSE = 0.011). Shape residuals were normally distributed
-(Shapiro-Wilk W = 0.995, p = 0.814). Scale residuals showed a modest
+(Shapiro-Wilk W = 0.990, p = 0.173). Scale residuals showed a modest
 departure from normality (Shapiro-Wilk W = 0.973, p < 0.001), consistent
 with slight right skew in the scale outcome and test sensitivity at n = 194
 rather than a substantive violation. Heteroskedasticity was detected in both
 the shape equation (Breusch-Pagan p < 0.001) and the scale equation
 (Breusch-Pagan p < 0.001); robust standard errors (HC3) were used for
-inference. Multicollinearity among predictors was negligible
-(VIF \eqn{\leq} 1.62, condition number = 61.1).
+inference. Multicollinearity among predictors in the scale equation was
+negligible (VIF \eqn{\leq} 1.60); the shape equation contains only two
+predictors with no multicollinearity concern.
 
-Both \code{nodes} and \code{sample_size} influence predicted shape and scale
-via \code{rlp} and \code{beta_min}, respectively.
+\code{nodes} influences predicted shape and scale via \code{rlp}.
+\code{sample_size} influences predicted scale via \code{scaling}, and
+both parameters via their joint contribution to \code{snr} when it is
+estimated from data rather than supplied directly.
 
 Empirically, shape values ranged from approximately 0.72 to 1.63
 (M = 1.07, SD = 0.14) and scale values from approximately 0.03 to 0.19
