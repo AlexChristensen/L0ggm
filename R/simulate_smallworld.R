@@ -646,6 +646,9 @@ prune2density <- function(lattice, density, nodes, lower_triangle)
   # Iniitialize lower triangle
   lattice_lower <- original_lattice[lower_triangle]
 
+  # Compute possible edges 
+  possible_edges <- nodes * (nodes - 1) / 2
+
   # Initilaize connectedness
   connected <- FALSE
 
@@ -657,7 +660,7 @@ prune2density <- function(lattice, density, nodes, lower_triangle)
     current_edges <- length(nonzero)
 
     # Obtain number of nodes to remove
-    remove_edges <- current_edges - round(density * (nodes * (nodes - 1) / 2))
+    remove_edges <- current_edges - round(density * possible_edges)
 
     # Check for whether edges is zero or negative
     if(remove_edges < 1){
