@@ -723,11 +723,7 @@ smallworld_generate <- function(lattice, nodes, density, rewire, lower_triangle)
 
       # Get edge indices
       node_i <- sparse_lattice$row[edge]
-      node_j <- swiftelse(
-        sparse_lattice$row[edge] == node_i,
-        sparse_lattice$col[edge],
-        sparse_lattice$row[edge]
-      )
+      node_j <- sparse_lattice$col[edge]
 
       # Get candidate edges
       candidate_edges <- intersect(
