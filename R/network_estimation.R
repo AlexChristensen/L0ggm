@@ -432,8 +432,8 @@ network_estimation <- function(
 
     }
 
-    # Set noise floor with p = 0.10
-    gamma <- 1.281552 * SD / sqrt(n)
+    # Set noise floor with p = 0.05
+    gamma <- 1.644854 * SD / sqrt(n)
 
   }
 
