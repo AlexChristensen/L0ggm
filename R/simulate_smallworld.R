@@ -298,14 +298,6 @@
 #'   negative_proportion = 0.20
 #' )
 #'
-#' # Larger network with higher density
-#' result <- simulate_smallworld(
-#'   nodes = 40,
-#'   density = 0.50,
-#'   rewire = 0.10,
-#'   sample_size = 1000
-#' )
-#'
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @references

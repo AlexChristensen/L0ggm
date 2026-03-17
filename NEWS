@@ -1,1 +1,57 @@
 ## Initial Commit: Version 0.0.1
+
+### Network Estimation
+
+- `network_estimation()`: Estimates Gaussian graphical models using L0 penalty
+  approximations (atan, exp, gumbel, weibull) via single-pass or full Local
+  Linear Approximation (LLA). Supports adaptive penalties, multiple information
+  criteria (AIC, AICc, BIC, BIC0, EBIC, MBIC), and automatic correlation
+  computation for mixed continuous/ordinal data
+
+### Fit Evaluation
+
+- `network_fit()`: Computes traditional structural equation model-style fit
+  metrics for an estimated network, including chi-square, RMSEA (with CIs),
+  CFI, TLI, SRMR, log-likelihood, AIC, and BIC
+
+- `edge_confusion()`: Computes confusion matrix metrics (sensitivity,
+  specificity, PPV, NPV, FDR, FOM, balanced accuracy, F1, CSI, MCC) for
+  comparing an estimated network against a ground-truth network
+
+### Correlation Utilities
+
+- `auto_correlate()`: Automatically selects and computes appropriate
+  correlations for mixed data types — Pearson for continuous, polychoric for
+  ordinal, tetrachoric for binary, and polyserial/biserial for mixed pairs
+
+- `polychoric_matrix()`: Fast C implementation of polychoric correlations using
+  the Beasley-Springer-Moro algorithm, Drezner-Wesolosky bivariate normal
+  approximation, and Brent's optimization method
+
+### Data Simulation
+
+- `simulate_smallworld()`: Simulates data from a GGM with a small-world network
+  structure using degree-weighted rewiring. Supports continuous and skewed data,
+  and accepts control over nodes, density, rewire probability, sample size, and
+  signal-to-noise ratio
+
+- `simulate_sbm()`: Simulates data from a GGM with a stochastic block model
+  (SBM) structure. Community edge densities are controlled via a block density
+  matrix; edge weights are drawn from a Weibull distribution whose parameters
+  are predicted from network size and sample size
+
+### Supporting Functions
+
+- `weibull_parameters()`: Predicts Weibull shape and scale parameters for
+  absolute partial correlation edge weights given network size, sample size,
+  and signal-to-noise ratio, using a Seemingly Unrelated Regression (SUR)
+  model fitted to 194 empirical psychometric networks
+
+- `categorize()`: Converts continuous data to ordinal categories (2–6+) with
+  optional skew control based on empirical category boundary tables
+  (Garrido, Abad, & Ponsoda, 2011)
+
+### Datasets
+
+- `basic_smallworld`: Toy small-world network dataset (n = 500, 20 variables)
+  generated via `simulate_smallworld()` for use in examples

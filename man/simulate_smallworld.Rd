@@ -318,14 +318,6 @@ result <- simulate_smallworld(
   negative_proportion = 0.20
 )
 
-# Larger network with higher density
-result <- simulate_smallworld(
-  nodes = 40,
-  density = 0.50,
-  rewire = 0.10,
-  sample_size = 1000
-)
-
 }
 \references{
 \strong{Seminal introduction to the Watts-Strogatz small-world model} \cr
