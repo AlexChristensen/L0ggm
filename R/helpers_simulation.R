@@ -23,7 +23,7 @@ weibull_xoshiro <- function(n, shape, scale)
 #' @noRd
 # Generate edge values
 # Updated 16.03.2026
-generate_edges <- function(nonzero, n, p, snr, misfit = FALSE)
+generate_edges <- function(nonzero, n, p, snr)
 {
 
   # Calculate possible edges
