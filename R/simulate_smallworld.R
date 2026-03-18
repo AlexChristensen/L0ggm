@@ -406,7 +406,7 @@ simulate_smallworld <- function(
     pruned_lattice <- prune2density(lattice, density, nodes, lower_triangle)
 
     # Small-world adjacency
-    A <- smallworld_generate(pruned_lattice, nodes, density, rewire, lower_triangle)
+    A <- smallworld_generate(pruned_lattice, rewire, lower_triangle)
 
     # Check adjacency
     if(!igraph::is_connected(convert2igraph(A))){
@@ -688,7 +688,7 @@ prune2density <- function(lattice, density, nodes, lower_triangle)
 #' @noRd
 # Generate smallworld ----
 # Updated 16.03.2026
-smallworld_generate <- function(lattice, nodes, density, rewire, lower_triangle)
+smallworld_generate <- function(lattice, rewire, lower_triangle)
 {
 
   # Obtain degree
