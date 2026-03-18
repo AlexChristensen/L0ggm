@@ -138,7 +138,7 @@ The standard error of the Weibull scale shrinks with larger samples — an appro
 
 The derivative used in the LLA is defined piecewise to ensure the penalty weight is always non-increasing in $|x|$. When $k \leq 1$ the Weibull PDF is already monotonically decreasing, so the standard formula applies directly. When $k > 1$ the raw PDF has an interior mode at $x^* = \gamma \left(\tfrac{k-1}{k}\right)^{1/k}$; values below this mode would otherwise receive *less* weight than values above it, violating the oracle-property requirement. The derivative is therefore capped at its peak for $|x| \leq x^*$:
 
-$$\rho'(x; \lambda, \gamma, k) = \lambda \cdot \frac{k}{\gamma} \times \begin{cases} \left(\dfrac{x^{\ast}}{\gamma}\right)^{k-1} e^{-(x^{\ast}/\gamma)^k} & \text{if } k > 1 \text{ and } |x| \leq x^{\ast} \\[6pt] \left(\dfrac{|x|}{\gamma}\right)^{k-1} e^{-(|x|/\gamma)^k} & \text{otherwise} \end{cases}$$
+$$\rho'(x; \lambda, \gamma, k) = \lambda \cdot \frac{k}{\gamma} \times \begin{cases} \left(\dfrac{x^{\ast}}{\gamma}\right)^{k-1} e^{-(x^{\ast}/\gamma)^k} & \text{if } k > 1 \text{ and } |x| \leq x^{\ast} \\ \left(\dfrac{|x|}{\gamma}\right)^{k-1} e^{-(|x|/\gamma)^k} & \text{otherwise} \end{cases}$$
 
 where $x^* = \gamma \left(\dfrac{k-1}{k}\right)^{1/k}$ is the mode of the Weibull PDF. The resulting derivative is monotonically non-increasing for all $k > 0$: as $|x|$ grows past the peak, weights decay to zero — large true edges receive vanishingly small additional penalization, directly addressing the magnitude bias of $L_1$ methods.
 
