@@ -93,17 +93,17 @@ The five penalties available in {L0ggm} are:
 |---------|---------|----------|
 | `"atan"` (Wang & Zhu, 2016) | $\lambda \left(\gamma + \dfrac{2}{\pi}\right) \arctan \left(\dfrac{\lvert x \rvert}{\gamma}\right)$ | 0.01 |
 | `"exp"` (Wang, Fan, & Zhu, 2018) | $\lambda \left(1 - e^{-\lvert x \rvert / \gamma}\right)$ | 0.01 |
-| `"gumbel"` | $\lambda \left(e^{-e^{-\lvert x \rvert / \gamma}}\right)$ | 0.01 |
+| `"gumbel"` | $\dfrac{\lambda}{1 - e^{-1}} \left(e^{-e^{-\lvert x \rvert / \gamma}} - e^{-1}\right)$ | 0.01 |
 | `"log"` (Candes, Wakin, & Boyd, 2008) | $\lambda \dfrac{\log\left(1 + \lvert x \rvert / \gamma\right)}{\log\left(1 + 1/\gamma\right)}$ | 0.10 |
-| `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\lvert x \rvert / \gamma\right)^k}\right)$ | 0.01 |
+| `"weibull"` *(default)* | $\lambda \left(1 - e^{-\left(\lvert x \rvert / \gamma\right)^k}\right)$ when $k \leq 1$ | 0.01 |
 
-<em><strong>Note.</strong> Gumbel adjusts</em> $\lambda = \dfrac{\lambda}{1 - e^{-1}}$ <em>to scale consistently with other penalties and subtracts</em> $e^{-1}$ <em>from the penalty (prior to lambda) to adjust the y-intercept to zero.</em>
+<em><strong>Note.</strong> The Gumbel penalty subtracts</em> $e^{-1}$ <em>from the raw Gumbel CDF to shift the y-intercept to zero, then scales by</em> $\lambda / (1 - e^{-1})$ <em>so that the penalty ceiling is</em> $\lambda$<em>, consistent with the other approximations. The Weibull formula shown applies for</em> $k \leq 1$<em>; for</em> $k > 1$ <em>the penalty is piecewise — linear up to the mode</em> $x^*$ <em>and a continuity-shifted Weibull CDF above it — matching the piecewise derivative described below.</em>
 
 <p align="center">
 <img src="images/derivative.png" width = 700 />
 </p>
 
-<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>. Gumbel is roughly equivalent to EXP and not pictured.</em>
+<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>. Gumbel is roughly equivalent to EXP (not pictured) and Weibull $k = 1$ is exactly EXP.</em>
 
 ---
 
@@ -116,6 +116,7 @@ The Weibull penalty introduces a **shape parameter** $k > 0$ that continuously i
 - **$k = 1$**: reduces exactly to the EXP penalty
 - **$k < 1$**: the penalty becomes less concave than exponential, with a wider rise near the origin and slower convergence to $\lambda$ — moving away from the $L_0$ step function (see Figure 1)
 - **$k \sim 0.40$**: approximates the Atan penalty
+- **$k > 1$**: the penalty becomes more concave than exponential, with a sharper threshold near the scale — moving closer to the $L_0$ step function
 
 This variation in $k$ allows Weibull to control the **degree of sparsity bias**: smaller $k$ imposes more shrinkage on nonzero coefficients and less aggressively zeros small ones. Rather than fixing $k$ by hand, {L0ggm} estimates it from the data.
 
@@ -129,23 +130,17 @@ $$\frac{\sum_i |p_i|^{\hat{k}} \log|p_i|}{\sum_i |p_i|^{\hat{k}}} - \frac{1}{\ha
 
 $$\hat{\lambda}_W = \left(\frac{1}{n}\sum_i |p_i|^{\hat{k}}\right)^{1/\hat{k}}$$
 
-**Step 2 — Cap shape.** To guarantee that the penalty is at least as concave as EXP (a necessary condition for the $L_0$ approximation quality), the shape is capped:
+**Step 2 — Set adaptive scale.** The scale parameter $\gamma$ is set to the 95% noise floor: 1.645 times the standard error of the fitted Weibull distribution:
 
-$$k = \min\left(\hat{k}, 1\right)$$
-
-If $k$ is capped at 1, $\hat{\lambda_W}$ is replaced by the sample mean of $|p_{ij}|$.
-
-**Step 3 — Set adaptive scale.** The scale parameter $\gamma$ is set to the 95% noise floor: 1.645 times the standard error of the fitted Weibull distribution, normalized by $\sqrt{n}$:
-
-$$\gamma = \frac{1.645 \cdot \hat{\lambda}_W \sqrt{\Gamma\left(1 + \tfrac{2}{k}\right) - \Gamma\left(1 + \tfrac{1}{k}\right)^2}}{\sqrt{n}}$$
+$$\gamma = \frac{1.645 \cdot \hat{\lambda}_W \sqrt{\Gamma\left(1 + \tfrac{2}{\hat{k}}\right) - \Gamma\left(1 + \tfrac{1}{\hat{k}}\right)^2}}{\sqrt{n}}$$
 
 The standard error of the Weibull scale shrinks with larger samples — an appropriate regularization of $\gamma$ that reduces bias as $n$ grows. Multiplying by 1.645 sets $\gamma$ at the one-sided 95% confidence bound, establishing a noise floor below which partial correlations are treated as indistinguishable from zero. The resulting $\gamma$ is small when the partial correlations are tightly concentrated (sparse true network), driving the penalty closer to $L_0$, and larger when correlations are more diffuse.
 
-The derivative used in the LLA is:
+The derivative used in the LLA is defined piecewise to ensure the penalty weight is always non-increasing in $|x|$. When $k \leq 1$ the Weibull PDF is already monotonically decreasing, so the standard formula applies directly. When $k > 1$ the raw PDF has an interior mode at $x^* = \gamma \left(\tfrac{k-1}{k}\right)^{1/k}$; values below this mode would otherwise receive *less* weight than values above it, violating the oracle-property requirement. The derivative is therefore capped at its peak for $|x| \leq x^*$:
 
-$$\rho'(x; \lambda, \gamma, k) = \lambda \cdot \frac{k}{\gamma} \left(\frac{|x|}{\gamma}\right)^{k-1} e^{-(\dfrac{|x|}{\gamma})^k}$$
+$$\rho'(x; \lambda, \gamma, k) = \lambda \cdot \frac{k}{\gamma} \times \begin{cases} \left(\dfrac{x^*}{\gamma}\right)^{k-1} e^{-(x^*/\gamma)^k} & \text{if } k > 1 \text{ and } |x| \leq x^* \\[6pt] \left(\dfrac{|x|}{\gamma}\right)^{k-1} e^{-(|x|/\gamma)^k} & \text{otherwise} \end{cases}$$
 
-Note that as $|x|$ grows, the derivative decays to zero — large true edges receive vanishingly small additional penalization, directly addressing the magnitude bias of $L_1$ methods.
+where $x^* = \gamma \left(\dfrac{k-1}{k}\right)^{1/k}$ is the mode of the Weibull PDF. The resulting derivative is monotonically non-increasing for all $k > 0$: as $|x|$ grows past the peak, weights decay to zero — large true edges receive vanishingly small additional penalization, directly addressing the magnitude bias of $L_1$ methods.
 
 ### Distributional foundations and extreme value theory
 
@@ -177,9 +172,9 @@ Only Type I (Gumbel) and Type III (Weibull) are used as penalties in {L0ggm}. Th
 
 **Why extreme value CDFs are ideal $L_0$ approximations.** The $L_0$ penalty is a Heaviside step function: zero below a threshold, constant above. Extreme value CDFs share exactly this structural character — they are bounded, concave, and rise from 0 to a finite ceiling — because they represent the limiting distribution of extreme order statistics under the most general conditions. This is no coincidence from the perspective of sparsity: recovering sparse structure amounts to discriminating between the very smallest coefficients (noise) and all others (signal), which is precisely the problem that extreme value distributions are designed to describe.
 
-The Weibull CDF in particular describes the distribution of the **minimum** of a large sample from distributions with polynomial density near zero. For $k < 1$ (the sub-exponential, highly-sparse regime), this minimum distribution is maximally concentrated near the origin, rises steeply, and saturates rapidly — the tightest continuous approximation to the Heaviside step available within the parametric family. As $k \to 0$, the Weibull CDF converges pointwise to $\lambda \cdot \mathbf{1}(x \neq 0)$, the $L_0$ indicator itself.
+The Weibull CDF in particular describes the distribution of the **minimum** of a large sample from distributions with polynomial density near zero. Because partial correlations are bounded in $[0, 1]$, the relevant domain of the penalty lies in the range $[0, \hat{\lambda}_W]$ where $\hat{\lambda}_W < 1$. In this regime, the shape parameter $k$ controls the sharpness of the threshold at the scale $\gamma$: for $x < \gamma$, raising to a larger power $k$ shrinks $(x/\gamma)^k$ toward zero (since $x/\gamma < 1$), while for $x > \gamma$, the same large $k$ amplifies $(x/\gamma)^k$ toward infinity. As $k \to \infty$, the Weibull CDF converges pointwise to $\lambda \cdot \mathbf{1}(x > \gamma)$ — a step function at the scale — the $L_0$ indicator itself.
 
-The same structure governs the LLA derivative. The Weibull PDF with $k < 1$ is monotonically decreasing and unbounded at $x = 0$: the smallest partial correlations receive the largest adaptive penalty weights, and large ones receive weights approaching zero. This is the continuous analog of $L_0$ hard thresholding — aggressively zero small edges, leave large edges essentially unpenalized — and it is what gives Weibull-LLA its oracle-consistent selection properties. Because the adaptive fitting procedure estimates $k$ from the data and caps it at 1, the penalty is always at least as concave as EXP, and in genuinely sparse settings will automatically select $k < 1$, driving the penalty toward the $L_0$ limit.
+The same structure governs the LLA derivative. For $k > 1$, the piecewise derivative holds a constant plateau near the origin (up to the mode $x^*$) and then decays — producing a consistent penalty on all near-zero coefficients and vanishing penalization on large ones. This is the continuous analog of $L_0$ hard thresholding: aggressively zero small edges, leave large edges essentially unpenalized. For $k < 1$, the derivative decays from a very large value at the origin, imposing the largest penalty weights on the smallest coefficients — an increasingly proportional, $L_1$-like profile. The adaptive fitting procedure estimates $k$ from the data without restriction; in dense or moderate-signal settings it will select $k > 1$, driving the penalty toward the $L_0$ limit, while sparse settings with many near-zero partial correlations tend to produce $k < 1$.
 
 ---
 
