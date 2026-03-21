@@ -5,14 +5,15 @@ Copyright: 2024 Alexander P. Christensen <alexpaulchristensen@gmail.com>
 License: GPL (>= 2)
 Comment: The polyserial_vector function uses a two-step approximation
  derived from the polyserial function in the polycor R package
- by John Fox.
+ by John Fox. Modified by Alexander P. Christensen, 16 March 2024.
 
 Files: R/network_fit.R
 Copyright: 2024 Alexander P. Christensen <alexpaulchristensen@gmail.com>
            Yves Rosseel (rmsea_ci function, derived from lavaan version 0.6.19)
 License: GPL (>= 2)
 Comment: The rmsea_ci function is derived from RMSEA confidence interval
- code in the lavaan R package (version 0.6.19) by Yves Rosseel.
+ code in the lavaan R package (version 0.6.19) by Yves Rosseel. Modified 
+ by Alexander P. Christensen, 01 November 2024.
 
 Files: src/polychoric_matrix.c
 Copyright: 2023 Alexander P. Christensen <alexpaulchristensen@gmail.com>

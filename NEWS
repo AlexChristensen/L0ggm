@@ -30,6 +30,18 @@
 
 ### Data Simulation
 
+- `ring2lattice()`: Converts a partial correlation network matrix into a
+  near-degree-preserving ring lattice for use as the lattice baseline in
+  small-worldness calculations. Derives the binary adjacency internally,
+  reorders nodes by degree, seeds a ring lattice from a circular-distance
+  threshold, and runs dual pruning passes (highest-first and lowest-first
+  surplus order) with a lexicographic edge-removal priority (clustering
+  constraint, surplus, ring distance). Retains whichever pass minimises
+  total residual surplus (ties broken by average clustering coefficient),
+  with a final fallback to the empirical adjacency when the lattice cannot
+  exceed the empirical clustering coefficient. Attaches the resulting
+  average clustering coefficient as the attribute `"CC"`
+
 - `simulate_smallworld()`: Simulates data from a GGM with a small-world network
   structure using degree-weighted rewiring. Supports continuous and skewed data,
   and accepts control over nodes, density, rewire probability, sample size, and
