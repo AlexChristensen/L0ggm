@@ -224,7 +224,7 @@
 #'   structure; negative values indicate lattice-like structure; positive
 #'   values indicate random-like structure
 #'   \item \code{Q} --- Newman-Girvan modularity of the population network
-#'   (\code{Omega}) computed via \code{igraph::modularity} on absolute edge
+#'   (\code{omega}) computed via \code{igraph::modularity} on absolute edge
 #'   weights, using the community partition that maximizes modularity
 #'   (\code{igraph::cluster_optimal}). Because \code{cluster_optimal} finds
 #'   the exact modularity maximum, \code{Q} represents an upper bound on
@@ -241,7 +241,7 @@
 #' \itemize{
 #'   \item \code{R} --- Population correlation matrix derived from the GGM
 #'   via \code{pcor2cor}
-#'   \item \code{Omega} --- Population partial correlation matrix (the GGM
+#'   \item \code{omega} --- Population partial correlation matrix (the GGM
 #'   edge weight matrix), with zeros for absent edges
 #' }
 #' }
@@ -306,10 +306,10 @@
 #' Collective dynamics of 'small-world' networks.
 #' \emph{Nature}, \emph{393}(6684), 440--442.
 #'
-#' \strong{Omega statistic for smallworldness} \cr
-#' Telesford, Q. K., Joyce, K. E., Hayasaka, S., Burdette, J. H., & Laurienti, P. J. (2011).
-#' The ubiquity of small-world networks.
-#' \emph{Brain Connectivity}, \emph{1}(5), 367--375.
+#' \strong{Logic for weight assignments} \cr
+#' Muldoon, S. F., Bridgeford, E. W., & Bassett, D. S. (2016).
+#' Small-world propensity and weighted brain networks.
+#' \emph{Scientific Reports}, \emph{6}(1), 22057.
 #'
 #' \strong{Analytical approximation of random-graph average path length} \cr
 #' Newman, M. E. J., Strogatz, S. H., & Watts, D. J. (2001).
@@ -329,7 +329,7 @@
 #' @export
 #'
 # Simulate Small-world GGM data ----
-# Updated 16.03.2026
+# Updated 18.03.2026
 simulate_smallworld <- function(
     nodes, density, rewire, snr = 1, negative_proportion,
     sample_size, skew = 0, skew_range = NULL,
@@ -394,7 +394,7 @@ simulate_smallworld <- function(
       # Return error
       stop(
         paste0(
-          "Reached maximum iterations: Could not find weights that for the small-world structure ",
+          "Reached maximum iterations: Could not find weights that for the small-world structure.\n",
           "Resulting rejections were due to:\n\n",
           paste0(names(rejection_table), " = ", rejection_table, collapse = "\n")
         )
@@ -419,19 +419,8 @@ simulate_smallworld <- function(
 
     }
 
-    # Estimate small-worldness (|0.50| based on Telesford et al., 2011)
-    omega <- smallworldness(A = A, lattice = pruned_lattice, nodes = nodes)[["omega"]]
-
-    # Check for smallworldness (based on empirical range of -0.580 to 0.70)
-    if(is.na(omega) || (abs(omega) > 0.80)){
-
-      # Add rejection reason
-      rejections[iter] <- "Could not find structure where network was small-world."
-
-      # Move to next iteration
-      next
-
-    }
+    # Estimate small-worldness (based on Telesford et al., 2011)
+    omega <- smallworldness(A = A, lattice = pruned_lattice)[["omega"]]
 
     # Try to get good weights
     output <- try(
@@ -615,22 +604,25 @@ get_neighbors <- function(nodes, density)
 
 #' @noRd
 # Generate lattice ----
-# Updated 16.03.2026
+# Updated 18.03.2026
 lattice_generate <- function(nodes, neighbors)
 {
 
-  return(
-    silent_call(
-      as.matrix(
-        igraph::as_adjacency_matrix(
-          igraph::sample_smallworld(
-            dim = 1, size = nodes,
-            nei = neighbors, p = 0
-          )
-        )
-      )
-    )
-  )
+  # Set node sequence
+  node_sequence <- seq_len(nodes)
+
+  # Set up distance matrix
+  distance_matrix <- abs(outer(node_sequence, node_sequence, "-"))
+  distance_matrix <- pmin(distance_matrix, nodes - distance_matrix)
+
+  # Convert distance matrix to zeros and ones
+  distance_matrix[] <- as.numeric(distance_matrix <= neighbors)
+
+  # Ensure zero diagonal
+  diag(distance_matrix) <- 0
+
+  # Return lattice
+  return(distance_matrix)
 
 }
 
@@ -646,7 +638,7 @@ prune2density <- function(lattice, density, nodes, lower_triangle)
   # Iniitialize lower triangle
   lattice_lower <- original_lattice[lower_triangle]
 
-  # Compute possible edges 
+  # Compute possible edges
   possible_edges <- nodes * (nodes - 1) / 2
 
   # Initilaize connectedness
@@ -787,8 +779,8 @@ smallworld_generate <- function(lattice, rewire, lower_triangle)
 
 #' @noRd
 # Compute smallworldness ----
-# Updated 16.03.2026
-smallworldness <- function(A, lattice, nodes, neighbors, iter = 100)
+# Updated 18.03.2026
+smallworldness <- function(A, lattice, iter = 100)
 {
 
   # Obtain edges
@@ -801,68 +793,29 @@ smallworldness <- function(A, lattice, nodes, neighbors, iter = 100)
   ASPL <- igraph::mean_distance(I)
   CC <- igraph::transitivity(I, type = "average")
 
+  ## Random terms
+
+  # Collect random networks
+  random <- lapply(
+    seq_len(iter), function(i){igraph::sample_degseq(out.deg = degree[degree > 0], method = "vl")}
+  )
+  random_ASPL <- mean(nvapply(random, igraph::mean_distance), na.rm = TRUE)
+
+  ## Regular terms
+
   # Check if lattice is missing
   if(missing(lattice)){
-
-    # Check for whether neighbors is missing
-    if(missing(neighbors)){
-
-      # Ensure binary network
-      A[A != 0] <- 1
-
-      # Get neighbors
-      neighbors <- max(round((sum(A) / 2) / nodes), 1)
-
-    }
-
-    # Generate generic lattice
-    lattice <- igraph::sample_smallworld(
-      dim = 1, size = nodes, nei = neighbors, p = 0
-    )
-
-  }
-
-  # Obtain lattice values
-  lattice_CC <- igraph::transitivity(convert2igraph(lattice), type = "average")
-  # Not technically correct based on Telesford et al. (2011);
-  # however, matches the data generating process and therefore
-  # is the correct choice for determine smallworldness
-
-  # Check if analytical approximation of ASPL for random graphs
-  # can be used rather than simulation-based
-  # From Eq. 54 in Newman, Strogatz, & Watts (2001)
-  z1 <- mean(degree, na.rm = TRUE)
-  z2 <- mean(degree^2, na.rm = TRUE) - mean(degree)
-  # Check analytic conditions
-  if((nodes > z1) & (z2 > z1)){
-    random_ASPL <- log(nodes / z1) / log(z2 / z1) + 1
+    lattice_CC <- attributes(ring2lattice(A))$CC
   }else{
-
-    # Collect random networks
-    random_ASPL <- mean(
-      nvapply(seq_len(iter), function(i){
-        igraph::mean_distance(igraph::sample_degseq(out.deg = degree, method = "vl"))
-      }), na.rm = TRUE
-    )
-
-  }
-
-  # Guard against zero lattice clustering
-  if((lattice_CC == 0) || is.na(lattice_CC)){
-    return(
-      c(
-        "omega" = NA, "aspl" = ASPL, "cc" = CC,
-        "random_aspl" = random_ASPL, "lattice_cc" = lattice_CC
-      )
-    )
+    lattice_CC <- igraph::transitivity(convert2igraph(lattice), type = "average")
   }
 
   # Return values
   return(
-    c(
+    list(
       "omega" = (random_ASPL / ASPL) - (CC / lattice_CC),
-      "aspl" = ASPL, "cc" = CC,
-      "random_aspl" = random_ASPL, "lattice_cc" = lattice_CC
+      "aspl" = c("empirical" = ASPL, "random" = random_ASPL),
+      "cc" = c("empirical" = CC, "lattice" = lattice_CC)
     )
   )
 
@@ -921,6 +874,7 @@ smallworld_weights <- function(
   edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes, snr = snr)
 
   # Set weights order
+  # Follows: Muldoon, Bridgeford, & Bassett's (2016) implementation
   weight_order <- rank(lattice[lower_triangle][nonzero], ties.method = "random")
   network[lower_triangle][nonzero] <- edges[weight_order]
   network <- network + t(network) # make symmetric

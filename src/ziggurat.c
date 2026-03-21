@@ -1,3 +1,6 @@
+// Original code by John Burkardt, distributed under the GNU LGPL license.
+// Modified by Alexander P. Christensen, 30 July 2023.
+
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>

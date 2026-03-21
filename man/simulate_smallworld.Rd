@@ -138,7 +138,7 @@ A list of input, derived, and estimated parameters:
   structure; negative values indicate lattice-like structure; positive
   values indicate random-like structure
   \item \code{Q} --- Newman-Girvan modularity of the population network
-  (\code{Omega}) computed via \code{igraph::modularity} on absolute edge
+  (\code{omega}) computed via \code{igraph::modularity} on absolute edge
   weights, using the community partition that maximizes modularity
   (\code{igraph::cluster_optimal}). Because \code{cluster_optimal} finds
   the exact modularity maximum, \code{Q} represents an upper bound on
@@ -155,7 +155,7 @@ Population-level network parameters:
 \itemize{
   \item \code{R} --- Population correlation matrix derived from the GGM
   via \code{pcor2cor}
-  \item \code{Omega} --- Population partial correlation matrix (the GGM
+  \item \code{omega} --- Population partial correlation matrix (the GGM
   edge weight matrix), with zeros for absent edges
 }
 }
@@ -325,10 +325,10 @@ Watts, D. J., & Strogatz, S. H. (1998).
 Collective dynamics of 'small-world' networks.
 \emph{Nature}, \emph{393}(6684), 440--442.
 
-\strong{Omega statistic for smallworldness} \cr
-Telesford, Q. K., Joyce, K. E., Hayasaka, S., Burdette, J. H., & Laurienti, P. J. (2011).
-The ubiquity of small-world networks.
-\emph{Brain Connectivity}, \emph{1}(5), 367--375.
+\strong{Logic for weight assignments} \cr
+Muldoon, S. F., Bridgeford, E. W., & Bassett, D. S. (2016).
+Small-world propensity and weighted brain networks.
+\emph{Scientific Reports}, \emph{6}(1), 22057.
 
 \strong{Analytical approximation of random-graph average path length} \cr
 Newman, M. E. J., Strogatz, S. H., & Watts, D. J. (2001).

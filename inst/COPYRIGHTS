@@ -1,0 +1,44 @@
+Files: R/auto_correlate.R
+Copyright: 2024 Alexander P. Christensen <alexpaulchristensen@gmail.com>
+           John Fox (two-step polyserial approximation in polyserial_vector,
+           derived from polycor::polyserial)
+License: GPL (>= 2)
+Comment: The polyserial_vector function uses a two-step approximation
+ derived from the polyserial function in the polycor R package
+ by John Fox.
+
+Files: R/helpers.R
+Copyright: 2026 Alexander P. Christensen <alexpaulchristensen@gmail.com>
+           William Revelle (skewness function, derived from psych::skew,
+           version 2.2.3)
+License: GPL (>= 2)
+Comment: The skewness function is derived from the skew function in the
+ psych R package (version 2.2.3) by William Revelle.
+
+Files: R/network_fit.R
+Copyright: 2024 Alexander P. Christensen <alexpaulchristensen@gmail.com>
+           Yves Rosseel (rmsea_ci function, derived from lavaan version 0.6.19)
+License: GPL (>= 2)
+Comment: The rmsea_ci function is derived from RMSEA confidence interval
+ code in the lavaan R package (version 0.6.19) by Yves Rosseel.
+
+Files: src/polychoric_matrix.c
+Copyright: 2023 Alexander P. Christensen <alexpaulchristensen@gmail.com>
+           Alexander Robitzsch (Drezner-Wesolowsky bivariate normal CDF,
+           translated from pbv/src/pbv_rcpp_bvnorm.cpp)
+License: GPL (>= 2)
+Comment: Implements polychoric correlations using the Beasley-Springer-Moro
+ inverse normal CDF and Brent's optimization method. The Drezner-Wesolowsky
+ bivariate normal CDF is translated from C++ code in the pbv R package
+ (https://github.com/cran/pbv/blob/master/src/pbv_rcpp_bvnorm.cpp).
+ Template developed with GPT-4 assistance.
+
+Files: src/xoshiro.c
+Copyright: 2019 David Blackman and Sebastiano Vigna (vigna@acm.org)
+License: CC0
+Comment: Dedicated to the public domain via CC0. No rights reserved. Modified by Alexander P. Christensen, 15 August 2023.
+
+Files: src/ziggurat.c
+Copyright: John Burkardt
+License: LGPL (>= 2)
+Comment: Original ziggurat implementation. Modified by Alexander P. Christensen, 30 July 2023.
