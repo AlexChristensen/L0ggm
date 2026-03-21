@@ -1,12 +1,11 @@
 Package: L0ggm
 Title: Smooth L0 Penalty Approximations for Gaussian Graphical Models
 Version: 0.0.1
-Date: 2026-03-20
+Date: 2026-03-21
 Authors@R: c(
     person("Alexander", "Christensen", email = "alexpaulchristensen@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9798-7037")),
     person("Jeongwon", "Choi", email = "jungwon799@gmail.com", role = "ctb", comment = c(ORCID = "0000-0001-6087-2124")),
     person("John", "Fox", role = c("cph", "ctb"), comment = "Original implementation of polyserial correlations in auto_correlate.R"),
-    person("William", "Revelle", role = c("cph", "ctb"), comment = "Original implementation of skewness in helpers.R"),
     person("Yves", "Rosseel", role = c("cph", "ctb"), comment = "Original implementation of rmsea_ci in network_fit.R"),
     person("Alexander", "Robitzsch", role = c("cph", "ctb"), comment = "C++ implementation of Drezner-Wesolowsky bivariate normal CDF in polychoric_matrix.c"),
     person("David", "Blackman", role = "ctb", comment = "Original xoshiro.c implementation"),
@@ -31,7 +30,7 @@ License: AGPL (>= 3.0)
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: yes
-Imports: igraph, glasso, glassoFast, Matrix, methods, stats
+Imports: igraph, glasso, glassoFast, Matrix, methods, psych, stats
 Copyright: See inst/COPYRIGHTS for details
 BugReports: https://github.com/AlexChristensen/L0ggm/issues
 RoxygenNote: 7.3.3

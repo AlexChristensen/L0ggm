@@ -7,14 +7,6 @@ Comment: The polyserial_vector function uses a two-step approximation
  derived from the polyserial function in the polycor R package
  by John Fox.
 
-Files: R/helpers.R
-Copyright: 2026 Alexander P. Christensen <alexpaulchristensen@gmail.com>
-           William Revelle (skewness function, derived from psych::skew,
-           version 2.2.3)
-License: GPL (>= 2)
-Comment: The skewness function is derived from the skew function in the
- psych R package (version 2.2.3) by William Revelle.
-
 Files: R/network_fit.R
 Copyright: 2024 Alexander P. Christensen <alexpaulchristensen@gmail.com>
            Yves Rosseel (rmsea_ci function, derived from lavaan version 0.6.19)

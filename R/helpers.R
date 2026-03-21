@@ -369,73 +369,6 @@ skew_single_variable <- function(data, skew_values){
 
 }
 
-# Computes skewness ----
-# Removes psych package dependency (from version 2.2.3)
-# Updated 09.03.2026
-skewness <- function(x, na.rm = TRUE, type = 3)
-{
-
-  if(length(dim(x)) == 0){
-
-    if(na.rm){
-      x <- x[!is.na(x)]
-    }
-
-    n   <- length(x[!is.na(x)])
-    mx  <- mean(x)
-    sdx <- sd(x, na.rm = na.rm)
-
-    deviations  <- x - mx
-    sum_dev2    <- sum(deviations^2, na.rm = na.rm)
-    sum_dev3    <- sum(deviations^3, na.rm = na.rm)
-
-    switch(type,
-           # Type 1
-           skewer <- sqrt(n) * (sum_dev3 / sum_dev2^(3/2)),
-           # Type 2
-           skewer <- n * sqrt(n - 1) * (sum_dev3 / ((n - 2) * sum_dev2^(3/2))),
-           # Type 3
-           skewer <- sum_dev3 / (n * sdx^3)
-    )
-
-  }else{
-
-    skewer <- rep(NA, dim(x)[2])
-
-    if(is.matrix(x)){
-      mx <- colMeans(x, na.rm = na.rm)
-    }else{
-      mx <- apply(x, 2, mean, na.rm = na.rm)
-    }
-
-    sdx <- apply(x, 2, sd, na.rm = na.rm)
-
-    for(i in seq_len(dim(x)[2])){
-
-      n <- length(x[!is.na(x[, i]), i])
-
-      deviations <- x[, i] - mx[i]
-      sum_dev2   <- sum(deviations^2, na.rm = na.rm)
-      sum_dev3   <- sum(deviations^3, na.rm = na.rm)
-
-      switch(type,
-             # Type 1
-             skewer[i] <- sqrt(n) * (sum_dev3 / sum_dev2^(3/2)),
-             # Type 2
-             skewer[i] <- n * sqrt(n - 1) * (sum_dev3 / ((n - 2) * sum_dev2^(3/2))),
-             # Type 3
-             skewer[i] <- sum_dev3 / (n * sdx[i]^3)
-      )
-
-    }
-
-  }
-
-  return(skewer)
-
-}
-
-
 # Based on
 # Garrido, L. E., Abad, F. J., & Ponsoda, V. (2011).
 # Performance of Velicer’s minimum average partial factor retention
@@ -475,7 +408,7 @@ skew_continuous <- function(skew, data = NULL, sample_size = 1e06, tolerance = 1
     # Optimize for skew
     optimize(
       f = function(x){
-        abs(absolute - skewness(sinh(kurtosis * (arcsinh_data + x))))
+        abs(absolute - psych::skew(sinh(kurtosis * (arcsinh_data + x))))
       }, interval = c(0, absolute + 2), tol = tolerance
     )
 
@@ -572,7 +505,7 @@ skew_generator <- function(
     }
 
     # Compute skewness
-    skew_actual <- skewness(cases)
+    skew_actual <- psych::skew(cases)
 
     # Limits
     limitsup <- 1
@@ -611,7 +544,7 @@ skew_generator <- function(
       }
 
       # Compute skewness
-      skew_actual <- skewness(cases)
+      skew_actual <- psych::skew(cases)
 
     }
 
