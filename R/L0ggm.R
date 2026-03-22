@@ -7,7 +7,7 @@
 #' @useDynLib L0ggm, .registration = TRUE
 #'
 #' @importFrom methods is
-#' @importFrom stats complete.cases cor cov2cor dnorm na.omit optimize pchisq pnorm predict qnorm rnorm sd setNames uniroot
+#' @importFrom stats complete.cases cor cov2cor dist dnorm na.omit optimize pchisq pnorm predict qnorm rnorm sd setNames uniroot
 #' @importFrom utils capture.output data packageVersion
 #'
 "_PACKAGE"

@@ -222,7 +222,7 @@
 #'   \item \code{omega} --- Smallworldness omega statistic of the generated
 #'   network (Telesford et al., 2011). Values near zero indicate small-world
 #'   structure; negative values indicate lattice-like structure; positive
-#'   values indicate random-like structure
+#'   values indicate random-like structure (see \code{\link[L0ggm]{smallworldness}})
 #'   \item \code{Q} --- Newman-Girvan modularity of the population network
 #'   (\code{omega}) computed via \code{igraph::modularity} on absolute edge
 #'   weights, using the community partition that maximizes modularity
@@ -420,7 +420,7 @@ simulate_smallworld <- function(
     }
 
     # Estimate small-worldness (based on Telesford et al., 2011)
-    omega <- smallworldness(A = A, lattice = pruned_lattice)[["omega"]]
+    omega <- smallworldness(A = A, lattice = pruned_lattice, method = "omega")
 
     # Try to get good weights
     output <- try(
@@ -774,50 +774,6 @@ smallworld_generate <- function(lattice, rewire, lower_triangle)
 
   # Return network
   return(lattice)
-
-}
-
-#' @noRd
-# Compute smallworldness ----
-# Updated 18.03.2026
-smallworldness <- function(A, lattice, iter = 100)
-{
-
-  # Obtain edges
-  degree <- colSums(A, na.rm = TRUE)
-
-  # Convert network to {igraph}
-  I <- convert2igraph(A)
-
-  # Obtain empirical values
-  ASPL <- igraph::mean_distance(I)
-  CC <- igraph::transitivity(I, type = "average")
-
-  ## Random terms
-
-  # Collect random networks
-  random <- lapply(
-    seq_len(iter), function(i){igraph::sample_degseq(out.deg = degree[degree > 0], method = "vl")}
-  )
-  random_ASPL <- mean(nvapply(random, igraph::mean_distance), na.rm = TRUE)
-
-  ## Regular terms
-
-  # Check if lattice is missing
-  if(missing(lattice)){
-    lattice_CC <- attributes(ring2lattice(A))$CC
-  }else{
-    lattice_CC <- igraph::transitivity(convert2igraph(lattice), type = "average")
-  }
-
-  # Return values
-  return(
-    list(
-      "omega" = (random_ASPL / ASPL) - (CC / lattice_CC),
-      "aspl" = c("empirical" = ASPL, "random" = random_ASPL),
-      "cc" = c("empirical" = CC, "lattice" = lattice_CC)
-    )
-  )
 
 }
 

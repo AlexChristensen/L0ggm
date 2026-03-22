@@ -10,6 +10,7 @@ extern SEXP r_xoshiro_uniform(SEXP n, SEXP r_seed);
 extern SEXP r_xoshiro_shuffle(SEXP r_vector, SEXP r_seed);
 extern SEXP r_xoshiro_weighted_shuffle(SEXP r_vector, SEXP r_prob, SEXP r_seed);
 extern SEXP r_xoshiro_shuffle_replace(SEXP r_vector, SEXP r_size, SEXP r_seed);
+extern SEXP ring_pruning_c(SEXP extra_r, SEXP total_extra_r, SEXP ring_r, SEXP dist_matrix_r, SEXP max_iter_r, SEXP initial_order_r);
 extern SEXP atan_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_);
 extern SEXP exp_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_);
 extern SEXP gumbel_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_);
@@ -53,6 +54,11 @@ static const R_CallMethodDef CallEntries[] = {
         "r_xoshiro_shuffle_replace",
         (DL_FUNC)&r_xoshiro_shuffle_replace,
          3
+    },
+    {
+        "ring_pruning_c",
+        (DL_FUNC)&ring_pruning_c,
+         6
     },
     {
         "atan_derivative_c",

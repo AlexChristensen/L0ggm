@@ -4,7 +4,7 @@
 \alias{ring2lattice}
 \title{Construct a Near-Degree-Preserving Ring Lattice}
 \usage{
-ring2lattice(network)
+ring2lattice(network, shuffles = 100)
 }
 \arguments{
 \item{network}{Matrix.
@@ -13,12 +13,22 @@ correlations). Non-zero off-diagonal entries are treated as edges; the
 binary adjacency is derived internally as \code{network != 0}.
 Isolated nodes (degree zero) are supported and are disconnected from the
 lattice before pruning begins.}
+
+\item{shuffles}{Numeric (length = 1).
+Total number of independent pruning passes to run on the seed lattice.
+Must be at least 2. The first two passes use fixed node orderings
+(highest-to-lowest surplus and lowest-to-highest surplus); the remaining
+\code{shuffles - 2} passes use independently randomized node orderings.
+Increasing \code{shuffles} improves the chance of finding a higher-
+clustering solution at the cost of proportionally more computation.
+Defaults to \code{100}.}
 }
 \value{
-A square symmetric binary adjacency matrix of the same dimension as
-\code{network} representing the resulting ring lattice. The average
-clustering coefficient of the returned lattice is attached as the attribute
-\code{"CC"} and can be retrieved with \code{attr(result, "CC")}.
+A square symmetric binary adjacency matrix of the same dimension
+as \code{network}, in the original node ordering of \code{network},
+representing the resulting ring lattice. The average clustering coefficient
+of the returned lattice is attached as the attribute \code{"CC"} and can
+be retrieved with \code{attr(result, "CC")}.
 
 The degree of each node in the returned lattice is less than or equal to
 the corresponding degree in \code{network}; exact equality is achieved
@@ -26,20 +36,20 @@ wherever the pruning algorithm can satisfy it within \code{nodes * 2}
 iterations per pass.
 }
 \description{
-Converts a partial correlation network matrix into a ring
-lattice whose per-node degree sequence approximates the original as closely
-as possible. An adjacency matrix is derived automatically from
-\code{network} (non-zero entries become edges), so the function accepts any
-weighted or binary network directly. Nodes are internally reordered by
-degree before the lattice is built. Starting from a ring lattice dense
-enough to cover the maximum target degree, the algorithm runs two
-independent pruning passes — one visiting nodes from highest to lowest
-surplus and one from lowest to highest — and retains whichever pass
-produces the smaller total residual surplus (ties broken by the higher
-average clustering coefficient). As a final fallback, if the empirical
-network itself has a higher clustering coefficient than either pruned
-lattice, the empirical adjacency is returned instead. The function is
-designed for use as the lattice baseline in small-worldness calculations.
+Converts a network matrix into a ring lattice whose per-node
+degree sequence approximates the original as closely as possible, while
+maximising the average clustering coefficient. An adjacency matrix is
+derived automatically from \code{network} (non-zero entries become edges),
+so the function accepts any weighted or binary network directly.
+
+Starting from an overcomplete ring lattice seeded from the input degree
+sequence, the algorithm runs \code{shuffles} independent pruning passes to
+reduce each node's degree to its target. Edge-removal decisions are guided
+by a lexicographic priority (clustering preservation, surplus, structural
+distance). The pass producing the smallest residual surplus — further
+broken by highest average clustering coefficient — is returned in the
+original node ordering of \code{network}. An empirical fallback ensures
+the result is never worse than the input network's own clustering coefficient.
 }
 \details{
 ## Algorithm
@@ -47,57 +57,69 @@ designed for use as the lattice baseline in small-worldness calculations.
 \strong{Initialisation.} The binary adjacency
 \eqn{A = [\mathbf{1}(\text{network}_{ij} \neq 0)]} is constructed
 internally. Nodes are reordered in decreasing degree before all subsequent
-steps. The target degree of node \eqn{i} (after reordering) is
+steps; results are un-permuted before return so that output rows and
+columns correspond to the same nodes as the input \code{network}. The
+target degree of node \eqn{i} (after reordering) is
 \eqn{d_i = \sum_j A_{ij}}. A ring lattice is seeded by connecting node
-\eqn{i} to node \eqn{j} whenever the ring distance between them does not
+\eqn{i} to node \eqn{j} whenever the circular ring distance does not
 exceed \eqn{\lceil (d_i + d_j) / 2 \rceil}, so every node begins with at
-least as many edges as its target degree. Nodes with \eqn{d_i = 0} are
-immediately disconnected.
+least as many edges as its target degree. The diagonal is set to
+\code{FALSE} before pruning to prevent self-loops. Nodes with
+\eqn{d_i = 0} are immediately disconnected.
 
-\strong{Circular distance.} A distance matrix recording the ring distance
-between every pair of positions is precomputed and maintained throughout:
-\deqn{\delta_{ij} = \min\!\bigl(|i - j|,\; p - |i - j|\bigr)}
+\strong{Distance matrix.} After the seed ring is constructed, the pruning
+distance matrix is replaced with the Euclidean distances between rows of
+the seed adjacency matrix:
+\deqn{D_{ij} = \lVert \mathbf{r}_i - \mathbf{r}_j \rVert_2}
+where \eqn{\mathbf{r}_i} is the \eqn{i}-th row of the seed ring. This
+measures structural dissimilarity between neighborhoods in the seed.
 
 \strong{Surplus degree.} The surplus of node \eqn{i} is
 \eqn{e_i = \hat{d}_i - d_i \geq 0}, where \eqn{\hat{d}_i} is the current
 ring degree. Pruning continues while \eqn{\sum_i e_i > 0} or until
-\eqn{p \times 2} iterations have elapsed.
+\eqn{p \times 2} outer iterations have elapsed without change.
 
-\strong{Dual-pass pruning.} Two independent pruning passes are run on the
-same seed lattice:
+\strong{Multi-pass pruning.} \code{shuffles} independent pruning passes
+are run on the same seed lattice via compiled C code:
 \itemize{
-  \item \emph{Highest-first pass} — nodes are visited in decreasing order
-    of surplus.
-  \item \emph{Lowest-first pass} — nodes are visited in increasing order
-    of surplus.
+  \item \emph{Highest-first pass} — nodes visited in decreasing order of
+    surplus.
+  \item \emph{Lowest-first pass} — nodes visited in increasing order of
+    surplus.
+  \item \emph{Random passes} — \code{shuffles - 2} additional passes each
+    visit nodes in an independently randomised order.
 }
 Within each pass, for an over-degree node \eqn{i}, candidate removal
-partners are current neighbours that also carry surplus (\eqn{e_j > 0}).
+partners are current neighbors that also carry surplus (\eqn{e_j > 0}).
 The partner to remove is selected by the following lexicographic priority:
 \enumerate{
-  \item \strong{Clustering constraint} — prefer edges whose removal reduces
-    local clustering least, scored as \eqn{1 / (c_{ij} + 1)}, where
-    \eqn{c_{ij}} is the number of common neighbours of \eqn{i} and \eqn{j}.
+  \item \strong{Clustering constraint} — prefer the neighbour with the
+    fewest common neighbors with \eqn{i} (minimise \eqn{c_{ij}}), so
+    that removing the edge disrupts local clustering as little as possible.
   \item \strong{Surplus} — among equally ranked candidates, prefer the
-    neighbour with the largest surplus \eqn{e_j}.
-  \item \strong{Ring distance} — as a final tiebreaker, prefer the
-    neighbour furthest away on the ring (\eqn{\delta_{ij}}), keeping the
-    lattice as local as possible.
+    neighbor with the largest surplus \eqn{e_j}.
+  \item \strong{Structural distance} — as a final tiebreaker, prefer the
+    neighbor with the largest \eqn{D_{ij}}, removing structurally
+    dissimilar connections first. On a complete tie the first-encountered
+    candidate is retained, consistent with R's \code{order()} stability.
 }
+Surplus values are updated incrementally after each edge removal (O(1)
+per removal) and convergence is checked against a running scalar total.
 
-\strong{Pass selection.} After both passes complete, the one with the
-smaller total residual surplus \eqn{\sum_i e_i} is retained. If the two
-passes are tied on total surplus, the one with the higher average clustering
-coefficient is chosen.
+\strong{Pass selection.} After all \code{shuffles} passes complete, the
+subset with the smallest total residual surplus \eqn{\sum_i |e_i|} is
+identified. If multiple passes share that minimum, the one with the
+highest average clustering coefficient is chosen.
 
 \strong{Empirical fallback.} If the average clustering coefficient of the
-winning lattice is still lower than that of the original empirical network,
-the empirical adjacency (reordered by degree) is returned as the lattice
-baseline instead.
+winning lattice is lower than that of the original empirical network,
+the empirical adjacency is returned as the lattice baseline directly in
+its original node ordering.
 
-\strong{Termination.} Each pass exits when all surpluses reach zero or
-\eqn{p \times 2} outer iterations have been completed without further
-change.
+\strong{Node ordering.} All internal computation uses degree-descending
+node ordering. The returned matrix is un-permuted via
+\code{original_order <- order(degree_order)} so that output rows and
+columns correspond to the same nodes as the input \code{network}.
 }
 \examples{
 # Get network
@@ -112,13 +134,6 @@ attr(L, "CC")
 # Degree sequences should be identical (or very close)
 cbind(target = colSums(network != 0), achieved = colSums(L))
 
-}
-\references{
-\strong{Ring lattice and small-world networks} \cr
-Watts, D. J., & Strogatz, S. H. (1998).
-Collective dynamics of \sQuote{small-world} networks.
-\emph{Nature}, \emph{393}(6684), 440--442.
-\doi{10.1038/30918}
 }
 \author{
 Alexander P. Christensen <alexpaulchristensen@gmail.com>

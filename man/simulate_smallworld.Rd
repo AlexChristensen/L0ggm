@@ -136,7 +136,7 @@ A list of input, derived, and estimated parameters:
   \item \code{omega} --- Smallworldness omega statistic of the generated
   network (Telesford et al., 2011). Values near zero indicate small-world
   structure; negative values indicate lattice-like structure; positive
-  values indicate random-like structure
+  values indicate random-like structure (see \code{\link[L0ggm]{smallworldness}})
   \item \code{Q} --- Newman-Girvan modularity of the population network
   (\code{omega}) computed via \code{igraph::modularity} on absolute edge
   weights, using the community partition that maximizes modularity
