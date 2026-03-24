@@ -3,7 +3,7 @@
 #' @description Computes the small-worldness of a network using one of four
 #' methods. All simulation-based methods generate degree-preserving random
 #' graphs as the null baseline. The lattice reference network (where required)
-#' is constructed using \code{\link[L0ggm]{ring2lattice}}, which produces a
+#' is constructed using \code{\link[L0ggm]{proxswap_lattice}}, which produces a
 #' degree-preserving ring lattice that maximizes the clustering coefficient
 #'
 #' @param A Matrix or data frame.
@@ -14,7 +14,7 @@
 #' A pre-computed lattice adjacency matrix to use as the regular-network
 #' reference for the \code{"omega"} and \code{"SWP"} methods.
 #' If not provided, a lattice is generated automatically via
-#' \code{\link[L0ggm]{ring2lattice}}
+#' \code{\link[L0ggm]{proxswap_lattice}}
 #'
 #' @param method Character (length = 1).
 #' The method used to compute small-worldness.
@@ -192,7 +192,7 @@ smallworldness_omega <- function(A, I, ASPL, CC, degree, lattice, iter, ...)
 
   # Check if lattice is missing
   if(missing(lattice)){
-    lattice_CC <- attributes(ring2lattice(A))$CC
+    lattice_CC <- attributes(proxswap_lattice(A))$CC
   }else{
     lattice_CC <- igraph::transitivity(convert2igraph(lattice), type = "average")
   }
@@ -256,7 +256,7 @@ smallworldness_SWP <- function(A, I, ASPL, CC, degree, lattice, iter, ...)
 
   # Check if lattice is missing
   if(missing(lattice)){
-    lattice <- ring2lattice(A)
+    lattice <- proxswap_lattice(A)
   }
 
   # Ensure lattice is {igraph}

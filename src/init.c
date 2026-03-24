@@ -10,12 +10,14 @@ extern SEXP r_xoshiro_uniform(SEXP n, SEXP r_seed);
 extern SEXP r_xoshiro_shuffle(SEXP r_vector, SEXP r_seed);
 extern SEXP r_xoshiro_weighted_shuffle(SEXP r_vector, SEXP r_prob, SEXP r_seed);
 extern SEXP r_xoshiro_shuffle_replace(SEXP r_vector, SEXP r_size, SEXP r_seed);
-extern SEXP ring_pruning_c(SEXP extra_r, SEXP total_extra_r, SEXP ring_r, SEXP dist_matrix_r, SEXP max_iter_r, SEXP initial_order_r);
 extern SEXP atan_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_);
 extern SEXP exp_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_);
 extern SEXP gumbel_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_);
 extern SEXP log_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_);
 extern SEXP weibull_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_, SEXP shape_);
+extern SEXP proximity_pass_c(SEXP nodes_r, SEXP ring_r, SEXP budget_r, SEXP pair_rows_r, SEXP pair_cols_r, SEXP pair_counts_r);
+extern SEXP swapping_pass_c(SEXP nodes_r, SEXP ring_r, SEXP budget_r, SEXP total_budget_r);
+
 
 // Register native routine
 static const R_CallMethodDef CallEntries[] = {
@@ -56,11 +58,6 @@ static const R_CallMethodDef CallEntries[] = {
          3
     },
     {
-        "ring_pruning_c",
-        (DL_FUNC)&ring_pruning_c,
-         6
-    },
-    {
         "atan_derivative_c",
         (DL_FUNC)&atan_derivative_c,
          3
@@ -83,6 +80,16 @@ static const R_CallMethodDef CallEntries[] = {
     {
         "weibull_derivative_c",
         (DL_FUNC)&weibull_derivative_c,
+         4
+    },
+    {
+        "proximity_pass_c",
+        (DL_FUNC)&proximity_pass_c,
+         6
+    },
+    {
+        "swapping_pass_c",
+        (DL_FUNC)&swapping_pass_c,
          4
     },
     {NULL, NULL, 0}

@@ -25,6 +25,13 @@ Comment: Implements polychoric correlations using the Beasley-Springer-Moro
  bivariate normal CDF is translated from C++ code in the pbv R package
  (https://github.com/cran/pbv/blob/master/src/pbv_rcpp_bvnorm.cpp).
  Template developed with GPT-4 assistance.
+ 
+Files: src/proxswap_lattice.c
+Copyright: 2026 Alexander P. Christensen <alexpaulchristensen@gmail.com>
+License: CC0-1.0
+Comment: Implements the proximity-pass and swapping-pass stages of the
+ proximity-swap ring lattice construction algorithm. Logic implementation
+ in C developed with Claude Sonnet 4.6 assistance.
 
 Files: src/xoshiro.c
 Copyright: 2019 David Blackman and Sebastiano Vigna (vigna@acm.org)

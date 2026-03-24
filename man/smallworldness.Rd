@@ -20,7 +20,7 @@ Must be square, symmetric, and contain only non-negative values}
 A pre-computed lattice adjacency matrix to use as the regular-network
 reference for the \code{"omega"} and \code{"SWP"} methods.
 If not provided, a lattice is generated automatically via
-\code{\link[L0ggm]{ring2lattice}}}
+\code{\link[L0ggm]{proxswap_lattice}}}
 
 \item{method}{Character (length = 1).
 The method used to compute small-worldness.
@@ -93,7 +93,7 @@ The small-worldness value computed using the chosen \code{method}:
 Computes the small-worldness of a network using one of four
 methods. All simulation-based methods generate degree-preserving random
 graphs as the null baseline. The lattice reference network (where required)
-is constructed using \code{\link[L0ggm]{ring2lattice}}, which produces a
+is constructed using \code{\link[L0ggm]{proxswap_lattice}}, which produces a
 degree-preserving ring lattice that maximizes the clustering coefficient
 }
 \examples{
