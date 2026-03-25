@@ -87,9 +87,12 @@ phase is implemented in compiled C via \code{swapping_pass_c}.
 
 \strong{Weight assignment.} When \code{weighted = TRUE}, edge weights are
 reassigned after the binary topology is finalised. The observed weights are
-ranked and mapped onto lattice edges sorted by ring distance so that
-shorter (more local) connections receive larger weights, following Muldoon,
-Bridgeford, & Bassett (2016).
+sorted in descending order and mapped onto lattice edges ranked by ascending
+ring distance (i.e., \eqn{d_{ij} = \min(|i - j|,\, n - |i - j|)}), so that
+shorter (more local) connections receive the largest weights. This directly
+implements the distance-weight principle of Muldoon, Bridgeford, & Bassett
+(2016), using the ring's structural distances rather than any network-derived
+proxy. Ties in ring distance are broken at random.
 
 \strong{Pass selection.} A pass is valid only if the resulting graph is
 connected and has zero residual degree error. Among valid passes, the one
