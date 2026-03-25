@@ -171,6 +171,14 @@ smallworldness <- function(
   # Obtain edges
   degree <- colSums(A, na.rm = TRUE)
 
+  # Get nodes and degree
+  nodes  <- length(degree)
+
+  # Set up distance matrix
+  node_sequence <- seq_len(nodes)
+  distance_matrix <- abs(outer(node_sequence, node_sequence, "-"))
+  distance_matrix <- pmin(distance_matrix, nodes - distance_matrix)
+
   # Convert network to {igraph}
   I <- convert2igraph(abs(network))
 
@@ -192,7 +200,8 @@ smallworldness <- function(
   return(
     smallworld_FUN(
       network = network, I = I, ASPL = ASPL, CC = CC, degree = degree,
-      lattice = lattice, weighted = weighted, iter = iter
+      lattice = lattice, weighted = weighted, distance_matrix = distance_matrix,
+      iter = iter
     )
   )
 
@@ -218,7 +227,9 @@ smallworldness_analytical <- function(network, ASPL, CC, degree, ...)
 #' @noRd
 # Telesford et al. (2011) ----
 # Updated 25.03.2026
-smallworldness_omega <- function(network, I, ASPL, CC, degree, lattice, weighted, iter, ...)
+smallworldness_omega <- function(
+    network, I, ASPL, CC, degree, lattice, weighted, distance_matrix, iter, ...
+)
 {
 
   # Collect random graphs
@@ -235,7 +246,7 @@ smallworldness_omega <- function(network, I, ASPL, CC, degree, lattice, weighted
     random_graphs <- lapply(random_graphs, function(x){
 
       # Get weighted graphs
-      weighted_graph <- assign_weights(network, igraph2matrix(x))
+      weighted_graph <- assign_weights(network, igraph2matrix(x), distance_matrix)
 
       # Return back as {igraph}
       return(convert2igraph(weighted_graph))
@@ -254,7 +265,7 @@ smallworldness_omega <- function(network, I, ASPL, CC, degree, lattice, weighted
 
     # Check for weighted
     if(weighted){
-      lattice <- assign_weights(network, lattice)
+      lattice <- assign_weights(network, lattice, distance_matrix)
     }
 
     lattice_CC <- igraph::transitivity(convert2igraph(lattice), type = "average")
@@ -268,7 +279,7 @@ smallworldness_omega <- function(network, I, ASPL, CC, degree, lattice, weighted
 #' @noRd
 # Humphries & Gurney (2008) ----
 # Updated 25.03.2026
-smallworldness_S <- function(network, I, ASPL, CC, weighted, iter, ...)
+smallworldness_S <- function(network, I, ASPL, CC, weighted, distance_matrix, iter, ...)
 {
 
   # Obtain nodes and edges
@@ -287,7 +298,7 @@ smallworldness_S <- function(network, I, ASPL, CC, weighted, iter, ...)
     random_graphs <- lapply(random_graphs, function(x){
 
       # Get weighted graphs
-      weighted_graph <- assign_weights(network, igraph2matrix(x))
+      weighted_graph <- assign_weights(network, igraph2matrix(x), distance_matrix)
 
       # Return back as {igraph}
       return(convert2igraph(weighted_graph))
@@ -319,7 +330,9 @@ boundary_values <- function(empirical, random, regular)
 #' @noRd
 # Muldoon et al. (2016) ----
 # Updated 25.03.2026
-smallworldness_SWP <- function(network, I, ASPL, CC, degree, lattice, weighted, iter, ...)
+smallworldness_SWP <- function(
+    network, I, ASPL, CC, degree, lattice, weighted, distance_matrix, iter, ...
+)
 {
 
   # Collect random graphs
@@ -336,7 +349,7 @@ smallworldness_SWP <- function(network, I, ASPL, CC, degree, lattice, weighted, 
     random_graphs <- lapply(random_graphs, function(x){
 
       # Get weighted graphs
-      weighted_graph <- assign_weights(network, igraph2matrix(x))
+      weighted_graph <- assign_weights(network, igraph2matrix(x), distance_matrix)
 
       # Return back as {igraph}
       return(convert2igraph(weighted_graph))
@@ -353,7 +366,7 @@ smallworldness_SWP <- function(network, I, ASPL, CC, degree, lattice, weighted, 
   if(missing(lattice)){
     lattice <- proxswap_lattice(network, weighted = weighted)
   }else if(weighted){
-    lattice <- assign_weights(network, lattice)
+    lattice <- assign_weights(network, lattice, distance_matrix)
   }
 
   # Ensure lattice is {igraph}
