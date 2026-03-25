@@ -138,7 +138,7 @@ A list of input, derived, and estimated parameters:
   structure; negative values indicate lattice-like structure; positive
   values indicate random-like structure (see \code{\link[L0ggm]{smallworldness}})
   \item \code{Q} --- Newman-Girvan modularity of the population network
-  (\code{omega}) computed via \code{igraph::modularity} on absolute edge
+  (\code{Omega}) computed via \code{igraph::modularity} on absolute edge
   weights, using the community partition that maximizes modularity
   (\code{igraph::cluster_optimal}). Because \code{cluster_optimal} finds
   the exact modularity maximum, \code{Q} represents an upper bound on

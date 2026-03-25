@@ -21,6 +21,15 @@
 #' binary adjacency is derived internally as \code{network != 0}.
 #' Isolated nodes (degree zero) are supported.
 #'
+#' @param weighted Logical (length = 1).
+#' Whether to return a weighted ring lattice. When \code{TRUE}, the edge
+#' weights from \code{network} are reassigned to the lattice edges according
+#' to ring distance following the implementation of Muldoon, Bridgeford, &
+#' Bassett (2016): shorter-distance lattice edges receive larger weights,
+#' preserving the overall weight distribution while concentrating stronger
+#' connections locally. When \code{FALSE} (default), a binary adjacency
+#' matrix is returned.
+#'
 #' @param shuffles Numeric (length = 1).
 #' Number of independent random permutation passes to attempt. Each pass
 #' assigns the observed degree sequence to ring positions in a new random
@@ -29,11 +38,13 @@
 #' retained; the one with the highest clustering coefficient is returned.
 #' Defaults to \code{100}.
 #'
-#' @return A square symmetric binary adjacency matrix of the same dimension
-#' as \code{network}, with row and column names preserved from \code{network},
-#' representing the resulting ring lattice. The average clustering coefficient
-#' of the returned lattice is attached as the attribute \code{"CC"} and can
-#' be retrieved with \code{attr(result, "CC")}.
+#' @return A square symmetric matrix of the same dimension as \code{network},
+#' with row and column names preserved, representing the resulting ring
+#' lattice. When \code{weighted = FALSE} (default), entries are binary
+#' (\code{TRUE}/\code{FALSE}); when \code{weighted = TRUE}, entries contain
+#' the reassigned edge weights from \code{network}. The average clustering
+#' coefficient of the returned lattice is attached as the attribute \code{"CC"}
+#' and can be retrieved with \code{attr(result, "CC")}.
 #'
 #' @details
 #' ## Algorithm
@@ -52,7 +63,7 @@
 #' descending \eqn{\min(\text{budget}_i, \text{budget}_j)} so that high-need
 #' pairs receive short connections first. Pairs are then assigned sequentially
 #' with per-pair budget re-checks. The pass exits early once all budgets reach
-#' zero.
+#' zero. This phase is implemented in compiled C via \code{proximity_pass_c}.
 #'
 #' \strong{Swap repair.} If any degree deficit remains after the proximity
 #' pass, the highest-deficit node \eqn{i} is connected to its nearest
@@ -62,7 +73,14 @@
 #' node \eqn{j} is found, one of \eqn{j}'s existing edges to \eqn{k} is
 #' removed, and a new edge \eqn{(i, j)} is added. Node \eqn{k} recovers its
 #' budget for resolution in a subsequent iteration. This repeats until all
-#' deficits are resolved or the iteration cap (\eqn{2n^2}) is reached.
+#' deficits are resolved or the iteration cap (\eqn{2n^2}) is reached. This
+#' phase is implemented in compiled C via \code{swapping_pass_c}.
+#'
+#' \strong{Weight assignment.} When \code{weighted = TRUE}, edge weights are
+#' reassigned after the binary topology is finalised. The observed weights are
+#' ranked and mapped onto lattice edges sorted by ring distance so that
+#' shorter (more local) connections receive larger weights, following Muldoon,
+#' Bridgeford, & Bassett (2016).
 #'
 #' \strong{Pass selection.} A pass is valid only if the resulting graph is
 #' connected and has zero residual degree error. Among valid passes, the one
@@ -70,13 +88,19 @@
 #'
 #' \strong{Empirical fallback.} If no valid pass is found, or if the best
 #' lattice clustering coefficient is lower than that of the original network,
-#' the empirical adjacency is returned with a warning.
+#' the empirical adjacency (or weighted matrix, if \code{weighted = TRUE}) is
+#' returned with a warning.
+#'
+#' @references
+#' Muldoon, S. F., Bridgeford, E. W., & Bassett, D. S. (2016).
+#' Small-world propensity and weighted brain connectivity.
+#' \emph{Scientific Reports}, \emph{6}, 22057.
 #'
 #' @examples
 #' # Get network
 #' network <- network_estimation(basic_smallworld)
 #'
-#' # Construct ring lattice
+#' # Construct binary ring lattice
 #' L <- proxswap_lattice(network)
 #'
 #' # Retrieve the attached clustering coefficient
@@ -85,20 +109,34 @@
 #' # Degree sequences should match exactly
 #' cbind(target = colSums(network != 0), achieved = colSums(L))
 #'
+#' # Construct weighted ring lattice
+#' L_weighted <- proxswap_lattice(network, weighted = TRUE)
+#'
+#' # Retrieve the attached clustering coefficient
+#' attr(L_weighted, "CC")
+#'
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
 #' @export
 #'
 # Proximity-swap lattice construction ----
-# Updated 24.03.2026
-proxswap_lattice <- function(network, shuffles = 100)
+# Updated 25.03.2026
+proxswap_lattice <- function(network, weighted = FALSE, shuffles = 100)
 {
+
+  # Ensure network is in absolute values
+  network <- abs(network)
 
   # Automatically construct adjacency
   A <- network != 0
 
+  # Check for weighted
+  if(!weighted){
+    network <- A
+  }
+
   # Get nodes and degree
-  nodes  <- dim(A)[2]
+  nodes  <- dim(network)[2]
   degree <- colSums(A)
 
   # Set up distance matrix
@@ -111,7 +149,7 @@ proxswap_lattice <- function(network, shuffles = 100)
   pairs <- build_pairs(distance_matrix, distance_sequence)
 
   # Compute empirical clustering coefficient for fallback check
-  empirical_CC <- igraph::transitivity(convert2igraph(A), type = "average")
+  empirical_CC <- igraph::transitivity(convert2igraph(network), type = "average")
 
   # Initialize best result trackers
   best_swap <- best_ring <- NULL
@@ -147,6 +185,17 @@ proxswap_lattice <- function(network, shuffles = 100)
       next
     }
 
+    # Check for weighted
+    if(weighted){
+
+      # Get weights
+      result$ring <- assign_weights(network, result$ring)
+
+      # Update ring to {igraph}
+      iring <- convert2igraph(result$ring)
+
+    }
+
     # With success, compute clustering coefficient for this pass
     pass_CC <- igraph::transitivity(iring, type = "average")
 
@@ -171,7 +220,13 @@ proxswap_lattice <- function(network, shuffles = 100)
 
   # Select between lattice and empirical
   original_order <- order(best_swap)
-  ring <- swiftelse(empirical_flag, A, best_ring[original_order, original_order])
+
+  # Check for empirical and weighted
+  ring <- swiftelse(
+    empirical_flag,
+    swiftelse(weighted, network, A),
+    best_ring[original_order, original_order]
+  )
 
   # Ensure named matrix
   dimnames(ring) <- dimnames(network)
@@ -194,13 +249,13 @@ build_pairs <- function(distance_matrix, distance_sequence)
   return(
     lapply(distance_sequence, function(i){
 
-        # Obtain pairs
-        pairs <- which(distance_matrix == i, arr.ind = TRUE)
+      # Obtain pairs
+      pairs <- which(distance_matrix == i, arr.ind = TRUE)
 
-        # Return pairs
-        return(pairs[pairs[,"row"] < pairs[,"col"],])
+      # Return pairs
+      return(pairs[pairs[,"row"] < pairs[,"col"],])
 
-      }
+    }
     )
   )
 
@@ -435,3 +490,30 @@ swapping_pass <- function(nodes, node_sequence, ring, budget, total_budget, dist
 #   )
 #
 # }
+
+#' @noRd
+# Assign weights based on distance ----
+# Updated 25.03.2026
+assign_weights <- function(network, A)
+{
+
+  # Obtain weights
+  lower_triangle <- lower.tri(network)
+  network_nonzero <- network[lower_triangle] != 0
+  weights <- network[lower_triangle][network_nonzero]
+
+  # Set weights
+  A_nonzero <- A[lower_triangle] != 0
+  distance <- as.matrix(dist(A))
+
+  # Set weights order
+  # Follows: Muldoon, Bridgeford, & Bassett's (2016) implementation
+  weight_order <- rank(distance[lower_triangle][A_nonzero], ties.method = "random")
+  A[lower_triangle][A_nonzero] <- weights[weight_order]
+  A[!lower_triangle] <- 0
+  A <- A + t(A) # make symmetric
+
+  # Return weighted lattice
+  return(A)
+
+}

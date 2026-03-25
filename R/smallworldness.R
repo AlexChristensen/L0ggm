@@ -6,15 +6,17 @@
 #' is constructed using \code{\link[L0ggm]{proxswap_lattice}}, which produces a
 #' degree-preserving ring lattice that maximizes the clustering coefficient
 #'
-#' @param A Matrix or data frame.
-#' An adjacency matrix representing the network.
-#' Must be square, symmetric, and contain only non-negative values
+#' @param network Matrix or data frame.
+#' A square, symmetric numeric matrix representing a network (e.g., partial
+#' correlations). Absolute values are taken internally, so signed weights are
+#' handled automatically. Non-zero off-diagonal entries are treated as edges.
 #'
 #' @param lattice Matrix (optional).
 #' A pre-computed lattice adjacency matrix to use as the regular-network
 #' reference for the \code{"omega"} and \code{"SWP"} methods.
 #' If not provided, a lattice is generated automatically via
-#' \code{\link[L0ggm]{proxswap_lattice}}
+#' \code{\link[L0ggm]{proxswap_lattice}}. Ignored by \code{"analytical"}
+#' and \code{"S"}
 #'
 #' @param method Character (length = 1).
 #' The method used to compute small-worldness.
@@ -29,14 +31,16 @@
 #' \deqn{S = \frac{C / C_{\text{rand}}}{L / L_{\text{rand}}}}
 #' where \eqn{C_{\text{rand}} \approx \langle k \rangle / n} and
 #' \eqn{L_{\text{rand}} \approx \ln(n) / \ln(\langle k \rangle)}.
-#' No random graphs are generated. Values greater than 1 indicate
-#' small-world structure
+#' No random graphs are generated. The \code{weighted} argument is ignored.
+#' Values greater than 1 indicate small-world structure
 #'
 #' \item \code{"S"} --- Computes the Humphries & Gurney (2008) \eqn{S}
 #' metric by simulation. Random graphs are generated under the
 #' Erdős–Rényi model (\code{\link[igraph]{sample_gnm}}) with the same
-#' number of nodes and edges as \code{A}. The clustering coefficient
-#' uses global transitivity (\eqn{C^\Delta}). Values greater than 1
+#' number of nodes and edges as \code{network}. The empirical and random
+#' clustering coefficients both use global transitivity (\eqn{C^\Delta}).
+#' When \code{weighted = TRUE}, edge weights are reassigned to each random
+#' graph topology via \code{assign_weights}. Values greater than 1
 #' indicate small-world structure
 #'
 #' \item \code{"omega"} --- Computes the \eqn{\omega} metric of
@@ -44,9 +48,15 @@
 #' \deqn{\omega = \frac{L_{\text{rand}}}{L} - \frac{C}{C_{\text{latt}}}}
 #' Random graphs preserve the degree sequence via edge-switching
 #' (\code{\link[igraph]{sample_degseq}}, \code{method = "edge.switching.simple"}).
-#' Values near zero indicate small-world structure; negative values indicate
-#' lattice-like structure; positive values indicate random-like structure.
-#' Bounded in \eqn{[-1, 1]}
+#' The clustering coefficient uses average local transitivity (\eqn{\bar{C}}).
+#' Note: Telesford et al. (2011) defined and validated \eqn{\omega} exclusively
+#' on binary, unweighted networks. When \code{weighted = TRUE}, edge weights
+#' are reassigned to each random graph topology via \code{assign_weights} and
+#' the lattice is constructed with \code{weighted = TRUE}, following the
+#' approach of Muldoon et al. (2016); this is an extension beyond the original
+#' formulation. Values near zero indicate small-world structure; negative
+#' values indicate lattice-like structure; positive values indicate
+#' random-like structure. Bounded in \eqn{[-1, 1]}
 #'
 #' \item \code{"SWP"} --- Computes the Small-World Propensity of
 #' Muldoon et al. (2016):
@@ -55,11 +65,22 @@
 #' and \eqn{\Delta_L = (L - L_{\text{rand}}) / (L_{\text{latt}} - L_{\text{rand}})}.
 #' Both \eqn{\Delta_C} and \eqn{\Delta_L} are bounded to \eqn{[0, 1]},
 #' guaranteeing \eqn{\phi \in [0, 1]}. Random graphs preserve the degree
-#' sequence via edge-switching. Values close to 1 indicate strong
-#' small-world structure; a pragmatic threshold of \eqn{\phi_T = 0.60}
-#' has been suggested
+#' sequence via edge-switching. The clustering coefficient uses average
+#' local transitivity (\eqn{\bar{C}}). When \code{weighted = TRUE}, edge
+#' weights are reassigned to each random graph topology via
+#' \code{assign_weights} and the lattice is constructed with
+#' \code{weighted = TRUE}. Values close to 1 indicate strong small-world
+#' structure; a pragmatic threshold of \eqn{\phi_T = 0.60} has been suggested
 #'
 #' }
+#'
+#' @param weighted Logical (length = 1).
+#' Whether to compute small-worldness on the weighted network. When
+#' \code{TRUE}, edge weights from \code{network} are preserved for the
+#' empirical graph and reassigned to random and lattice graph topologies
+#' via \code{assign_weights}, following Muldoon et al. (2016). When
+#' \code{FALSE} (default), all graphs are treated as binary. Ignored when
+#' \code{method = "analytical"}
 #'
 #' @param iter Numeric (length = 1).
 #' Number of random graphs to generate when estimating the null baseline.
@@ -105,36 +126,53 @@
 #' network <- network_estimation(basic_smallworld)
 #'
 #' # Compute SWP (default)
-#' swp <- smallworldness(A = network)
+#' swp <- smallworldness(network)
 #'
 #' # Compute omega
-#' omega <- smallworldness(A = network, method = "omega")
+#' omega <- smallworldness(network, method = "omega")
 #'
 #' # Compute analytical S
-#' S <- smallworldness(A = network, method = "analytical")
+#' S <- smallworldness(network, method = "analytical")
 #'
 #' # Compute simulated S with more iterations
-#' S_sim <- smallworldness(A = network, method = "S", iter = 1000)
+#' S_sim <- smallworldness(network, method = "S", iter = 1000)
+#'
+#' # Compute weighted SWP
+#' swp_w <- smallworldness(network, weighted = TRUE)
+#'
+#' # Compute weighted omega
+#' omega_w <- smallworldness(network, method = "omega", weighted = TRUE)
 #'
 #' @export
 #'
 # Compute smallworldness ----
-# Updated 22.03.2026
-smallworldness <- function(A, lattice, method = c("analytical", "omega", "S", "SWP"), iter = 100)
+# Updated 25.03.2026
+smallworldness <- function(
+    network, lattice, method = c("analytical", "omega", "S", "SWP"),
+    weighted = FALSE, iter = 100
+)
 {
+
+  # Ensure network is in absolute values
+  network <- abs(network)
 
   # Check for missing arguments (argument, default, function)
   # Uses actual function they will be used in
   method <- set_default(method, "swp", smallworldness)
 
-  # Ensure binary network
-  A <- A != 0
+  # Obtain adjacency matrix
+  A <- network != 0
+
+  # Check for weights
+  if(!weighted){
+    network <- A
+  }
 
   # Obtain edges
   degree <- colSums(A, na.rm = TRUE)
 
   # Convert network to {igraph}
-  I <- convert2igraph(A)
+  I <- convert2igraph(abs(network))
 
   # Set up function switch
   smallworld_FUN <- switch(
@@ -152,7 +190,10 @@ smallworldness <- function(A, lattice, method = c("analytical", "omega", "S", "S
 
   # Compute smallworldness
   return(
-    smallworld_FUN(A = A, I = I, ASPL = ASPL, CC = CC, degree = degree, lattice = lattice, iter = iter)
+    smallworld_FUN(
+      network = network, I = I, ASPL = ASPL, CC = CC, degree = degree,
+      lattice = lattice, weighted = weighted, iter = iter
+    )
   )
 
 }
@@ -160,11 +201,11 @@ smallworldness <- function(A, lattice, method = c("analytical", "omega", "S", "S
 #' @noRd
 # Analytical ----
 # Updated 22.03.2026
-smallworldness_analytical <- function(A, ASPL, CC, degree, ...)
+smallworldness_analytical <- function(network, ASPL, CC, degree, ...)
 {
 
   # Obtain nodes and average degree
-  nodes <- dim(A)[2]
+  nodes <- dim(network)[2]
   mean_degree <- mean(degree, na.rm = TRUE)
 
   # Return analytical
@@ -176,8 +217,8 @@ smallworldness_analytical <- function(A, ASPL, CC, degree, ...)
 
 #' @noRd
 # Telesford et al. (2011) ----
-# Updated 22.03.2026
-smallworldness_omega <- function(A, I, ASPL, CC, degree, lattice, iter, ...)
+# Updated 25.03.2026
+smallworldness_omega <- function(network, I, ASPL, CC, degree, lattice, weighted, iter, ...)
 {
 
   # Collect random graphs
@@ -187,13 +228,35 @@ smallworldness_omega <- function(A, I, ASPL, CC, degree, lattice, iter, ...)
     }
   )
 
+  # Check for weighted
+  if(weighted){
+
+    # Obtain weighted graphs
+    random_graphs <- lapply(random_graphs, function(x){
+
+      # Get weighted graphs
+      weighted_graph <- assign_weights(network, igraph2matrix(x))
+
+      # Return back as {igraph}
+      return(convert2igraph(weighted_graph))
+
+    })
+
+  }
+
   # Compute ASPL
   random_ASPL <- mean(nvapply(random_graphs, igraph::mean_distance), na.rm = TRUE)
 
   # Check if lattice is missing
   if(missing(lattice)){
-    lattice_CC <- attributes(proxswap_lattice(A))$CC
+    lattice_CC <- attributes(proxswap_lattice(network, weighted = weighted))$CC
   }else{
+
+    # Check for weighted
+    if(weighted){
+      lattice <- assign_weights(network, lattice)
+    }
+
     lattice_CC <- igraph::transitivity(convert2igraph(lattice), type = "average")
   }
 
@@ -204,18 +267,34 @@ smallworldness_omega <- function(A, I, ASPL, CC, degree, lattice, iter, ...)
 
 #' @noRd
 # Humphries & Gurney (2008) ----
-# Updated 22.03.2026
-smallworldness_S <- function(A, I, ASPL, CC, iter, ...)
+# Updated 25.03.2026
+smallworldness_S <- function(network, I, ASPL, CC, weighted, iter, ...)
 {
 
   # Obtain nodes and edges
-  nodes <- dim(A)[2]
-  edges <- sum(A[lower.tri(A)] != 0)
+  nodes <- dim(network)[2]
+  edges <- sum(network[lower.tri(network)] != 0)
 
   # Obtain random graphs
   random_graphs <- lapply(seq_len(iter), function(i){
     igraph::sample_gnm(n = nodes, m = edges)
   })
+
+  # Check for weighted
+  if(weighted){
+
+    # Obtain weighted graphs
+    random_graphs <- lapply(random_graphs, function(x){
+
+      # Get weighted graphs
+      weighted_graph <- assign_weights(network, igraph2matrix(x))
+
+      # Return back as {igraph}
+      return(convert2igraph(weighted_graph))
+
+    })
+
+  }
 
   # Compute S
   S <- nvapply(
@@ -239,8 +318,8 @@ boundary_values <- function(empirical, random, regular)
 
 #' @noRd
 # Muldoon et al. (2016) ----
-# Updated 22.03.2026
-smallworldness_SWP <- function(A, I, ASPL, CC, degree, lattice, iter, ...)
+# Updated 25.03.2026
+smallworldness_SWP <- function(network, I, ASPL, CC, degree, lattice, weighted, iter, ...)
 {
 
   # Collect random graphs
@@ -250,13 +329,31 @@ smallworldness_SWP <- function(A, I, ASPL, CC, degree, lattice, iter, ...)
     }
   )
 
+  # Check for weighted
+  if(weighted){
+
+    # Obtain weighted graphs
+    random_graphs <- lapply(random_graphs, function(x){
+
+      # Get weighted graphs
+      weighted_graph <- assign_weights(network, igraph2matrix(x))
+
+      # Return back as {igraph}
+      return(convert2igraph(weighted_graph))
+
+    })
+
+  }
+
   # Compute ASPL and CC
   random_ASPL <- mean(nvapply(random_graphs, igraph::mean_distance), na.rm = TRUE)
   random_CC <- mean(nvapply(random_graphs, igraph::transitivity, type = "average"), na.rm = TRUE)
 
   # Check if lattice is missing
   if(missing(lattice)){
-    lattice <- proxswap_lattice(A)
+    lattice <- proxswap_lattice(network, weighted = weighted)
+  }else if(weighted){
+    lattice <- assign_weights(network, lattice)
   }
 
   # Ensure lattice is {igraph}

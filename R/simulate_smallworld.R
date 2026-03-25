@@ -224,7 +224,7 @@
 #'   structure; negative values indicate lattice-like structure; positive
 #'   values indicate random-like structure (see \code{\link[L0ggm]{smallworldness}})
 #'   \item \code{Q} --- Newman-Girvan modularity of the population network
-#'   (\code{omega}) computed via \code{igraph::modularity} on absolute edge
+#'   (\code{Omega}) computed via \code{igraph::modularity} on absolute edge
 #'   weights, using the community partition that maximizes modularity
 #'   (\code{igraph::cluster_optimal}). Because \code{cluster_optimal} finds
 #'   the exact modularity maximum, \code{Q} represents an upper bound on
@@ -419,15 +419,12 @@ simulate_smallworld <- function(
 
     }
 
-    # Estimate small-worldness (based on Telesford et al., 2011)
-    omega <- smallworldness(A = A, lattice = pruned_lattice, method = "omega")
-
     # Try to get good weights
     output <- try(
       smallworld_weights(
         A, pruned_lattice, nodes, neighbors, sample_size,
         snr, negative_proportion, target_condition,
-        max_correlation, omega, lower_triangle
+        max_correlation, lower_triangle
       ), silent = TRUE
     )
 
@@ -470,9 +467,13 @@ simulate_smallworld <- function(
         sample_size = sample_size,
         skew = data_output$skew,
         weibull = output$params,
-        omega = output$omega,
+        omega = smallworldness(
+          network = output$network, lattice = pruned_lattice, method = "omega"
+        ),
         Q = igraph::modularity(
-          igraph_network, igraph::cluster_optimal(igraph_network)$membership
+          igraph_network, igraph::cluster_leiden(
+            igraph_network, objective_function =  "modularity"
+          )$membership
         )
       ),
       population = list(R = output$R, Omega = output$network),
@@ -769,7 +770,7 @@ smallworld_generate <- function(lattice, rewire, lower_triangle)
   # Loop over and fill
   for(i in 1:nrow(nonzero_network)){
     lattice[nonzero_network$row[i], nonzero_network$col[i]] <-
-    lattice[nonzero_network$col[i], nonzero_network$row[i]] <- 1
+      lattice[nonzero_network$col[i], nonzero_network$row[i]] <- 1
   }
 
   # Return network
@@ -783,7 +784,7 @@ smallworld_generate <- function(lattice, rewire, lower_triangle)
 smallworld_weights <- function(
     A, lattice, nodes, neighbors, sample_size,
     snr, negative_proportion, target_condition,
-    max_correlation, omega, lower_triangle
+    max_correlation, lower_triangle
 )
 {
 
@@ -820,14 +821,11 @@ smallworld_weights <- function(
   # Obtain nonzero edges
   nonzero <- A[lower_triangle] != 0
 
-  # Total edges
-  total_edges <- sum(nonzero)
-
   # Initialize network
   network <- matrix(0, nrow = nodes, ncol = nodes)
 
   # Generate edges (returned edges are sorted)
-  edges <- generate_edges(nonzero = total_edges, n = sample_size, p = nodes, snr = snr)
+  edges <- generate_edges(nonzero = sum(nonzero), n = sample_size, p = nodes, snr = snr)
 
   # Set weights order
   # Follows: Muldoon, Bridgeford, & Bassett's (2016) implementation
@@ -887,7 +885,6 @@ smallworld_weights <- function(
     list(
       R = R,
       network = network,
-      omega = omega,
       params = attr(edges, "params"),
       lambda = lambda,
       condition = condition

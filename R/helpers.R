@@ -912,6 +912,14 @@ convert2igraph <- function (A, diagonal = 0)
 
 }
 
+#' @noRd
+# Convert {igraph} network to matrix ----
+# Updated 09.08.2023
+igraph2matrix <- function(I)
+{
+  return(as.matrix(igraph::as_adjacency_matrix(I)))
+}
+
 #%%%%%%%%%%%%%%%%%%%%%
 # COUNT FUNCTIONS ----
 #%%%%%%%%%%%%%%%%%%%%%

@@ -4,7 +4,7 @@
 \alias{proxswap_lattice}
 \title{Construct a Degree-Preserving Ring Lattice via Proximity-Swap Construction}
 \usage{
-proxswap_lattice(network, shuffles = 100)
+proxswap_lattice(network, weighted = FALSE, shuffles = 100)
 }
 \arguments{
 \item{network}{Matrix.
@@ -12,6 +12,15 @@ A square, symmetric numeric matrix representing a network (e.g., partial
 correlations). Non-zero off-diagonal entries are treated as edges; the
 binary adjacency is derived internally as \code{network != 0}.
 Isolated nodes (degree zero) are supported.}
+
+\item{weighted}{Logical (length = 1).
+Whether to return a weighted ring lattice. When \code{TRUE}, the edge
+weights from \code{network} are reassigned to the lattice edges according
+to ring distance following the implementation of Muldoon, Bridgeford, &
+Bassett (2016): shorter-distance lattice edges receive larger weights,
+preserving the overall weight distribution while concentrating stronger
+connections locally. When \code{FALSE} (default), a binary adjacency
+matrix is returned.}
 
 \item{shuffles}{Numeric (length = 1).
 Number of independent random permutation passes to attempt. Each pass
@@ -22,11 +31,13 @@ retained; the one with the highest clustering coefficient is returned.
 Defaults to \code{100}.}
 }
 \value{
-A square symmetric binary adjacency matrix of the same dimension
-as \code{network}, with row and column names preserved from \code{network},
-representing the resulting ring lattice. The average clustering coefficient
-of the returned lattice is attached as the attribute \code{"CC"} and can
-be retrieved with \code{attr(result, "CC")}.
+A square symmetric matrix of the same dimension as \code{network},
+with row and column names preserved, representing the resulting ring
+lattice. When \code{weighted = FALSE} (default), entries are binary
+(\code{TRUE}/\code{FALSE}); when \code{weighted = TRUE}, entries contain
+the reassigned edge weights from \code{network}. The average clustering
+coefficient of the returned lattice is attached as the attribute \code{"CC"}
+and can be retrieved with \code{attr(result, "CC")}.
 }
 \description{
 Converts a network matrix into a connected ring lattice whose
@@ -61,7 +72,7 @@ have remaining degree budget and are not yet connected) are sorted by
 descending \eqn{\min(\text{budget}_i, \text{budget}_j)} so that high-need
 pairs receive short connections first. Pairs are then assigned sequentially
 with per-pair budget re-checks. The pass exits early once all budgets reach
-zero.
+zero. This phase is implemented in compiled C via \code{proximity_pass_c}.
 
 \strong{Swap repair.} If any degree deficit remains after the proximity
 pass, the highest-deficit node \eqn{i} is connected to its nearest
@@ -71,7 +82,14 @@ remaining budget exists, an edge swap is performed: a nearby unconnected
 node \eqn{j} is found, one of \eqn{j}'s existing edges to \eqn{k} is
 removed, and a new edge \eqn{(i, j)} is added. Node \eqn{k} recovers its
 budget for resolution in a subsequent iteration. This repeats until all
-deficits are resolved or the iteration cap (\eqn{2n^2}) is reached.
+deficits are resolved or the iteration cap (\eqn{2n^2}) is reached. This
+phase is implemented in compiled C via \code{swapping_pass_c}.
+
+\strong{Weight assignment.} When \code{weighted = TRUE}, edge weights are
+reassigned after the binary topology is finalised. The observed weights are
+ranked and mapped onto lattice edges sorted by ring distance so that
+shorter (more local) connections receive larger weights, following Muldoon,
+Bridgeford, & Bassett (2016).
 
 \strong{Pass selection.} A pass is valid only if the resulting graph is
 connected and has zero residual degree error. Among valid passes, the one
@@ -79,13 +97,14 @@ with the highest average clustering coefficient is returned.
 
 \strong{Empirical fallback.} If no valid pass is found, or if the best
 lattice clustering coefficient is lower than that of the original network,
-the empirical adjacency is returned with a warning.
+the empirical adjacency (or weighted matrix, if \code{weighted = TRUE}) is
+returned with a warning.
 }
 \examples{
 # Get network
 network <- network_estimation(basic_smallworld)
 
-# Construct ring lattice
+# Construct binary ring lattice
 L <- proxswap_lattice(network)
 
 # Retrieve the attached clustering coefficient
@@ -94,6 +113,17 @@ attr(L, "CC")
 # Degree sequences should match exactly
 cbind(target = colSums(network != 0), achieved = colSums(L))
 
+# Construct weighted ring lattice
+L_weighted <- proxswap_lattice(network, weighted = TRUE)
+
+# Retrieve the attached clustering coefficient
+attr(L_weighted, "CC")
+
+}
+\references{
+Muldoon, S. F., Bridgeford, E. W., & Bassett, D. S. (2016).
+Small-world propensity and weighted brain connectivity.
+\emph{Scientific Reports}, \emph{6}, 22057.
 }
 \author{
 Alexander P. Christensen <alexpaulchristensen@gmail.com>

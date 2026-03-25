@@ -5,22 +5,25 @@
 \title{Computes Various Small-Worldness Metrics}
 \usage{
 smallworldness(
-  A,
+  network,
   lattice,
   method = c("analytical", "omega", "S", "SWP"),
+  weighted = FALSE,
   iter = 100
 )
 }
 \arguments{
-\item{A}{Matrix or data frame.
-An adjacency matrix representing the network.
-Must be square, symmetric, and contain only non-negative values}
+\item{network}{Matrix or data frame.
+A square, symmetric numeric matrix representing a network (e.g., partial
+correlations). Absolute values are taken internally, so signed weights are
+handled automatically. Non-zero off-diagonal entries are treated as edges.}
 
 \item{lattice}{Matrix (optional).
 A pre-computed lattice adjacency matrix to use as the regular-network
 reference for the \code{"omega"} and \code{"SWP"} methods.
 If not provided, a lattice is generated automatically via
-\code{\link[L0ggm]{proxswap_lattice}}}
+\code{\link[L0ggm]{proxswap_lattice}}. Ignored by \code{"analytical"}
+and \code{"S"}}
 
 \item{method}{Character (length = 1).
 The method used to compute small-worldness.
@@ -35,14 +38,16 @@ random graph baseline:
 \deqn{S = \frac{C / C_{\text{rand}}}{L / L_{\text{rand}}}}
 where \eqn{C_{\text{rand}} \approx \langle k \rangle / n} and
 \eqn{L_{\text{rand}} \approx \ln(n) / \ln(\langle k \rangle)}.
-No random graphs are generated. Values greater than 1 indicate
-small-world structure
+No random graphs are generated. The \code{weighted} argument is ignored.
+Values greater than 1 indicate small-world structure
 
 \item \code{"S"} --- Computes the Humphries & Gurney (2008) \eqn{S}
 metric by simulation. Random graphs are generated under the
 Erdős–Rényi model (\code{\link[igraph]{sample_gnm}}) with the same
-number of nodes and edges as \code{A}. The clustering coefficient
-uses global transitivity (\eqn{C^\Delta}). Values greater than 1
+number of nodes and edges as \code{network}. The empirical and random
+clustering coefficients both use global transitivity (\eqn{C^\Delta}).
+When \code{weighted = TRUE}, edge weights are reassigned to each random
+graph topology via \code{assign_weights}. Values greater than 1
 indicate small-world structure
 
 \item \code{"omega"} --- Computes the \eqn{\omega} metric of
@@ -50,9 +55,15 @@ Telesford et al. (2011):
 \deqn{\omega = \frac{L_{\text{rand}}}{L} - \frac{C}{C_{\text{latt}}}}
 Random graphs preserve the degree sequence via edge-switching
 (\code{\link[igraph]{sample_degseq}}, \code{method = "edge.switching.simple"}).
-Values near zero indicate small-world structure; negative values indicate
-lattice-like structure; positive values indicate random-like structure.
-Bounded in \eqn{[-1, 1]}
+The clustering coefficient uses average local transitivity (\eqn{\bar{C}}).
+Note: Telesford et al. (2011) defined and validated \eqn{\omega} exclusively
+on binary, unweighted networks. When \code{weighted = TRUE}, edge weights
+are reassigned to each random graph topology via \code{assign_weights} and
+the lattice is constructed with \code{weighted = TRUE}, following the
+approach of Muldoon et al. (2016); this is an extension beyond the original
+formulation. Values near zero indicate small-world structure; negative
+values indicate lattice-like structure; positive values indicate
+random-like structure. Bounded in \eqn{[-1, 1]}
 
 \item \code{"SWP"} --- Computes the Small-World Propensity of
 Muldoon et al. (2016):
@@ -61,11 +72,22 @@ where \eqn{\Delta_C = (C_{\text{latt}} - C) / (C_{\text{latt}} - C_{\text{rand}}
 and \eqn{\Delta_L = (L - L_{\text{rand}}) / (L_{\text{latt}} - L_{\text{rand}})}.
 Both \eqn{\Delta_C} and \eqn{\Delta_L} are bounded to \eqn{[0, 1]},
 guaranteeing \eqn{\phi \in [0, 1]}. Random graphs preserve the degree
-sequence via edge-switching. Values close to 1 indicate strong
-small-world structure; a pragmatic threshold of \eqn{\phi_T = 0.60}
-has been suggested
+sequence via edge-switching. The clustering coefficient uses average
+local transitivity (\eqn{\bar{C}}). When \code{weighted = TRUE}, edge
+weights are reassigned to each random graph topology via
+\code{assign_weights} and the lattice is constructed with
+\code{weighted = TRUE}. Values close to 1 indicate strong small-world
+structure; a pragmatic threshold of \eqn{\phi_T = 0.60} has been suggested
 
 }}
+
+\item{weighted}{Logical (length = 1).
+Whether to compute small-worldness on the weighted network. When
+\code{TRUE}, edge weights from \code{network} are preserved for the
+empirical graph and reassigned to random and lattice graph topologies
+via \code{assign_weights}, following Muldoon et al. (2016). When
+\code{FALSE} (default), all graphs are treated as binary. Ignored when
+\code{method = "analytical"}}
 
 \item{iter}{Numeric (length = 1).
 Number of random graphs to generate when estimating the null baseline.
@@ -101,16 +123,22 @@ degree-preserving ring lattice that maximizes the clustering coefficient
 network <- network_estimation(basic_smallworld)
 
 # Compute SWP (default)
-swp <- smallworldness(A = network)
+swp <- smallworldness(network)
 
 # Compute omega
-omega <- smallworldness(A = network, method = "omega")
+omega <- smallworldness(network, method = "omega")
 
 # Compute analytical S
-S <- smallworldness(A = network, method = "analytical")
+S <- smallworldness(network, method = "analytical")
 
 # Compute simulated S with more iterations
-S_sim <- smallworldness(A = network, method = "S", iter = 1000)
+S_sim <- smallworldness(network, method = "S", iter = 1000)
+
+# Compute weighted SWP
+swp_w <- smallworldness(network, weighted = TRUE)
+
+# Compute weighted omega
+omega_w <- smallworldness(network, method = "omega", weighted = TRUE)
 
 }
 \references{
