@@ -7,7 +7,7 @@
 smallworldness(
   network,
   lattice,
-  method = c("analytical", "omega", "S", "SWP"),
+  method = c("analytical", "omega", "S", "SWI", "SWP"),
   weighted = FALSE,
   iter = 100
 )
@@ -65,6 +65,26 @@ formulation. Values near zero indicate small-world structure; negative
 values indicate lattice-like structure; positive values indicate
 random-like structure. Bounded in \eqn{[-1, 1]}
 
+\item \code{"SWI"} --- Computes the Small-World Index of
+Neal (2015):
+\deqn{\text{SWI} = \frac{L - L_{\text{latt}}}{L_{\text{rand}} - L_{\text{latt}}} \times \frac{C - C_{\text{rand}}}{C_{\text{latt}} - C_{\text{rand}}}}
+Each term captures where the observed network's path length and clustering
+coefficient fall within the lattice-to-random range, so that SWI = 1
+only when \eqn{L = L_{\text{rand}}} and \eqn{C = C_{\text{latt}}}
+simultaneously. Because this ideal is mathematically unachievable in a
+finite network, SWI = 1 is a conceptual upper bound rather than a
+realisable value. Random graphs preserve the degree sequence via
+edge-switching (\code{\link[igraph]{sample_degseq}},
+\code{method = "edge.switching.simple"}). The clustering coefficient uses
+average local transitivity (\eqn{\bar{C}}). When \code{weighted = TRUE},
+edge weights are reassigned to each random graph topology and the lattice
+is constructed with \code{weighted = TRUE}. Note: SWI and SWP were
+developed independently and concurrently; both apply the same
+double-normalisation framework but differ in how the two deviation terms
+are combined (product vs. Euclidean distance). Values close to 1 indicate
+strong small-world structure; values near 0 indicate lattice-like or
+random-like structure. Bounded in \eqn{[0, 1]}
+
 \item \code{"SWP"} --- Computes the Small-World Propensity of
 Muldoon et al. (2016):
 \deqn{\phi = 1 - \sqrt{\frac{\Delta_C^2 + \Delta_L^2}{2}}}
@@ -106,13 +126,17 @@ The small-worldness value computed using the chosen \code{method}:
 \item \code{"omega"} --- Values near \eqn{|\omega| < 0.50} indicate small-world structure
 (ranges between -1 and 1)
 
+\item \code{"SWI"} --- Values close to 1 indicate strong small-world structure;
+values near 0 indicate lattice-like or random-like structure
+(ranges between 0 and 1)
+
 \item \code{"SWP"} --- Values \eqn{\phi > 0.60} indicate strong small-world structure
 (ranges between 0 and 1)
 
 }
 }
 \description{
-Computes the small-worldness of a network using one of four
+Computes the small-worldness of a network using one of five
 methods. All simulation-based methods generate degree-preserving random
 graphs as the null baseline. The lattice reference network (where required)
 is constructed using \code{\link[L0ggm]{proxswap_lattice}}, which produces a
@@ -134,6 +158,9 @@ S <- smallworldness(network, method = "analytical")
 # Compute simulated S with more iterations
 S_sim <- smallworldness(network, method = "S", iter = 1000)
 
+# Compute SWI
+swi <- smallworldness(network, method = "SWI")
+
 # Compute weighted SWP
 swp_w <- smallworldness(network, weighted = TRUE)
 
@@ -151,6 +178,11 @@ The ubiquity of small-world networks.
 Humphries, M. D., & Gurney, K. (2008).
 Network 'small-world-ness': A quantitative method for determining canonical network equivalence.
 \emph{PLoS ONE}, \emph{3}(4), e0002051.
+
+\strong{SWI} \cr
+Neal, Z. P. (2015).
+Making big communities small: Using network science to understand the ecological and behavioral requirements for community social capital.
+\emph{American Journal of Community Psychology}, \emph{55}(3), 369--380.
 
 \strong{SWP} \cr
 Muldoon, S. F., Bridgeford, E. W., & Bassett, D. S. (2016).

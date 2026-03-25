@@ -1,6 +1,6 @@
 #' @title Computes Various Small-Worldness Metrics
 #'
-#' @description Computes the small-worldness of a network using one of four
+#' @description Computes the small-worldness of a network using one of five
 #' methods. All simulation-based methods generate degree-preserving random
 #' graphs as the null baseline. The lattice reference network (where required)
 #' is constructed using \code{\link[L0ggm]{proxswap_lattice}}, which produces a
@@ -58,6 +58,26 @@
 #' values indicate lattice-like structure; positive values indicate
 #' random-like structure. Bounded in \eqn{[-1, 1]}
 #'
+#' \item \code{"SWI"} --- Computes the Small-World Index of
+#' Neal (2015):
+#' \deqn{\text{SWI} = \frac{L - L_{\text{latt}}}{L_{\text{rand}} - L_{\text{latt}}} \times \frac{C - C_{\text{rand}}}{C_{\text{latt}} - C_{\text{rand}}}}
+#' Each term captures where the observed network's path length and clustering
+#' coefficient fall within the lattice-to-random range, so that SWI = 1
+#' only when \eqn{L = L_{\text{rand}}} and \eqn{C = C_{\text{latt}}}
+#' simultaneously. Because this ideal is mathematically unachievable in a
+#' finite network, SWI = 1 is a conceptual upper bound rather than a
+#' realisable value. Random graphs preserve the degree sequence via
+#' edge-switching (\code{\link[igraph]{sample_degseq}},
+#' \code{method = "edge.switching.simple"}). The clustering coefficient uses
+#' average local transitivity (\eqn{\bar{C}}). When \code{weighted = TRUE},
+#' edge weights are reassigned to each random graph topology and the lattice
+#' is constructed with \code{weighted = TRUE}. Note: SWI and SWP were
+#' developed independently and concurrently; both apply the same
+#' double-normalisation framework but differ in how the two deviation terms
+#' are combined (product vs. Euclidean distance). Values close to 1 indicate
+#' strong small-world structure; values near 0 indicate lattice-like or
+#' random-like structure. Bounded in \eqn{[0, 1]}
+#'
 #' \item \code{"SWP"} --- Computes the Small-World Propensity of
 #' Muldoon et al. (2016):
 #' \deqn{\phi = 1 - \sqrt{\frac{\Delta_C^2 + \Delta_L^2}{2}}}
@@ -98,6 +118,10 @@
 #' \item \code{"omega"} --- Values near \eqn{|\omega| < 0.50} indicate small-world structure
 #' (ranges between -1 and 1)
 #'
+#' \item \code{"SWI"} --- Values close to 1 indicate strong small-world structure;
+#' values near 0 indicate lattice-like or random-like structure
+#' (ranges between 0 and 1)
+#'
 #' \item \code{"SWP"} --- Values \eqn{\phi > 0.60} indicate strong small-world structure
 #' (ranges between 0 and 1)
 #'
@@ -115,6 +139,11 @@
 #' Humphries, M. D., & Gurney, K. (2008).
 #' Network 'small-world-ness': A quantitative method for determining canonical network equivalence.
 #' \emph{PLoS ONE}, \emph{3}(4), e0002051.
+#'
+#' \strong{SWI} \cr
+#' Neal, Z. P. (2015).
+#' Making big communities small: Using network science to understand the ecological and behavioral requirements for community social capital.
+#' \emph{American Journal of Community Psychology}, \emph{55}(3), 369--380.
 #'
 #' \strong{SWP} \cr
 #' Muldoon, S. F., Bridgeford, E. W., & Bassett, D. S. (2016).
@@ -137,6 +166,9 @@
 #' # Compute simulated S with more iterations
 #' S_sim <- smallworldness(network, method = "S", iter = 1000)
 #'
+#' # Compute SWI
+#' swi <- smallworldness(network, method = "SWI")
+#'
 #' # Compute weighted SWP
 #' swp_w <- smallworldness(network, weighted = TRUE)
 #'
@@ -148,7 +180,7 @@
 # Compute smallworldness ----
 # Updated 25.03.2026
 smallworldness <- function(
-    network, lattice, method = c("analytical", "omega", "S", "SWP"),
+    network, lattice, method = c("analytical", "omega", "S", "SWI", "SWP"),
     weighted = FALSE, iter = 100
 )
 {
@@ -188,6 +220,7 @@ smallworldness <- function(
     "analytical" = smallworldness_analytical,
     "omega" = smallworldness_omega,
     "s" = smallworldness_S,
+    "swi" = smallworldness_SWI,
     "swp" = smallworldness_SWP
   )
 
@@ -316,6 +349,63 @@ smallworldness_S <- function(network, I, ASPL, CC, weighted, distance_matrix, it
 
   # Return S
   return(mean(S, na.rm = TRUE))
+
+}
+
+#' @noRd
+# Neal (2015) ----
+# Updated 25.03.2026
+smallworldness_SWI <- function(
+    network, I, ASPL, CC, degree, lattice, weighted, distance_matrix, iter, ...
+)
+{
+
+  # Collect random graphs
+  random_graphs <- lapply(
+    seq_len(iter), function(i){
+      igraph::sample_degseq(out.deg = degree, method = "edge.switching.simple")
+    }
+  )
+
+  # Check for weighted
+  if(weighted){
+
+    # Obtain weighted graphs
+    random_graphs <- lapply(random_graphs, function(x){
+
+      # Get weighted graphs
+      weighted_graph <- assign_weights(network, igraph2matrix(x), distance_matrix)
+
+      # Return back as {igraph}
+      return(convert2igraph(weighted_graph))
+
+    })
+
+  }
+
+  # Compute ASPL and CC
+  random_ASPL <- mean(nvapply(random_graphs, igraph::mean_distance), na.rm = TRUE)
+  random_CC <- mean(nvapply(random_graphs, igraph::transitivity, type = "average"), na.rm = TRUE)
+
+  # Check if lattice is missing
+  if(missing(lattice)){
+    lattice <- proxswap_lattice(network, weighted = weighted)
+  }else if(weighted){
+    lattice <- assign_weights(network, lattice, distance_matrix)
+  }
+
+  # Ensure lattice is {igraph}
+  lattice <- convert2igraph(lattice)
+
+  # Compute ASPL and CC
+  lattice_ASPL <- igraph::mean_distance(lattice)
+  lattice_CC <- igraph::transitivity(lattice, type = "average")
+
+  # Return SWI
+  return(
+    ((ASPL - lattice_ASPL) / (random_ASPL - lattice_ASPL)) *
+    ((CC - random_CC) / (lattice_CC - random_CC))
+  )
 
 }
 
