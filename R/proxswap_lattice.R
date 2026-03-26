@@ -100,6 +100,7 @@
 #' returned with a warning.
 #'
 #' @references
+#' \strong{Logic for weight assignments} \cr
 #' Muldoon, S. F., Bridgeford, E. W., & Bassett, D. S. (2016).
 #' Small-world propensity and weighted brain connectivity.
 #' \emph{Scientific Reports}, \emph{6}, 22057.
