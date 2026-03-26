@@ -4,20 +4,27 @@ o UPDATE: `smallworldness()` offers weighted version, placing largest edge weigh
 
 o REMOVE: `ring2lattice()` algorithm was revised and the logic updated to the `proxswap_lattice()` algorithm
 
-- `proxswap_lattice()`: Converts a partial correlation network matrix into a ring
-  lattice whose per-node degree sequence approximates the original as closely
-  as possible. An adjacency matrix is derived automatically from network
-  (non-zero entries become edges), so the function accepts any weighted or
-  binary network directly. Nodes are internally reordered by degree before the
-  lattice is built. Starting from a ring lattice dense enough to cover the maximum
-  target degree, the algorithm runs shuffles independent pruning passes: one
-  visiting nodes from highest to lowest surplus, one from lowest to highest, and
-  shuffles - 2 passes that visit nodes in a random order. The pass with the
-  smallest total residual surplus is retained; ties are broken by the higher
-  average clustering coefficient. As a final fallback, if the empirical network
-  itself has a higher clustering coefficient than the winning pruned lattice, the
-  empirical adjacency is returned instead. The function is designed for use as
-  the lattice baseline in small-worldness calculations.
+- `proxswap_lattice()`: Converts a network matrix into a connected ring lattice
+  whose degree sequence exactly matches the original, while maximising the
+  average local clustering coefficient. Accepts any weighted or binary network
+  directly; the binary adjacency is derived internally from non-zero entries.
+  The algorithm runs `shuffles` (default 100) independent passes. Each pass
+  randomly permutes the degree sequence onto ring positions, then runs a
+  proximity construction (implemented in C via `proximity_pass_c`) that assigns
+  edges greedily in increasing ring-distance order, prioritising high-need pairs
+  at each distance band. Any residual degree deficit is resolved by a swap-repair
+  phase (implemented in C via `swapping_pass_c`) that connects the
+  highest-deficit node to its nearest available ring neighbour, performing an
+  edge swap when no direct partner with remaining budget exists. Passes that
+  yield a disconnected graph or an unsatisfied degree sequence are discarded.
+  When `weighted = TRUE`, edge weights from the original network are reassigned
+  to lattice edges by ring distance following Muldoon, Bridgeford, & Bassett
+  (2016): largest-magnitude weights are placed on shortest-distance edges, with
+  original signs preserved. Among valid passes the one with the highest average
+  clustering coefficient is returned; if no valid pass is found, or if the best
+  lattice clustering coefficient is lower than that of the original network, the
+  empirical adjacency (or weighted matrix) is returned with a warning. The
+  resulting average clustering coefficient is attached as attribute `"CC"`.
 
 ## Initial Commit: Version 0.0.1
 
