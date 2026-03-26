@@ -407,9 +407,7 @@ SEXP swapping_pass_c(
                 // k loses an edge (budget recovers)
                 budget[k]++;
 
-                // total_budget is unchanged: budget[i] - 1 and budget[k] + 1 cancel out.
-                // The deficit has moved from i to k, not eliminated; it will be
-                // resolved in a subsequent iteration.
+                // total_budget is unchanged
 
                 // Record that a swap occurred and stop scanning
                 swapped = 1;

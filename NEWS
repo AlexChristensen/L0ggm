@@ -30,19 +30,19 @@
 
 ### Data Simulation
 
-- `ring2lattice()`: Converts a partial correlation network matrix into a ring 
-  lattice whose per-node degree sequence approximates the original as closely 
-  as possible. An adjacency matrix is derived automatically from network 
-  (non-zero entries become edges), so the function accepts any weighted or 
-  binary network directly. Nodes are internally reordered by degree before the 
-  lattice is built. Starting from a ring lattice dense enough to cover the maximum 
-  target degree, the algorithm runs shuffles independent pruning passes: one 
-  visiting nodes from highest to lowest surplus, one from lowest to highest, and 
-  shuffles - 2 passes that visit nodes in a random order. The pass with the 
-  smallest total residual surplus is retained; ties are broken by the higher 
-  average clustering coefficient. As a final fallback, if the empirical network 
-  itself has a higher clustering coefficient than the winning pruned lattice, the 
-  empirical adjacency is returned instead. The function is designed for use as 
+- `proxswap_lattice()`: Converts a partial correlation network matrix into a ring
+  lattice whose per-node degree sequence approximates the original as closely
+  as possible. An adjacency matrix is derived automatically from network
+  (non-zero entries become edges), so the function accepts any weighted or
+  binary network directly. Nodes are internally reordered by degree before the
+  lattice is built. Starting from a ring lattice dense enough to cover the maximum
+  target degree, the algorithm runs shuffles independent pruning passes: one
+  visiting nodes from highest to lowest surplus, one from lowest to highest, and
+  shuffles - 2 passes that visit nodes in a random order. The pass with the
+  smallest total residual surplus is retained; ties are broken by the higher
+  average clustering coefficient. As a final fallback, if the empirical network
+  itself has a higher clustering coefficient than the winning pruned lattice, the
+  empirical adjacency is returned instead. The function is designed for use as
   the lattice baseline in small-worldness calculations.
 
 
