@@ -33,11 +33,13 @@ Defaults to \code{100}.}
 \value{
 A square symmetric matrix of the same dimension as \code{network},
 with row and column names preserved, representing the resulting ring
-lattice. When \code{weighted = FALSE} (default), entries are binary
-(\code{TRUE}/\code{FALSE}); when \code{weighted = TRUE}, entries contain
-the reassigned edge weights from \code{network}. The average clustering
-coefficient of the returned lattice is attached as the attribute \code{"CC"}
-and can be retrieved with \code{attr(result, "CC")}.
+lattice. When \code{weighted = FALSE} (default), entries are binary integers
+(\code{0L}/\code{1L}); when \code{weighted = TRUE}, entries contain the
+reassigned edge weights from \code{network} with original signs preserved.
+The average clustering coefficient of the returned graph is attached as the
+attribute \code{"CC"} and can be retrieved with \code{attr(result, "CC")}.
+When the empirical fallback is triggered (see Details), \code{"CC"} reflects
+the empirical network's clustering coefficient rather than a lattice's.
 }
 \description{
 Converts a network matrix into a connected ring lattice whose
@@ -87,12 +89,15 @@ phase is implemented in compiled C via \code{swapping_pass_c}.
 
 \strong{Weight assignment.} When \code{weighted = TRUE}, edge weights are
 reassigned after the binary topology is finalised. The observed weights are
-sorted in descending order and mapped onto lattice edges ranked by ascending
-ring distance (i.e., \eqn{d_{ij} = \min(|i - j|,\, n - |i - j|)}), so that
-shorter (more local) connections receive the largest weights. This directly
-implements the distance-weight principle of Muldoon, Bridgeford, & Bassett
-(2016), using the ring's structural distances rather than any network-derived
-proxy. Ties in ring distance are broken at random.
+sorted by \emph{absolute value} in descending order (largest magnitude first)
+and mapped onto lattice edges ranked by ascending ring distance (i.e.,
+\eqn{d_{ij} = \min(|i - j|,\, n - |i - j|)}), so that shorter (more local)
+connections receive the largest-magnitude weights. Original signs are
+preserved: the sorted weight vector — not its absolute values — is assigned
+to the lattice edges. This directly implements the distance-weight principle
+of Muldoon, Bridgeford, & Bassett (2016), using the ring's structural
+distances rather than any network-derived proxy. Ties in ring distance are
+broken at random.
 
 \strong{Pass selection.} A pass is valid only if the resulting graph is
 connected and has zero residual degree error. Among valid passes, the one

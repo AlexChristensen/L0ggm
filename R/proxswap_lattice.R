@@ -40,11 +40,13 @@
 #'
 #' @return A square symmetric matrix of the same dimension as \code{network},
 #' with row and column names preserved, representing the resulting ring
-#' lattice. When \code{weighted = FALSE} (default), entries are binary
-#' (\code{TRUE}/\code{FALSE}); when \code{weighted = TRUE}, entries contain
-#' the reassigned edge weights from \code{network}. The average clustering
-#' coefficient of the returned lattice is attached as the attribute \code{"CC"}
-#' and can be retrieved with \code{attr(result, "CC")}.
+#' lattice. When \code{weighted = FALSE} (default), entries are binary integers
+#' (\code{0L}/\code{1L}); when \code{weighted = TRUE}, entries contain the
+#' reassigned edge weights from \code{network} with original signs preserved.
+#' The average clustering coefficient of the returned graph is attached as the
+#' attribute \code{"CC"} and can be retrieved with \code{attr(result, "CC")}.
+#' When the empirical fallback is triggered (see Details), \code{"CC"} reflects
+#' the empirical network's clustering coefficient rather than a lattice's.
 #'
 #' @details
 #' ## Algorithm
@@ -78,12 +80,15 @@
 #'
 #' \strong{Weight assignment.} When \code{weighted = TRUE}, edge weights are
 #' reassigned after the binary topology is finalised. The observed weights are
-#' sorted in descending order and mapped onto lattice edges ranked by ascending
-#' ring distance (i.e., \eqn{d_{ij} = \min(|i - j|,\, n - |i - j|)}), so that
-#' shorter (more local) connections receive the largest weights. This directly
-#' implements the distance-weight principle of Muldoon, Bridgeford, & Bassett
-#' (2016), using the ring's structural distances rather than any network-derived
-#' proxy. Ties in ring distance are broken at random.
+#' sorted by \emph{absolute value} in descending order (largest magnitude first)
+#' and mapped onto lattice edges ranked by ascending ring distance (i.e.,
+#' \eqn{d_{ij} = \min(|i - j|,\, n - |i - j|)}), so that shorter (more local)
+#' connections receive the largest-magnitude weights. Original signs are
+#' preserved: the sorted weight vector — not its absolute values — is assigned
+#' to the lattice edges. This directly implements the distance-weight principle
+#' of Muldoon, Bridgeford, & Bassett (2016), using the ring's structural
+#' distances rather than any network-derived proxy. Ties in ring distance are
+#' broken at random.
 #'
 #' \strong{Pass selection.} A pass is valid only if the resulting graph is
 #' connected and has zero residual degree error. Among valid passes, the one
@@ -123,12 +128,9 @@
 #' @export
 #'
 # Proximity-swap lattice construction ----
-# Updated 25.03.2026
+# Updated 26.03.2026
 proxswap_lattice <- function(network, weighted = FALSE, shuffles = 100)
 {
-
-  # Ensure network is in absolute values
-  network <- abs(network)
 
   # Automatically construct adjacency
   A <- network != 0
@@ -138,18 +140,18 @@ proxswap_lattice <- function(network, weighted = FALSE, shuffles = 100)
     network <- A
   }
 
-  # Get nodes and degree
+  # Initialize nodes, degree, and connectedness flag
   nodes  <- dim(network)[2]
   degree <- colSums(A)
+  check_connectedness <- all(degree != 0)
 
   # Set up distance matrix
   node_sequence <- seq_len(nodes)
   distance_matrix <- abs(outer(node_sequence, node_sequence, "-"))
   distance_matrix <- pmin(distance_matrix, nodes - distance_matrix)
-  distance_sequence <- seq_len(max(distance_matrix))
 
   # Pre-compute unique node pairs at each ring distance
-  pairs <- build_pairs(distance_matrix, distance_sequence)
+  pairs <- build_pairs(distance_matrix)
 
   # Compute empirical clustering coefficient for fallback check
   empirical_CC <- igraph::transitivity(convert2igraph(network), type = "average")
@@ -169,22 +171,25 @@ proxswap_lattice <- function(network, weighted = FALSE, shuffles = 100)
 
     # Run proximity construction with shuffled degrees
     result <- proximity_pass(
-      nodes = nodes, ring = ring, budget = degree[swap_order],
-      pairs = pairs, distance_sequence = distance_sequence
+      nodes = nodes, ring = ring, budget = degree[swap_order], pairs = pairs
     )
 
     # Perform swapping to
     result <- swapping_pass(
-      nodes = nodes, node_sequence = node_sequence, ring = result$ring,
-      budget = result$budget, total_budget = result$total_budget,
-      distance_sequence = distance_sequence
+      nodes = nodes, ring = result$ring, budget = result$budget,
+      total_budget = result$total_budget
     )
+
+    # Check for deficit before expensive connectedness check
+    if(result$remaining > 0){
+      next
+    }
 
     # Convert ring to {igraph}
     iring <- convert2igraph(result$ring)
 
-    # Skip passes with residual or fully connected
-    if((!igraph::is_connected(iring)) || (result$remaining > 0)){
+    # Determine whether connectedness (and then check it)
+    if(check_connectedness && (!igraph::is_connected(iring))){
       next
     }
 
@@ -209,27 +214,46 @@ proxswap_lattice <- function(network, weighted = FALSE, shuffles = 100)
 
   }
 
-  # Check whether empirical beats the best lattice
-  empirical_flag <- empirical_CC > best_CC
+  # Determine whether solution was reached
+  if(is.infinite(best_CC)){
 
-  # Warn on empirical fallback
-  if(empirical_flag){
+    # Send warning
     warning(paste0(
-      "The lattice solution did not produce a better CC (", round(best_CC, 3),
-      ") than the empirical (", round(empirical_CC, 3), ").\n",
-      "Falling back to empirical solution..."
+      "The lattice solution did not converge. The empirical graph was returned.\n\n",
+      "Try increasing `shuffles` to find a suitable solution"
     ))
+
+    # Set empirical flag
+    empirical_flag <- TRUE
+
+    # Check for empirical and weighted
+    ring <- swiftelse(weighted, network, A)
+
+  }else{
+
+    # Check whether empirical beats the best lattice
+    empirical_flag <- empirical_CC > best_CC
+
+    # Warn on empirical fallback
+    if(empirical_flag){
+      warning(paste0(
+        "The lattice solution did not produce a better CC (", round(best_CC, 3),
+        ") than the empirical (", round(empirical_CC, 3), ").\n",
+        "Falling back to empirical solution..."
+      ))
+    }
+
+    # Select between lattice and empirical
+    original_order <- order(best_swap)
+
+    # Check for empirical and weighted
+    ring <- swiftelse(
+      empirical_flag,
+      swiftelse(weighted, network, A),
+      best_ring[original_order, original_order]
+    )
+
   }
-
-  # Select between lattice and empirical
-  original_order <- order(best_swap)
-
-  # Check for empirical and weighted
-  ring <- swiftelse(
-    empirical_flag,
-    swiftelse(weighted, network, A),
-    best_ring[original_order, original_order]
-  )
 
   # Ensure named matrix
   dimnames(ring) <- dimnames(network)
@@ -244,13 +268,13 @@ proxswap_lattice <- function(network, weighted = FALSE, shuffles = 100)
 
 #' @noRd
 # Pre-compute unique node pairs per ring distance ----
-# Updated 24.03.2026
-build_pairs <- function(distance_matrix, distance_sequence)
+# Updated 26.03.2026
+build_pairs <- function(distance_matrix)
 {
 
   # Loop over distances
   return(
-    lapply(distance_sequence, function(i){
+    lapply(seq_len(max(distance_matrix)), function(i){
 
       # Obtain pairs
       pairs <- which(distance_matrix == i, arr.ind = TRUE)
@@ -267,7 +291,7 @@ build_pairs <- function(distance_matrix, distance_sequence)
 #' @noRd
 # Proximity construction ----
 # Updated 24.03.2026
-proximity_pass <- function(nodes, ring, budget, pairs, distance_sequence)
+proximity_pass <- function(nodes, ring, budget, pairs)
 {
 
   # # Remaining edges to assign per node
@@ -364,7 +388,7 @@ proximity_pass <- function(nodes, ring, budget, pairs, distance_sequence)
 #' @noRd
 # Swap to amend lattice ----
 # Updated 24.03.2026
-swapping_pass <- function(nodes, node_sequence, ring, budget, total_budget, distance_sequence)
+swapping_pass <- function(nodes, ring, budget, total_budget)
 {
 
   # # Set maximum iterations
@@ -497,14 +521,16 @@ swapping_pass <- function(nodes, node_sequence, ring, budget, total_budget, dist
 
 #' @noRd
 # Assign weights based on distance ----
-# Updated 25.03.2026
+# Updated 26.03.2026
 assign_weights <- function(network, A, distance_matrix)
 {
 
   # Obtain weights
   lower_triangle <- lower.tri(network)
   network_nonzero <- network[lower_triangle] != 0
-  weights <- sort(network[lower_triangle][network_nonzero], decreasing = TRUE)
+  weights <- network[lower_triangle][network_nonzero][
+    order(abs(network)[lower_triangle][network_nonzero], decreasing = TRUE)
+  ]
 
   # Set weights
   A_nonzero <- A[lower_triangle] != 0
