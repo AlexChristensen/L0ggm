@@ -8,28 +8,9 @@
 # L0ggm
 #### Smooth $L_0$ Penalty Approximations for Gaussian Graphical Models
 
-<!--- CRAN
-<a href="https://CRAN.R-project.org/package=L0ggm"><img border="0" src="https://www.r-pkg.org/badges/version/L0ggm" alt="CRAN version"/></a>
---->
+<a href="https://CRAN.R-project.org/package=L0ggm"><img border="0" src="https://www.r-pkg.org/badges/version/L0ggm" alt="CRAN version"/></a> <a href="https://github.com/AlexChristensen/L0ggm/releases"><img src="https://img.shields.io/github/v/release/AlexChristensen/L0ggm" alt="GitHub version"/></a> <a href="https://cranlogs.r-pkg.org/badges/grand-total/L0ggm"><img border="0" src="https://cranlogs.r-pkg.org/badges/grand-total/L0ggm" alt="Downloads Total"/></a>
 
-<!--- GitHub release
-<a href="https://github.com/AlexChristensen/L0ggm/releases"><img src="https://img.shields.io/github/v/release/AlexChristensen/L0ggm" alt="GitHub version"/></a>
---->
-
-<!--- GitHub workflow --->
-<a href="https://github.com/AlexChristensen/L0ggm/actions/workflows/r.yml"><img border="0" src="https://github.com/AlexChristensen/L0ggm/actions/workflows/r.yml/badge.svg" alt="R CMD check status"/></a><br/>
-
-<!--- GitHub status --->
-<!--- Active
-<a href="https://www.repostatus.org/#active"><img border="0" src="https://www.repostatus.org/badges/latest/active.svg" alt="Project Status: Active – The project has reached a stable, usable state and is being actively developed."/></a>
---->
-
-<!--- Work in Progress --->
-<a href="https://www.repostatus.org/#active"><img src="https://www.repostatus.org/badges/latest/active.svg" alt="Project Status: Active – The project has reached a stable, usable state and is being actively developed." /></a>
-
-<!--- Total downloads
-<a href="https://r-ega.net"><img border="0" src="https://cranlogs.r-pkg.org/badges/grand-total/L0ggm" alt="Downloads Total"/></a>
---->
+<a href="https://www.repostatus.org/#active"><img src="https://www.repostatus.org/badges/latest/active.svg" alt="Project Status: Active – The project has reached a stable, usable state and is being actively developed." /></a> <a href="https://github.com/AlexChristensen/L0ggm/actions/workflows/r.yml"><img border="0" src="https://github.com/AlexChristensen/L0ggm/actions/workflows/r.yml/badge.svg" alt="R CMD check status"/></a>
 
 </td>
 </tr>
