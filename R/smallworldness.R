@@ -163,8 +163,8 @@
 #' # Compute analytical S
 #' S <- smallworldness(network, method = "analytical")
 #'
-#' # Compute simulated S with more iterations
-#' S_sim <- smallworldness(network, method = "S", iter = 1000)
+#' # Compute simulated S
+#' S_sim <- smallworldness(network, method = "S")
 #'
 #' # Compute SWI
 #' swi <- smallworldness(network, method = "SWI")
