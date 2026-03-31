@@ -165,6 +165,10 @@ A list of input, derived, and estimated parameters:
   when \code{diffusion} is scalar. Note this is the complement of the
   user-supplied \code{diffusion} value and represents the fraction of
   within-community slots filled from the top-ranked draws.
+  \item \code{omega} --- Smallworldness omega statistic of the generated
+  network (Telesford et al., 2011). Values near zero indicate small-world
+  structure; negative values indicate lattice-like structure; positive
+  values indicate random-like structure (see \code{\link[L0ggm]{smallworldness}})
   \item \code{Q} --- Newman-Girvan modularity of the population network
   (\code{Omega}) with respect to the block membership, computed via
   \code{igraph::modularity} on absolute edge weights. Provides a summary

@@ -213,6 +213,10 @@
 #'   when \code{diffusion} is scalar. Note this is the complement of the
 #'   user-supplied \code{diffusion} value and represents the fraction of
 #'   within-community slots filled from the top-ranked draws.
+#'   \item \code{omega} --- Smallworldness omega statistic of the generated
+#'   network (Telesford et al., 2011). Values near zero indicate small-world
+#'   structure; negative values indicate lattice-like structure; positive
+#'   values indicate random-like structure (see \code{\link[L0ggm]{smallworldness}})
 #'   \item \code{Q} --- Newman-Girvan modularity of the population network
 #'   (\code{Omega}) with respect to the block membership, computed via
 #'   \code{igraph::modularity} on absolute edge weights. Provides a summary
@@ -340,7 +344,7 @@
 #' @export
 #'
 # Simulate SBM GGM data ----
-# Updated 16.03.2026
+# Updated 31.03.2026
 simulate_sbm <- function(
     nodes, blocks, density_matrix,
     snr = 1, diffusion = 0.30, diffusion_range = NULL,
@@ -483,6 +487,7 @@ simulate_sbm <- function(
         negative_proportion = negative_proportion,
         weibull = output$params,
         diffusion = output$diffusion,
+        omega = smallworldness(network = output$network, method = "omega"),
         Q = igraph::modularity(convert2igraph(abs(output$network)), output$membership)
       ),
       population = list(

@@ -155,7 +155,7 @@ Population-level network parameters:
 \itemize{
   \item \code{R} --- Population correlation matrix derived from the GGM
   via \code{pcor2cor}
-  \item \code{omega} --- Population partial correlation matrix (the GGM
+  \item \code{Omega} --- Population partial correlation matrix (the GGM
   edge weight matrix), with zeros for absent edges
 }
 }
