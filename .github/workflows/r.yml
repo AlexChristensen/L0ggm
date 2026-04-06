@@ -1,5 +1,4 @@
 # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
 on:
   push:
     branches: [main, master]
@@ -18,17 +17,34 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {os: macOS-latest,   r: 'release'}
+          # CRAN checks release + devel on both major desktop OS
+          - {os: macos-latest,   r: 'release'}
+          - {os: macos-latest,   r: 'devel'}
           - {os: windows-latest, r: 'release'}
+          - {os: windows-latest, r: 'devel'}
+          # CRAN checks release, devel, and the previous release on Linux
           - {os: ubuntu-latest,  r: 'release'}
+          - {os: ubuntu-latest,  r: 'devel'}
+          - {os: ubuntu-latest,  r: 'oldrel-1'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      # Mirrors CRAN's incoming check environment without hammering CRAN's
+      # servers to verify the package isn't already published
+      _R_CHECK_CRAN_INCOMING_: true
+      _R_CHECK_CRAN_INCOMING_REMOTE_: false
+      # CRAN treats NOTE-level issues as potential blockers; surface them here
+      _R_CHECK_FORCE_SUGGESTS_: false
+      # Stricter symbol/object lookup — catches issues CRAN's toolchain flags
+      _R_CHECK_PACKAGE_NAME_IN_CITATION_: true
 
     steps:
-        
-      - uses: actions/checkout@v2
+
+      - uses: actions/checkout@v4
+
+      # TinyTeX must come before setup-r so pdflatex is on PATH when
+      # R builds the manual (--no-manual is removed below, matching CRAN)
       - uses: r-lib/actions/setup-tinytex@v2
       - run: tlmgr --version
 
@@ -38,7 +54,7 @@ jobs:
         with:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
-          use-public-rspm: true        
+          use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
@@ -47,5 +63,11 @@ jobs:
 
       - uses: r-lib/actions/check-r-package@v2
         with:
-          args: 'c("--no-manual", "--as-cran")'
+          # --no-manual removed: CRAN always builds the PDF manual.
+          # --run-donttest added: CRAN runs \donttest{} examples on at least
+          #   one platform, so failures there will still block acceptance.
+          args: 'c("--as-cran", "--run-donttest")'
+          # Treat ERRORs and WARNINGs as failures; NOTEs are surfaced but
+          # don't fail the build (CRAN humans review NOTEs case-by-case)
+          error-on: '"warning"'
           upload-snapshots: true
