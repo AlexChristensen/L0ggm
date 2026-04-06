@@ -46,7 +46,14 @@ jobs:
       # TinyTeX must come before setup-r so pdflatex is on PATH when
       # R builds the manual (--no-manual is removed below, matching CRAN)
       - uses: r-lib/actions/setup-tinytex@v2
-      - run: tlmgr --version
+      - name: Verify tlmgr
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+              "$APPDATA/TinyTeX/bin/windows/tlmgr" --version
+          else
+            tlmgr --version
+          fi
+        shell: bash
 
       - uses: r-lib/actions/setup-pandoc@v2
 
