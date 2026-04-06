@@ -1,6 +1,8 @@
 ## Version 0.1.0
 
-o UPDATE: `smallworldness()` offers weighted version, placing largest edge weights on the nearest neighbors 
+o UPDATE: internal MLE for Gumbel was updated to root finding function (slightly faster)
+
+o UPDATE: `smallworldness()` offers weighted version, placing largest edge weights on the nearest neighbors
 
 o REMOVE: `ring2lattice()` algorithm was revised and the logic updated to the `proxswap_lattice()` algorithm
 

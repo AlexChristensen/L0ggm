@@ -4,7 +4,7 @@
 
 #' @noRd
 # MLE Gumbel Scale Parameter ----
-# Updated 05.02.2026
+# Updated 06.04.2026
 gumbel_mle <- function(x)
 {
 
@@ -16,23 +16,18 @@ gumbel_mle <- function(x)
     x_scale <- x / scale
 
     # Return log-likelihood
-    return(-n * log(scale) - sum(x_scale) - sum(exp(-x_scale)))
+    return(-n * scale + sum(x) - sum(x * exp(-x_scale)))
 
   }
 
   # Return parameters
-  return(
-    optimize(
-      f = scale_mle, interval = c(1e-04, 1),
-      x = x, n = length(x), maximum = TRUE
-    )$maximum
-  )
+  return(uniroot(f = scale_mle, interval = c(1e-04, max(x)), x = x, n = length(x))$root)
 
 }
 
 #' @noRd
 # MLE Weibull Parameters ----
-# Updated 10.01.2026
+# Updated 06.04.2026
 weibull_mle <- function(x)
 {
 
@@ -54,8 +49,8 @@ weibull_mle <- function(x)
 
   # Obtain MLE estimate
   shape <- uniroot(
-    f = shape_mle, interval = c(0.01, 20),
-    x = x, n = length(x)
+    f = shape_mle, interval = c(0.01, 10),
+    x = x, n = length(x), extendInt = "upX"
   )$root
 
   # Return parameters
