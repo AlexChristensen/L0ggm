@@ -710,24 +710,38 @@ sbm_weights <- function(
   # Set diffusion parameter
   within_reserved <- round(total_within * runif_xoshiro(1, min = diffusion[1], max = diffusion[2]))
   within_random <- total_within - within_reserved
+  random_sequence <- seq_len(within_random)
 
   # Top edges guaranteed to go into communities
   reserved_index <- seq_len(within_reserved)
 
-  # Remaining edges within-block edges
-  remaining_index <- seq_len(within_random)
-  between_index <- seq_len(total_edges - within_reserved)[-remaining_index]
+  # Identify between-community edges
+  between_sequence <- total_edges - within_reserved
+  between_index <- swiftelse(
+    within_random > 0,
+    seq_len(between_sequence)[-random_sequence],
+    seq_len(between_sequence)
+  )
+  n_between <- length(between_index)
 
   # Remaining edge weights
   remaining_weights <- shuffle(edges[-reserved_index])
 
-  # Get signs
-  signs <- swiftelse(runif_xoshiro(length(between_index)) < negative_proportion, -1, 1)
+  # Check that there is between weights to assign
+  if(n_between > 0){
 
-  # Set edges
-  block_matrix[lower_triangle][!membership_lower & block_lower] <- shuffle(remaining_weights[between_index]) * signs
+    # Get signs
+    signs <- swiftelse(runif_xoshiro(n_between) < negative_proportion, -1, 1)
+
+    # Set between-community edges
+    block_matrix[lower_triangle][!membership_lower & block_lower] <-
+    shuffle(remaining_weights[between_index]) * signs
+
+  }
+
+  # Set within-community edges
   block_matrix[lower_triangle][within_index] <- shuffle(
-    c(edges[reserved_index], remaining_weights[remaining_index])
+    c(edges[reserved_index], remaining_weights[random_sequence])
   )
 
   # Set upper triangle to zero
