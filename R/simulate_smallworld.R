@@ -788,35 +788,36 @@ smallworld_weights <- function(
 )
 {
 
-  # Create sparse lattice network
-  sparse_lattice <- sparse_network(lattice)
-  sparse_lattice <- sparse_lattice[sparse_lattice$weight == 1,]
-  distance <- abs(sparse_lattice$row - sparse_lattice$col)
-  sparse_lattice$weight <- pmin(distance, nodes - distance)
+  # Set node sequence
+  node_sequence <- seq_len(nodes)
 
-  # Get not retained edges
-  retained <- (lattice == 1) & (A == 1)
+  # Set up distance matrix
+  distance_matrix <- abs(outer(node_sequence, node_sequence, "-"))
+  distance_matrix <- pmin(distance_matrix, nodes - distance_matrix)
 
-  # Get sparse retained edges
-  sparse_retained <- sparse_network(retained)
-  sparse_retained <- sparse_retained[sparse_retained$weight,]
+  # Set edges
+  lattice_edges <- lattice == 1
+  A_edges <- A == 1
 
-  # Create character sequence
-  sparse_lattice_edges <- paste(sparse_lattice$row, sparse_lattice$col)
-  sparse_retained_edges <- paste(sparse_retained$row, sparse_retained$col)
+  # Set up smallworld distances
+  smallworld <- matrix(0, nrow = nodes, ncol = nodes)
 
-  # Update sparse lattice
-  sparse_lattice <- sparse_lattice[sparse_lattice_edges %in% sparse_retained_edges,]
+  # Get sorted rewired distances
+  rewired_distances <- sort(distance_matrix[lower_triangle][(lattice_edges & !A_edges)[lower_triangle]])
 
-  # Reset lattice network
-  lattice[] <- neighbors + 1
+  # Set index for rewired indices
+  rewired_index <- !lattice_edges & A_edges
 
-  # Rebuild lattice
-  for(i in 1:nrow(sparse_lattice)){
-    lattice[sparse_lattice$row[i],sparse_lattice$col[i]] <-
-      lattice[sparse_lattice$col[i],sparse_lattice$row[i]] <-
-      sparse_lattice$weight[i]
-  }
+  # Set up lower triangle with rewired distances
+  smallworld[lower_triangle][rewired_index[lower_triangle]] <- rewired_distances[
+    rank(distance_matrix[lower_triangle][rewired_index[lower_triangle]], ties.method = "random")
+  ]
+
+  # Make symmetric
+  smallworld <- smallworld + t(smallworld)
+
+  # Multiply retained by distance matrix
+  smallworld <- smallworld + ((lattice_edges & A_edges) * distance_matrix)
 
   # Obtain nonzero edges
   nonzero <- A[lower_triangle] != 0
@@ -829,7 +830,7 @@ smallworld_weights <- function(
 
   # Set weights order
   # Follows: Muldoon, Bridgeford, & Bassett's (2016) implementation
-  weight_order <- rank(lattice[lower_triangle][nonzero], ties.method = "random")
+  weight_order <- rank(distance_matrix[lower_triangle][nonzero], ties.method = "random")
   network[lower_triangle][nonzero] <- edges[weight_order]
   network <- network + t(network) # make symmetric
 
