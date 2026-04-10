@@ -412,7 +412,7 @@ network_estimation <- function(
     if(penalty == "exp"){
 
       # Set 95th percentile
-      noise_floor <- -log(0.05) / mean(lower_P)
+      noise_floor <- -log(0.05) * mean(lower_P)
 
     }else if(penalty == "gumbel"){
 
