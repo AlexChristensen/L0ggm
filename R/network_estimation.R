@@ -411,21 +411,22 @@ network_estimation <- function(
 
     if(penalty == "exp"){
 
-      # Set 5th percentile
-      gamma <- -log(0.95) * mean(lower_P)
+      # Set 10th percentile
+      gamma <- -log(0.90) * mean(lower_P)
 
     }else if(penalty == "gumbel"){
 
-      # Set 5th percentile
-      gamma <- gumbel_mle(lower_P) * log(-log(0.05))
+      # Set 0.4065697 percentile
+      # (makes equivalent to EXP and Weibull when scale = 0.10)
+      gamma <- -gumbel_mle(lower_P) * log(-log(exp(-0.90)))
 
     }else if(penalty == "weibull"){
 
       # Obtain Weibull estimates
       estimates <- weibull_mle(lower_P)
 
-      # Set 5th percentile
-      gamma <- estimates[["scale"]] * (-log(0.95))^(1 / estimates[["shape"]])
+      # Set 10th percentile
+      gamma <- estimates[["scale"]] * (-log(0.90))^(1 / estimates[["shape"]])
 
     }
 

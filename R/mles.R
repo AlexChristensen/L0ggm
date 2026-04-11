@@ -3,25 +3,32 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 #' @noRd
-# MLE Gumbel Scale Parameter ----
-# Updated 06.04.2026
+# MLE (Folded) Gumbel Scale Parameter ----
+# Updated 11.04.2026
 gumbel_mle <- function(x)
 {
 
   # Set up MLE for scale
-  scale_mle <- function(scale, x, n)
+  scale_mle <- function(scale, x)
   {
 
     # Pre-compute reused values
     x_scale <- x / scale
+    neg_x_scale <- -x_scale
+
+    # Compute log density
+    density <- log(
+      exp(neg_x_scale - exp(neg_x_scale)) +
+        exp(x_scale - exp(x_scale))
+    ) - log(scale)
 
     # Return log-likelihood
-    return(-n * scale + sum(x) - sum(x * exp(-x_scale)))
+    return(-sum(density))
 
   }
 
   # Return parameters
-  return(uniroot(f = scale_mle, interval = c(1e-04, max(x)), x = x, n = length(x))$root)
+  return(optimize(f = scale_mle, interval = c(1e-04, max(x)), x = x)$minimum)
 
 }
 
