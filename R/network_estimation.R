@@ -312,7 +312,7 @@
 #' @export
 #'
 # Apply non-convex regularization ----
-# Updated 08.03.2026
+# Updated 11.04.2026
 network_estimation <- function(
     data, n = NULL,
     corr = c("auto", "pearson", "spearman"),
@@ -424,8 +424,12 @@ network_estimation <- function(
       # Obtain Weibull estimates
       estimates <- weibull_mle(lower_P)
 
+      # Get shape
+      shape <- estimates[["shape"]]
+      # 'shape' needs to be set! Otherwise, will default to 1 (from above)
+
       # Set 10th percentile
-      gamma <- estimates[["scale"]] * (-log(0.90))^(1 / estimates[["shape"]])
+      gamma <- estimates[["scale"]] * (-log(0.90))^(1 / shape)
 
     }
 
@@ -483,6 +487,11 @@ network_estimation <- function(
 
         # Increase iterations
         iterations <- iterations + 1
+
+        # Check for diagonal penalization
+        if(!penalize_diagonal){
+          diag(new_K) <- diag(old_K) <- 0
+        }
 
         # Compute convergence
         convergence <- max(abs(new_K - old_K))
