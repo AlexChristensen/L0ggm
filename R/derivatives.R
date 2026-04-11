@@ -45,7 +45,7 @@ gumbel_derivative <- function(x, lambda, gamma = 0.01, ...)
   # gamma_x <- abs(x) / gamma
   #
   # # Return derivative
-  # return((lambda / (1 - exp(-1))) * (1 / gamma) * exp(-gamma_x - exp(-gamma_x)))
+  # return((lambda / gamma) * (exp(-gamma_x - exp(-gamma_x)) + exp(gamma_x - exp(gamma_x))))
 
   # Return derivative
   return(

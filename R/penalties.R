@@ -23,19 +23,16 @@ exp_penalty <- function(x, lambda, gamma = 0.01, ...)
 }
 
 #' @noRd
-# Updated 09.02.2026
+# Updated 11.04.2026
 gumbel_penalty <- function(x, lambda, gamma = 0.01, ...)
 {
 
-  # Pre-compute
-  exp_1 <- exp(-1)
+  # Pre-compute components
+  x <- abs(x)
 
-  return((lambda / (1 - exp_1)) * (exp(-exp(-abs(x) / gamma)) - exp_1))
-  # theoretically, the `- exp(-1)` is necessary for the
-  # penalty to converge at zero for the sparsity condition
-  # in practice, this addition does not change the derivative,
-  # which is used in the LLA
-  # `1 - exp(-1)` is to scale lambda
+  # Return penalty
+  return(lambda * (exp(-exp(-x / gamma)) - exp(-exp(x / gamma))))
+
 }
 
 #' @noRd

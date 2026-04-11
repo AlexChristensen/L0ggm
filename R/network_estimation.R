@@ -416,9 +416,8 @@ network_estimation <- function(
 
     }else if(penalty == "gumbel"){
 
-      # Set 0.4065697 percentile
-      # (makes equivalent to EXP and Weibull when scale = 0.10)
-      gamma <- -gumbel_mle(lower_P) * log(-log(exp(-0.90)))
+      # Set 10th percentile
+      gamma <- qgumbel(0.10, gumbel_mle(lower_P))
 
     }else if(penalty == "weibull"){
 
@@ -640,6 +639,19 @@ network_regularization_errors <- function(
   # Return data in case of tibble
   return(data)
 
+}
+
+#' @noRd
+# (Folded) Gumbel quantile----
+# Updated 11.04.2026
+qgumbel <- function(p, scale)
+{
+  uniroot(
+    f = function(q){
+      exp(-exp(-q / scale)) - exp(-exp(q / scale)) - p
+    },
+    interval = c(0, scale * 100)
+  )$root
 }
 
 #' @noRd

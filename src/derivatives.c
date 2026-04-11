@@ -62,8 +62,7 @@ SEXP exp_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_)
 /* gumbel_derivative
  *
  * R equivalent:
- *   (lambda / (1 - exp(-1))) * (1 / gamma) * exp(-gamma_x - exp(-gamma_x))
- *   where gamma_x = abs(x) / gamma
+ *   (lambda / gamma) * (exp(-gamma_x - exp(-gamma_x)) + exp(gamma_x - exp(gamma_x)))
  */
 SEXP gumbel_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_)
 {
@@ -74,12 +73,12 @@ SEXP gumbel_derivative_c(SEXP x_, SEXP lambda_, SEXP gamma_)
     const double lambda = REAL(lambda_)[0];
     const double gamma  = REAL(gamma_)[0];
 
-    /* Pre-compute the scaling constant: lambda / ((1 - exp(-1)) * gamma) */
-    const double scale = lambda / ((1.0 - exp(-1.0)) * gamma);
+    /* Pre-compute the scaling constant: lambda / gamma */
+    const double scale = lambda / gamma;
 
     for (int i = 0; i < n; i++) {
         double gx = fabs(x[i]) / gamma;
-        REAL(out)[i] = scale * exp(-gx - exp(-gx));
+        REAL(out)[i] = scale * (exp(-gx - exp(-gx)) + exp(gx - exp(gx)));
     }
 
     UNPROTECT(1);
