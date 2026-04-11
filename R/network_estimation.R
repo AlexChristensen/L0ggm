@@ -411,26 +411,23 @@ network_estimation <- function(
 
     if(penalty == "exp"){
 
-      # Set 95th percentile
-      noise_floor <- -log(0.05) * mean(lower_P)
+      # Set 5th percentile
+      gamma <- -log(0.95) * mean(lower_P)
 
     }else if(penalty == "gumbel"){
 
-      # Set 95th percentile
-      noise_floor <- -gumbel_mle(lower_P) * log(-log(0.95))
+      # Set 5th percentile
+      gamma <- -gumbel_mle(lower_P) * log(-log(0.05))
 
     }else if(penalty == "weibull"){
 
       # Obtain Weibull estimates
       estimates <- weibull_mle(lower_P)
 
-      # Set 95th percentile
-      noise_floor <- estimates[["scale"]] * (-log(0.05))^(1 / estimates[["shape"]])
+      # Set 5th percentile
+      gamma <- estimates[["scale"]] * (-log(0.95))^(1 / estimates[["shape"]])
 
     }
-
-    # Set noise floor with p = 0.05
-    gamma <- noise_floor / sqrt(n)
 
   }
 
