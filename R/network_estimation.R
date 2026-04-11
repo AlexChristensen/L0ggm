@@ -417,7 +417,7 @@ network_estimation <- function(
     }else if(penalty == "gumbel"){
 
       # Set 5th percentile
-      gamma <- -gumbel_mle(lower_P) * log(-log(0.05))
+      gamma <- gumbel_mle(lower_P) * log(-log(0.05))
 
     }else if(penalty == "weibull"){
 
