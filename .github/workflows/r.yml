@@ -46,6 +46,15 @@ jobs:
       # TinyTeX must come before setup-r so pdflatex is on PATH when
       # R builds the manual (--no-manual is removed below, matching CRAN)
       - uses: r-lib/actions/setup-tinytex@v2
+
+      # Windows TinyTeX ships a minimal package set; install everything needed
+      # to render a complete R package PDF manual before the check runs
+      - name: Install LaTeX packages for PDF manual (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          tlmgr install makeindex inconsolata helvetic times amsmath cm-super tex-gyre
+
       - name: Verify tlmgr (non-Windows)
         if: runner.os != 'Windows'
         run: tlmgr --version
