@@ -135,7 +135,7 @@ The five penalties available in {L0ggm} are:
 <img src="images/derivative.png" width = 700 />
 </p>
 
-<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>. Gumbel is roughly equivalent to EXP (not pictured) and Weibull $k = 1$ is exactly EXP.</em>
+<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>. Gumbel is roughly equivalent to EXP (not pictured) and Weibull k = 1 is exactly EXP.</em>
 
 </details>
 
@@ -177,11 +177,11 @@ This matches $\gamma = 0.01$, the fixed default known to work well with the EXP 
 
 The derivative used in the LLA is defined piecewise to ensure the penalty weight is always non-increasing in $|x|$. When $k \leq 1$ the Weibull PDF is already monotonically decreasing, so the standard formula applies directly. When $k > 1$ the raw PDF has an interior mode at $x^* = \gamma \left(\tfrac{k-1}{k}\right)^{1/k}$; values below this mode would otherwise receive *less* weight than values above it, violating the oracle-property requirement. The derivative is therefore capped at its peak for $|x| \leq x^*$:
 
-```math
-\rho'(x; \lambda, \gamma, k) = \lambda \cdot \frac{k}{\gamma} \times \begin{cases} \left(\dfrac{x^*}{\gamma}\right)^{k-1} e^{-(x^*/\gamma)^k} & \text{if } k > 1 \text{ and } |x| \leq x^* \\ \left(\dfrac{|x|}{\gamma}\right)^{k-1} e^{-(|x|/\gamma)^k} & \text{otherwise} \end{cases}
-```
+<p align="left">
+<img src="images/weibull_derivative.png"/>
+</p>
 
-where $x^* = \gamma \left(\dfrac{k-1}{k}\right)^{1/k}$ is the mode of the Weibull PDF. The resulting derivative is monotonically non-increasing for all $k > 0$: as $|x|$ grows past the peak, weights decay to zero — large true edges receive vanishingly small additional penalization, directly addressing the magnitude bias of $L_1$ methods.
+where $x^{\ast} = \gamma \left(\dfrac{k-1}{k}\right)^{1/k}$ is the mode of the Weibull PDF. The resulting derivative is monotonically non-increasing for all $k > 0$: as $|x|$ grows past the peak, weights decay to zero — large true edges receive vanishingly small additional penalization, directly addressing the magnitude bias of $L_1$ methods.
 
 #### Distributional foundations and extreme value theory
 
