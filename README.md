@@ -135,7 +135,7 @@ The five penalties available in {L0ggm} are:
 <img src="images/derivative.png" width = 700 />
 </p>
 
-<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>. Gumbel is roughly equivalent to EXP (not pictured) and Weibull $k = 1$ is exactly EXP.</em>
+<em><strong>Figure 1.</strong></em> $L_0$ <em>norm approximation penalties as a function of coefficient magnitude. Solid line:</em> $L_0$ <em>norm (step function). Dashed lines:</em> $L_1$ <em>norm (LASSO) and each continuous approximation penalty implemented in</em> {L0ggm}<em>. Gumbel is roughly equivalent to EXP (not pictured) and Weibull k = 1 is exactly EXP.</em>
 
 </details>
 
@@ -177,11 +177,11 @@ This matches $\gamma = 0.01$, the fixed default known to work well with the EXP 
 
 The derivative used in the LLA is defined piecewise to ensure the penalty weight is always non-increasing in $|x|$. When $k \leq 1$ the Weibull PDF is already monotonically decreasing, so the standard formula applies directly. When $k > 1$ the raw PDF has an interior mode at $x^* = \gamma \left(\tfrac{k-1}{k}\right)^{1/k}$; values below this mode would otherwise receive *less* weight than values above it, violating the oracle-property requirement. The derivative is therefore capped at its peak for $|x| \leq x^*$:
 
-```math
-\rho'(x; \lambda, \gamma, k) = \lambda \cdot \frac{k}{\gamma} \times \begin{cases} \left(\dfrac{x^*}{\gamma}\right)^{k-1} e^{-(x^*/\gamma)^k} & \text{if } k > 1 \text{ and } |x| \leq x^* \\ \left(\dfrac{|x|}{\gamma}\right)^{k-1} e^{-(|x|/\gamma)^k} & \text{otherwise} \end{cases}
-```
+<p align="left">
+<img src="images/weibull_derivative.png"/>
+</p>
 
-where $x^* = \gamma \left(\dfrac{k-1}{k}\right)^{1/k}$ is the mode of the Weibull PDF. The resulting derivative is monotonically non-increasing for all $k > 0$: as $|x|$ grows past the peak, weights decay to zero — large true edges receive vanishingly small additional penalization, directly addressing the magnitude bias of $L_1$ methods.
+where $x^{\ast} = \gamma \left(\dfrac{k-1}{k}\right)^{1/k}$ is the mode of the Weibull PDF. The resulting derivative is monotonically non-increasing for all $k > 0$: as $|x|$ grows past the peak, weights decay to zero — large true edges receive vanishingly small additional penalization, directly addressing the magnitude bias of $L_1$ methods.
 
 #### Distributional foundations and extreme value theory
 
@@ -340,24 +340,26 @@ The shared simulation pipeline is implemented in `helpers_simulation.R` and hand
 
 ## References
 
-Candes, E. J., Wakin, M. B., & Boyd, S. P. (2008). Enhancing sparsity by reweighted l1 minimization. *Journal of Fourier Analysis and Applications*, *14*(5), 877--905. https://doi.org/10.1007/s00041-008-9045-x
+Candes, E. J., Wakin, M. B., & Boyd, S. P. (2008). Enhancing sparsity by reweighted l1 minimization. *Journal of Fourier Analysis and Applications*, *14*(5), 877&ndash;905. https://doi.org/10.1007/s00041-008-9045-x
 
-Fisher, R. A., & Tippett, L. H. C. (1928). Limiting forms of the frequency distribution of the largest or smallest member of a sample. *Mathematical Proceedings of the Cambridge Philosophical Society*, *24*(2), 180--190. https://doi.org/10.1017/S0305004100015681
+Fisher, R. A., & Tippett, L. H. C. (1928). Limiting forms of the frequency distribution of the largest or smallest member of a sample. *Mathematical Proceedings of the Cambridge Philosophical Society*, *24*(2), 180&ndash;190. https://doi.org/10.1017/S0305004100015681
 
-Gnedenko, B. (1943). Sur la distribution limite du terme maximum d'une série aléatoire. *Annals of Mathematics*, *44*(3), 423--453. https://doi.org/10.2307/1968974
+Gnedenko, B. (1943). Sur la distribution limite du terme maximum d'une série aléatoire. *Annals of Mathematics*, *44*(3), 423&ndash;453. https://doi.org/10.2307/1968974
 
-Dicker, L., Huang, B., & Lin, X. (2013). Variable selection and estimation with the seamless-L0 penalty. *Statistica Sinica*, *23*(2), 929--962. https://doi.org/10.5705/ss.2011.074
+Dicker, L., Huang, B., & Lin, X. (2013). Variable selection and estimation with the seamless-L0 penalty. *Statistica Sinica*, *23*(2), 929&ndash;962. https://doi.org/10.5705/ss.2011.074
 
-Fan, J., & Li, R. (2001). Variable selection via nonconcave penalized likelihood and its oracle properties. *Journal of the American Statistical Association*, *96*(456), 1348--1360. https://doi.org/10.1198/016214501753382273
+Fan, J., & Li, R. (2001). Variable selection via nonconcave penalized likelihood and its oracle properties. *Journal of the American Statistical Association*, *96*(456), 1348&ndash;1360. https://doi.org/10.1198/016214501753382273
 
-Friedman, J., Hastie, T., & Tibshirani, R. (2008). Sparse inverse covariance estimation with the graphical lasso. *Biostatistics*, *9*(3), 432--441. https://doi.org/10.1093/biostatistics/kxm045
+Friedman, J., Hastie, T., & Tibshirani, R. (2008). Sparse inverse covariance estimation with the graphical lasso. *Biostatistics*, *9*(3), 432&ndash;441. https://doi.org/10.1093/biostatistics/kxm045
 
 Huth, K. B. S., Haslbeck, J. M. B., Keetelaar, S., Van Holst, R. J., & Marsman, M. (2025). Statistical evidence in psychological networks. *Nature Human Behaviour*.
 
-Wang, Y., Fan, Q., & Zhu, L. (2018). Variable selection and estimation using a continuous approximation to the $L_0$ penalty. *Annals of the Institute of Statistical Mathematics*, *70*(1), 191--214. https://doi.org/10.1007/s10463-016-0588-3
+Peeters, C. F., van de Wiel, M. A., & van Wieringen, W. N. (2020). The spectral condition number plot for regularization parameter evaluation. *Computational Statistics*, *35*(2), 629&ndash;646. https://doi.org/10.1007/s00180-019-00912-z
 
-Wang, Y., & Zhu, L. (2016). Variable selection and parameter estimation with the Atan regularization method. *Journal of Probability and Statistics*, *2016*, 1--12. https://doi.org/10.1155/2016/6495417
+Wang, Y., Fan, Q., & Zhu, L. (2018). Variable selection and estimation using a continuous approximation to the $L_0$ penalty. *Annals of the Institute of Statistical Mathematics*, *70*(1), 191&ndash;214. https://doi.org/10.1007/s10463-016-0588-3
+
+Wang, Y., & Zhu, L. (2016). Variable selection and parameter estimation with the Atan regularization method. *Journal of Probability and Statistics*, *2016*, 1&ndash;12. https://doi.org/10.1155/2016/6495417
 
 Williams, D. R. (2020). Beyond lasso: A survey of nonconvex regularization in Gaussian graphical models. *PsyArXiv*. https://doi.org/10.31234/osf.io/ad57p
 
-Zou, H., & Li, R. (2008). One-step sparse estimates in nonconcave penalized likelihood models. *Annals of Statistics*, *36*(4), 1509--1533. https://doi.org/10.1198/016214506000000735
+Zou, H., & Li, R. (2008). One-step sparse estimates in nonconcave penalized likelihood models. *Annals of Statistics*, *36*(4), 1509&ndash;1533. https://doi.org/10.1198/016214506000000735
