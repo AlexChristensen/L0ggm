@@ -629,7 +629,7 @@ lattice_generate <- function(nodes, neighbors)
 
 #' @noRd
 # Prune neighbors to density ----
-# Updated 16.03.2026
+# Updated 12.04.2026
 prune2density <- function(lattice, density, nodes, lower_triangle)
 {
 
@@ -637,10 +637,12 @@ prune2density <- function(lattice, density, nodes, lower_triangle)
   original_lattice <- lattice
 
   # Iniitialize lower triangle
-  lattice_lower <- original_lattice[lower_triangle]
+  lattice_copy <- original_lattice[lower_triangle]
 
-  # Compute possible edges
-  possible_edges <- nodes * (nodes - 1) / 2
+  # Compute target edges
+  target_edges <- round(
+    density * (nodes * (nodes - 1) / 2)
+  )
 
   # Initilaize connectedness
   connected <- FALSE
@@ -648,12 +650,15 @@ prune2density <- function(lattice, density, nodes, lower_triangle)
   # Connecteness loop
   while(!connected){
 
+    # Initialize lower lattice
+    lattice_lower <- lattice_copy
+
     # Obtain current edges
     nonzero <- which(lattice_lower != 0)
     current_edges <- length(nonzero)
 
     # Obtain number of nodes to remove
-    remove_edges <- current_edges - round(density * possible_edges)
+    remove_edges <- current_edges - target_edges
 
     # Check for whether edges is zero or negative
     if(remove_edges < 1){
