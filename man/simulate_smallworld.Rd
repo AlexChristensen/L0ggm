@@ -139,14 +139,12 @@ A list of input, derived, and estimated parameters:
   values indicate random-like structure (see \code{\link[L0ggm]{smallworldness}})
   \item \code{Q} --- Newman-Girvan modularity of the population network
   (\code{Omega}) computed via \code{igraph::modularity} on absolute edge
-  weights, using the community partition that maximizes modularity
-  (\code{igraph::cluster_optimal}). Because \code{cluster_optimal} finds
-  the exact modularity maximum, \code{Q} represents an upper bound on
-  recoverable community structure in the network rather than the result
-  of a heuristic partition. Values near zero indicate absence of community
-  structure, consistent with the network theory of psychopathology.
-  Note that \code{cluster_optimal} is computationally intensive for large
-  networks; runtime increases substantially beyond 50 nodes
+  weights, using the community partition returned by
+  \code{igraph::cluster_leiden} with \code{objective_function =
+  "modularity"}. Because \code{cluster_leiden} is a heuristic algorithm,
+  \code{Q} reflects a high-quality but not necessarily optimal partition.
+  Values near zero indicate absence of community structure, consistent
+  with the network theory of psychopathology.
 }
 }
 
@@ -262,27 +260,6 @@ giving an expected negative proportion of \eqn{2 \cdot (k/n) \cdot
 (1 - k/n)} for \eqn{k} flipped nodes out of \eqn{n} total. The formula
 requires \eqn{p \leq 0.50}, which is why \code{negative_proportion} is
 bounded at 0.50.
-
-\strong{Small-worldness screening}
-
-Each generated adjacency structure is screened using the omega statistic
-(Telesford et al., 2011): \eqn{\omega = (L_r / L) - (C / C_l)}, where
-\eqn{L} is the average shortest path length (ASPL) of the network,
-\eqn{L_r} is the expected ASPL of a random graph with the same degree
-sequence, \eqn{C} is the average clustering coefficient, and \eqn{C_l}
-is the clustering coefficient of the pruned lattice (before rewiring).
-Networks with \eqn{|\omega| > 0.80} are rejected. The random-graph ASPL
-\eqn{L_r} is computed analytically via Equation 54 of Newman, Strogatz,
-and Watts (2001):
-\eqn{L_r = \ln(N / z_1) / \ln(z_2 / z_1) + 1}, where \eqn{z_1} is the
-mean degree and \eqn{z_2 = \overline{k^2} - \overline{k}} is the mean
-number of second neighbors, when the conditions \eqn{N > z_1} and
-\eqn{z_2 > z_1} are satisfied. When these conditions are not met, a
-simulation-based estimate using \code{iter = 100} degree-sequence-matched
-random graphs is used as a fallback. Note that the lattice clustering
-reference \eqn{C_l} is computed from the pruned lattice rather than from
-an idealized regular ring, which is internally consistent with the
-data generating process.
 }
 \examples{
 # Basic small-world network (moderate density, moderate rewiring)

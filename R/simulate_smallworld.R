@@ -171,27 +171,6 @@
 #' requires \eqn{p \leq 0.50}, which is why \code{negative_proportion} is
 #' bounded at 0.50.
 #'
-#' \strong{Small-worldness screening}
-#'
-#' Each generated adjacency structure is screened using the omega statistic
-#' (Telesford et al., 2011): \eqn{\omega = (L_r / L) - (C / C_l)}, where
-#' \eqn{L} is the average shortest path length (ASPL) of the network,
-#' \eqn{L_r} is the expected ASPL of a random graph with the same degree
-#' sequence, \eqn{C} is the average clustering coefficient, and \eqn{C_l}
-#' is the clustering coefficient of the pruned lattice (before rewiring).
-#' Networks with \eqn{|\omega| > 0.80} are rejected. The random-graph ASPL
-#' \eqn{L_r} is computed analytically via Equation 54 of Newman, Strogatz,
-#' and Watts (2001):
-#' \eqn{L_r = \ln(N / z_1) / \ln(z_2 / z_1) + 1}, where \eqn{z_1} is the
-#' mean degree and \eqn{z_2 = \overline{k^2} - \overline{k}} is the mean
-#' number of second neighbors, when the conditions \eqn{N > z_1} and
-#' \eqn{z_2 > z_1} are satisfied. When these conditions are not met, a
-#' simulation-based estimate using \code{iter = 100} degree-sequence-matched
-#' random graphs is used as a fallback. Note that the lattice clustering
-#' reference \eqn{C_l} is computed from the pruned lattice rather than from
-#' an idealized regular ring, which is internally consistent with the
-#' data generating process.
-#'
 #' @return A named list with four elements:
 #'
 #' \item{data}{Numeric matrix of dimension \code{sample_size x nodes}
@@ -225,14 +204,12 @@
 #'   values indicate random-like structure (see \code{\link[L0ggm]{smallworldness}})
 #'   \item \code{Q} --- Newman-Girvan modularity of the population network
 #'   (\code{Omega}) computed via \code{igraph::modularity} on absolute edge
-#'   weights, using the community partition that maximizes modularity
-#'   (\code{igraph::cluster_optimal}). Because \code{cluster_optimal} finds
-#'   the exact modularity maximum, \code{Q} represents an upper bound on
-#'   recoverable community structure in the network rather than the result
-#'   of a heuristic partition. Values near zero indicate absence of community
-#'   structure, consistent with the network theory of psychopathology.
-#'   Note that \code{cluster_optimal} is computationally intensive for large
-#'   networks; runtime increases substantially beyond 50 nodes
+#'   weights, using the community partition returned by
+#'   \code{igraph::cluster_leiden} with \code{objective_function =
+#'   "modularity"}. Because \code{cluster_leiden} is a heuristic algorithm,
+#'   \code{Q} reflects a high-quality but not necessarily optimal partition.
+#'   Values near zero indicate absence of community structure, consistent
+#'   with the network theory of psychopathology.
 #' }
 #' }
 #'
@@ -329,7 +306,7 @@
 #' @export
 #'
 # Simulate Small-world GGM data ----
-# Updated 18.03.2026
+# Updated 13.04.2026
 simulate_smallworld <- function(
     nodes, density, rewire, snr = 1, negative_proportion,
     sample_size, skew = 0, skew_range = NULL,
@@ -422,7 +399,7 @@ simulate_smallworld <- function(
     # Try to get good weights
     output <- try(
       smallworld_weights(
-        A, pruned_lattice, nodes, neighbors, sample_size,
+        A, pruned_lattice, nodes, sample_size,
         snr, negative_proportion, target_condition,
         max_correlation, lower_triangle
       ), silent = TRUE
@@ -629,14 +606,14 @@ lattice_generate <- function(nodes, neighbors)
 
 #' @noRd
 # Prune neighbors to density ----
-# Updated 12.04.2026
+# Updated 13.04.2026
 prune2density <- function(lattice, density, nodes, lower_triangle)
 {
 
   # Store original lattice
   original_lattice <- lattice
 
-  # Iniitialize lower triangle
+  # Initialize lower triangle
   lattice_copy <- original_lattice[lower_triangle]
 
   # Compute target edges
@@ -711,11 +688,8 @@ smallworld_generate <- function(lattice, rewire, lower_triangle)
     # Loop over edges to rewire
     for(edge in rewire_edges){
 
-      # Update zero edges
-      zero_edges <- intersect(which(sparse_lattice$weight == 0), valid_targets)
-
       # Check for no more updates
-      if(length(zero_edges) == 0){
+      if(length(valid_targets) == 0){
         break
       }
 
@@ -726,7 +700,7 @@ smallworld_generate <- function(lattice, rewire, lower_triangle)
       # Get candidate edges
       candidate_edges <- intersect(
         which((sparse_lattice$row == node_i) | (sparse_lattice$col == node_i)),
-        zero_edges
+        valid_targets
       )
 
       # Check for candidate edges
@@ -771,12 +745,9 @@ smallworld_generate <- function(lattice, rewire, lower_triangle)
 
   # Rebuild network
   lattice[] <- 0
+  lattice[cbind(nonzero_network$row, nonzero_network$col)] <-
+  lattice[cbind(nonzero_network$col, nonzero_network$row)] <- 1
 
-  # Loop over and fill
-  for(i in 1:nrow(nonzero_network)){
-    lattice[nonzero_network$row[i], nonzero_network$col[i]] <-
-      lattice[nonzero_network$col[i], nonzero_network$row[i]] <- 1
-  }
 
   # Return network
   return(lattice)
@@ -785,9 +756,9 @@ smallworld_generate <- function(lattice, rewire, lower_triangle)
 
 #' @noRd
 # Smallworld weight generation ----
-# Updated 14.03.2026
+# Updated 13.04.2026
 smallworld_weights <- function(
-    A, lattice, nodes, neighbors, sample_size,
+    A, lattice, nodes, sample_size,
     snr, negative_proportion, target_condition,
     max_correlation, lower_triangle
 )
@@ -835,7 +806,7 @@ smallworld_weights <- function(
 
   # Set weights order
   # Follows: Muldoon, Bridgeford, & Bassett's (2016) implementation
-  weight_order <- rank(distance_matrix[lower_triangle][nonzero], ties.method = "random")
+  weight_order <- rank(smallworld[lower_triangle][nonzero], ties.method = "random")
   network[lower_triangle][nonzero] <- edges[weight_order]
   network <- network + t(network) # make symmetric
 
