@@ -38,7 +38,7 @@
 #'     size on edge weight distributions. Used in both the shape and scale
 #'     equations.}
 #'   \item{\code{scaling}}{The standard error of partial correlations defined as
-#'     \eqn{\sqrt{1 / (n - p - 1)}}, where \eqn{n} is the sample size and
+#'     \eqn{\sqrt{1 / (n - p)}}, where \eqn{n} is the sample size and
 #'     \eqn{p} is the number of nodes. Larger values indicate greater sampling
 #'     uncertainty in the partial correlation estimates. Used in the scale
 #'     equation only.}
@@ -117,7 +117,7 @@ weibull_parameters <- function(nodes, sample_size, snr = 1, bootstrap = FALSE)
 
   # Compute descriptive parameters
   shape_parameters <- c(snr = snr, rlp = 1 / log(nodes))
-  scale_parameters <- c(shape_parameters, scaling = sqrt(1 / (sample_size - nodes - 1)))
+  scale_parameters <- c(shape_parameters, scaling = sqrt(1 / (sample_size - nodes)))
 
   # Compute Weibull parameters
   shape <- unname(

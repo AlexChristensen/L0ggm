@@ -28,7 +28,7 @@
 #'     \item{\code{rlp}}{Reciprocal log of node count, \eqn{1 / \log(p)},
 #'     where \eqn{p} is the number of nodes. Used in both equations.}
 #'     \item{\code{scaling}}{Standard error of partial correlations,
-#'     \eqn{\sqrt{1 / (n - p - 1)}}, where \eqn{n} is the sample size and
+#'     \eqn{\sqrt{1 / (n - p)}}, where \eqn{n} is the sample size and
 #'     \eqn{p} is the number of nodes. Used in the scale equation only.}
 #'   }}
 #'   \item{\code{residuals}}{A numeric vector of residuals from the fitted SUR
