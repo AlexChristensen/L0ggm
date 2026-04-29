@@ -52,7 +52,7 @@ that differ between the two SUR equations:
     size on edge weight distributions. Used in both the shape and scale
     equations.}
   \item{\code{scaling}}{The standard error of partial correlations defined as
-    \eqn{\sqrt{1 / (n - p - 2)}}, where \eqn{n} is the sample size and
+    \eqn{\sqrt{1 / (n - p - 1)}}, where \eqn{n} is the sample size and
     \eqn{p} is the number of nodes. Larger values indicate greater sampling
     uncertainty in the partial correlation estimates. Used in the scale
     equation only.}
