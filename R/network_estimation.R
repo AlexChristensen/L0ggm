@@ -50,6 +50,7 @@
 #' }
 #'
 #' @param penalty Character (length = 1).
+#' Defaults to \code{"weibull"}.
 #' Available options:
 #'
 #' \itemize{
@@ -106,7 +107,8 @@
 #'
 #' }
 #'
-#' All adaptive penalties use the 95\% confidence interval from zero
+#' When \code{adaptive = TRUE}, gamma is set to the 10th percentile of the
+#' distribution fitted to the empirical partial correlations
 #'
 #' @param nlambda Numeric (length = 1).
 #' Number of lambda values to test.
