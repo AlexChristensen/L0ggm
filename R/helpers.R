@@ -516,7 +516,7 @@ skew_generator <- function(
 
       # Skew greater than
       if(skew_actual < skewness){
-        limitinf <- proportion
+        limitsinf <- proportion
         proportion <- (proportion + limitsup) / 2
       }else{
         limitsup <- proportion
@@ -1990,7 +1990,7 @@ textsymbol <- function(
       symbol,
       alpha = "\u03B1", beta = "\u03B2", chi = "\u03C7",
       delta = "\u03B4", eta = "\u03B7", gamma = "\u03B3",
-      lambda = "\u03BB,", omega = "\u03C9", phi = "\u03C6",
+      lambda = "\u03BB", omega = "\u03C9", phi = "\u03C6",
       pi = "\u03C0", rho = "\u03C1", sigma = "\u03C3", tau = "\u03C4",
       theta = "\u03B8", "square root" = "\u221A", infinity = "\u221E",
       "check mark" = "\u2713", x = "\u2717", bullet = "\u2022"

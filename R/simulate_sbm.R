@@ -344,7 +344,7 @@
 #' @export
 #'
 # Simulate SBM GGM data ----
-# Updated 31.03.2026
+# Updated 15.05.2026
 simulate_sbm <- function(
     nodes, blocks, density_matrix,
     snr = 1, diffusion = 0.30, diffusion_range = NULL,
@@ -418,7 +418,7 @@ simulate_sbm <- function(
       # Return error
       stop(
         paste0(
-          "Reached maximum iterations: Could not find weights that for the SBM structure. ",
+          "Reached maximum iterations: Could not find weights that converge for the SBM structure. ",
           "Resulting rejections were due to:\n\n",
           paste0(names(rejection_table), " = ", rejection_table, collapse = "\n")
         )

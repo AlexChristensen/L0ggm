@@ -306,7 +306,7 @@
 #' @export
 #'
 # Simulate Small-world GGM data ----
-# Updated 13.04.2026
+# Updated 15.05.2026
 simulate_smallworld <- function(
     nodes, density, rewire, snr = 1, negative_proportion,
     sample_size, skew = 0, skew_range = NULL,
@@ -371,7 +371,7 @@ simulate_smallworld <- function(
       # Return error
       stop(
         paste0(
-          "Reached maximum iterations: Could not find weights that for the small-world structure.\n",
+          "Reached maximum iterations: Could not find weights that converge for the small-world structure.\n",
           "Resulting rejections were due to:\n\n",
           paste0(names(rejection_table), " = ", rejection_table, collapse = "\n")
         )
