@@ -328,6 +328,9 @@ network_estimation <- function(
 )
 {
 
+  # Set ellipse
+  ellipse <- list(...)
+
   # Check for missing arguments (argument, default, function)
   # Uses actual function they will be used in
   # (keeping non-function choices for `cor_auto`)
@@ -385,9 +388,7 @@ network_estimation <- function(
   )
 
   # Set shape (only used for Weibull)
-  if(!("shape" %in% names(list(...)))){
-    shape <- 1
-  }
+  shape <- swiftelse("shape" %in% names(ellipse), ellipse$shape, 1)
 
   # Set gamma (set ahead of time for messaging on adaptive)
   if(is.null(gamma)){

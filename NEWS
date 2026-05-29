@@ -1,3 +1,7 @@
+## Version 0.1.1
+
+o UPDATE: added functionality for `shape` to be set in `network_estimation` for the Weibull penalty (enables reproducibility)
+
 ## Version 0.1.0
 
 o FIX: several bugs in `simulate_smallworld`; also updated edge weight assignment 
