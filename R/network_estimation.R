@@ -314,7 +314,7 @@
 #' @export
 #'
 # Apply non-convex regularization ----
-# Updated 11.04.2026
+# Updated 29.05.2026
 network_estimation <- function(
     data, n = NULL,
     corr = c("auto", "pearson", "spearman"),
@@ -385,7 +385,9 @@ network_estimation <- function(
   )
 
   # Set shape (only used for Weibull)
-  shape <- 1
+  if(!("shape" %in% names(list(...)))){
+    shape <- 1
+  }
 
   # Set gamma (set ahead of time for messaging on adaptive)
   if(is.null(gamma)){
