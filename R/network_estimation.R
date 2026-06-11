@@ -180,9 +180,11 @@
 #'
 #' @param LLA Boolean (length = 1).
 #' Should Local Linear Approximation be used to find optimal minimum?
-#' Defaults to \code{FALSE} or a single-pass approximation, which can be
-#' significantly faster (Zou & Li, 2008).
-#' Set to \code{TRUE} to find global minimum based on convergence (\code{LLA_threshold})
+#' Defaults to \code{TRUE} to find global minimum based on
+#' convergence (\code{LLA_threshold}).
+#' Set to \code{FALSE} or a single-pass approximation, which can be
+#' significantly faster (Zou & Li, 2008)
+#'
 #'
 #' @param LLA_threshold Numeric (length = 1).
 #' When performing the Local Linear Approximation, the maximum threshold
@@ -253,7 +255,9 @@
 #' \item{\code{IC}}{Numeric scalar giving the value of the information
 #' criterion at the optimal lambda}
 #'
-#' }
+#' \item{\code{MLE}}{List containing the MLE estimated parameters if
+#' \code{adaptive = TRUE} and one of \code{"exp"}, \code{"gumbel"}, or
+#' \code{"weibull"})} was used}
 #'
 #' @author Alexander P. Christensen <alexpaulchristensen@gmail.com>
 #'
@@ -314,7 +318,7 @@
 #' @export
 #'
 # Apply non-convex regularization ----
-# Updated 29.05.2026
+# Updated 11.06.2026
 network_estimation <- function(
     data, n = NULL,
     corr = c("auto", "pearson", "spearman"),
@@ -323,7 +327,7 @@ network_estimation <- function(
     gamma = NULL, adaptive = TRUE,
     nlambda = 50, lambda_min_ratio = 0.01, penalize_diagonal = TRUE,
     ic = c("AIC", "AICc", "BIC", "BIC0", "EBIC", "MBIC"), ebic_gamma = 0.50,
-    fast = TRUE, LLA = FALSE, LLA_threshold = 1e-03, LLA_iter = 10000,
+    fast = TRUE, LLA = TRUE, LLA_threshold = 1e-03, LLA_iter = 10000,
     network_only = TRUE, verbose = FALSE, ...
 )
 {
@@ -417,12 +421,14 @@ network_estimation <- function(
     if(penalty == "exp"){
 
       # Set 10th percentile
-      gamma <- -log(0.90) * mean(lower_P)
+      scale <- mean(lower_P)
+      gamma <- -log(0.90) * scale
 
     }else if(penalty == "gumbel"){
 
       # Set 10th percentile
-      gamma <- qgumbel(0.10, gumbel_mle(lower_P))
+      scale <- gumbel_mle(lower_P)
+      gamma <- qgumbel(0.10, scale)
 
     }else if(penalty == "weibull"){
 
@@ -434,7 +440,8 @@ network_estimation <- function(
       # 'shape' needs to be set! Otherwise, will default to 1 (from above)
 
       # Set 10th percentile
-      gamma <- estimates[["scale"]] * (-log(0.90))^(1 / shape)
+      scale <- estimates[["scale"]]
+      gamma <- scale * (-log(0.90))^(1 / shape)
 
     }
 
@@ -552,7 +559,15 @@ network_estimation <- function(
       list(
         network = W, K = glasso_list[[optimal]]$wi, R = R,
         penalty = penalty, lambda = lambda_sequence[[optimal]], gamma = gamma,
-        correlation = S, criterion = ic, IC = ICs[[optimal]]
+        correlation = S, criterion = ic, IC = ICs[[optimal]],
+        MLE = swiftelse(
+          adaptive_flag,
+          list(
+            shape = swiftelse(penalty == "weibull", shape, NULL),
+            scale = scale
+          ),
+          NULL
+        )
       )
     )
   }

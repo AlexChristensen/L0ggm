@@ -2,6 +2,11 @@
 
 o UPDATE: added functionality for `shape` to be set in `network_estimation` for the Weibull penalty (enables reproducibility)
 
+o UPDATE: added maximum likelihood parameter estimates to output in `network_estimation` (`$MLE`) when `network_only = FALSE`
+
+o UPDATE: changed `LLA` default to be `TRUE` to ensure most rigorous application is the default
+
+
 ## Version 0.1.0
 
 o FIX: several bugs in `simulate_smallworld`; also updated edge weight assignment 
@@ -37,6 +42,7 @@ o REMOVE: `ring2lattice()` algorithm was revised and the logic updated to the `p
   lattice clustering coefficient is lower than that of the original network, the
   empirical adjacency (or weighted matrix) is returned with a warning. The
   resulting average clustering coefficient is attached as attribute `"CC"`.
+
 
 ## Initial Commit: Version 0.0.1
 

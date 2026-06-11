@@ -18,7 +18,7 @@ network_estimation(
   ic = c("AIC", "AICc", "BIC", "BIC0", "EBIC", "MBIC"),
   ebic_gamma = 0.5,
   fast = TRUE,
-  LLA = FALSE,
+  LLA = TRUE,
   LLA_threshold = 0.001,
   LLA_iter = 10000,
   network_only = TRUE,
@@ -203,9 +203,10 @@ GLASSO implemented by \code{\link[glasso]{glasso}} and should not impact reprodu
 
 \item{LLA}{Boolean (length = 1).
 Should Local Linear Approximation be used to find optimal minimum?
-Defaults to \code{FALSE} or a single-pass approximation, which can be
-significantly faster (Zou & Li, 2008).
-Set to \code{TRUE} to find global minimum based on convergence (\code{LLA_threshold})}
+Defaults to \code{TRUE} to find global minimum based on
+convergence (\code{LLA_threshold}).
+Set to \code{FALSE} or a single-pass approximation, which can be
+significantly faster (Zou & Li, 2008)}
 
 \item{LLA_threshold}{Numeric (length = 1).
 When performing the Local Linear Approximation, the maximum threshold
@@ -277,7 +278,9 @@ used for model selection (e.g., \code{"bic"})}
 \item{\code{IC}}{Numeric scalar giving the value of the information
 criterion at the optimal lambda}
 
-}
+\item{\code{MLE}}{List containing the MLE estimated parameters if
+\code{adaptive = TRUE} and one of \code{"exp"}, \code{"gumbel"}, or
+\code{"weibull"})} was used}
 }
 \description{
 A general function to estimate Gaussian graphical models using
