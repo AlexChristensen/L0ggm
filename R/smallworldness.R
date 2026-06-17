@@ -226,7 +226,7 @@ smallworldness <- function(
 
   # Obtain empirical values
   ASPL <- igraph::mean_distance(I)
-  CC <- igraph::transitivity(I, type = swiftelse(method == "s", "global", "average"))
+  CC <- igraph::transitivity(I, type = swiftelse(method %in% c("s", "analytical"), "global", "average"))
   # Switch CC based on method
 
   # Compute smallworldness

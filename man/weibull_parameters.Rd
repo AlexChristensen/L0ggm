@@ -7,12 +7,13 @@
 weibull_parameters(nodes, sample_size, snr = 1, bootstrap = FALSE)
 }
 \arguments{
-\item{nodes}{Integer. The number of nodes (variables) in the network.
+\item{nodes}{Numeric (length = 1).
+The number of nodes (variables) in the network.
 Must be between 8 and 54, reflecting the range of the empirical networks
 used to fit the underlying SUR model.}
 
-\item{sample_size}{Integer. The sample size of the dataset from which the
-network is estimated.}
+\item{sample_size}{Numeric (length = 1).
+The sample size of the dataset from which the network is estimated.}
 
 \item{snr}{Numeric (length = 1).
 Signal-to-noise ratio of partial correlations (\eqn{\bar{|w|} / \mathrm{SD}(|w|)}).
@@ -21,7 +22,7 @@ values greater than 1 indicate narrower range.
 Defaults to \code{1} where the mean of the partial correlations (\eqn{\bar{|w|}})
 is equal to the standard deviation (\eqn{\mathrm{SD}(|w|)})}
 
-\item{bootstrap}{Logical. If \code{TRUE}, a randomly sampled residual from
+\item{bootstrap}{Boolean (length = 1). If \code{TRUE}, a randomly sampled residual from
 the SUR model fit is added to each predicted parameter, introducing
 empirically grounded variability suitable for use in simulation or
 bootstrapping contexts. Defaults to \code{FALSE}.}

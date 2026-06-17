@@ -159,7 +159,7 @@ Available options include:
 
 \item \code{"BIC0"} --- Bayesian information criterion not (Dicker et al., 2013): \eqn{\log{\large(\frac{D}{n - E}\large)} + \large(\frac{\log{(n)}}{n}\large) \cdot E}
 
-\item \code{"EBIC"} --- Extended BIC: \eqn{BIC + 4E \cdot \gamma \cdot \log{(E)}}
+\item \code{"EBIC"} --- Extended BIC: \eqn{BIC + 4E \cdot \gamma \cdot \log{(p)}}
 
 \item \code{"MBIC"} --- Modified Bayesian information criterion (Wang et al., 2018):  \eqn{\log{\large(\frac{D}{n - E}\large)} + \large(\frac{\log{(n)} \cdot E}{n}\large) \cdot \log{(\log{(p)}})}
 
@@ -205,7 +205,7 @@ GLASSO implemented by \code{\link[glasso]{glasso}} and should not impact reprodu
 Should Local Linear Approximation be used to find optimal minimum?
 Defaults to \code{TRUE} to find global minimum based on
 convergence (\code{LLA_threshold}).
-Set to \code{FALSE} or a single-pass approximation, which can be
+Set to \code{FALSE} for a single-pass approximation, which can be
 significantly faster (Zou & Li, 2008)}
 
 \item{LLA_threshold}{Numeric (length = 1).
@@ -228,7 +228,7 @@ Whether messages and (insignificant) warnings should be output.
 Defaults to \code{FALSE} (silent calls).
 Set to \code{TRUE} to see all messages and warnings for every function call}
 
-\item{...}{Additional arguments to be passed on to \code{auto.correlate}}
+\item{...}{Additional arguments to be passed on to \code{auto_correlate}}
 }
 \value{
 When \code{network_only = TRUE} (default), returns a \eqn{p \times p}
@@ -241,8 +241,6 @@ edge. Diagonal entries are zero. Row and column names are inherited from
 
 When \code{network_only = FALSE}, returns a named list with the following
 elements:
-
-\describe{
 
 \item{\code{network}}{The \eqn{p \times p} partial correlation matrix
 described above}
@@ -280,7 +278,7 @@ criterion at the optimal lambda}
 
 \item{\code{MLE}}{List containing the MLE estimated parameters if
 \code{adaptive = TRUE} and one of \code{"exp"}, \code{"gumbel"}, or
-\code{"weibull"})} was used}
+\code{"weibull"} was used}
 }
 \description{
 A general function to estimate Gaussian graphical models using

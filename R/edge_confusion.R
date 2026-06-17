@@ -101,7 +101,7 @@ edge_confusion <- function(base, comparison, metric = c(
     "sen" = "Sensitivity", "spec" = "Specificity", "ppv" = "Positive Predictive Value",
     "npv" = "Negative Predictive Value", "fdr" = "False Discovery Rate", "fom" = "False Omission Rate",
     "ba" = "Balanced Accuracy", "f1" = "F1 Score", "csi" = "Critical Success Index (Jaccard)",
-    "mcc" = "Matthew's Correlation Coefficient"
+    "mcc" = "Matthews Correlation Coefficient"
   )
 
   # Set default

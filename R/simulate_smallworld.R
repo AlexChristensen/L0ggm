@@ -230,9 +230,8 @@
 #'   a valid network
 #'   \item \code{rejections} --- Character vector recording the rejection
 #'   reason for each failed attempt. Common reasons include disconnected
-#'   graph structure, omega exceeding the small-world threshold, condition
-#'   number exceeding \code{target_condition}, and maximum correlation
-#'   exceeding \code{max_correlation}
+#'   graph structure, condition number exceeding \code{target_condition},
+#'   and maximum correlation exceeding \code{max_correlation}
 #'   \item \code{lambda} --- Ridge regularization parameter \eqn{\lambda}
 #'   added to the diagonal of the precision matrix to ensure positive
 #'   definiteness; \code{NA} if no conditioning was required

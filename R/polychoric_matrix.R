@@ -30,6 +30,7 @@
 #'
 #' @param empty_method Character (length = 1).
 #' Method for empty cell correction.
+#' Defaults to \code{"none"}.
 #' Available options:
 #'
 #' \itemize{
@@ -47,6 +48,7 @@
 #'
 #' @param empty_value Character (length = 1).
 #' Value to add to the joint frequency table cells.
+#' Defaults to \code{"none"}.
 #' Accepts numeric values between 0 and 1 or
 #' specific methods:
 #'
