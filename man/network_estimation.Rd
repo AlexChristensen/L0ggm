@@ -309,6 +309,11 @@ Candes, E. J., Wakin, M. B., & Boyd, S. P. (2008).
 Enhancing sparsity by reweighted l1 minimization.
 \emph{Journal of Fourier Analysis and Applications}, \emph{14}(5), 877--905.
 
+\strong{Adaptive regularization} \cr
+Christensen, A. P., & Choi, J. (2026).
+Adaptive regularization via extreme value distributions for Gaussian graphical models.
+\emph{PsyArXiv}.
+
 \strong{BIC0} \cr
 Dicker, L., Huang, B., & Lin, X. (2013).
 Variable selection and estimation with the seamless-L0 penalty.

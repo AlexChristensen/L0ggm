@@ -1,5 +1,7 @@
 ## Version 0.1.1
 
+o ADD: refrences for adaptive regularization methods
+
 o UPDATE: added functionality for `shape` to be set in `network_estimation` for the Weibull penalty (enables reproducibility)
 
 o UPDATE: added maximum likelihood parameter estimates to output in `network_estimation` (`$MLE`) when `network_only = FALSE`
