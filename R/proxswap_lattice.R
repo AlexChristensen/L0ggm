@@ -151,8 +151,14 @@ proxswap_lattice <- function(network, weighted = FALSE, shuffles = 100)
   distance_matrix <- abs(outer(node_sequence, node_sequence, "-"))
   distance_matrix <- pmin(distance_matrix, nodes - distance_matrix)
 
-  # Pre-compute unique node pairs at each ring distance
+  # Pre-compute unique node pairs at each ring distance, and flatten them
+  # into the parallel vectors `proximity_pass` needs once here -- `pairs`
+  # doesn't change across the `shuffles` loop below, so reflattening it on
+  # every pass (as `proximity_pass` used to do internally) was pure waste
   pairs <- build_pairs(distance_matrix)
+  pair_rows <- ulapply(pairs, function(p) p[, "row"])
+  pair_cols <- ulapply(pairs, function(p) p[, "col"])
+  pair_counts <- lengths(lapply(pairs, function(p) p[, "row"]))
 
   # Compute empirical clustering coefficient for fallback check
   empirical_CC <- igraph::transitivity(convert2igraph(network), type = "average")
@@ -172,7 +178,8 @@ proxswap_lattice <- function(network, weighted = FALSE, shuffles = 100)
 
     # Run proximity construction with shuffled degrees
     result <- proximity_pass(
-      nodes = nodes, ring = ring, budget = degree[swap_order], pairs = pairs
+      nodes = nodes, ring = ring, budget = degree[swap_order],
+      pair_rows = pair_rows, pair_cols = pair_cols, pair_counts = pair_counts
     )
 
     # Perform swapping to
@@ -291,8 +298,11 @@ build_pairs <- function(distance_matrix)
 
 #' @noRd
 # Proximity construction ----
-# Updated 24.03.2026
-proximity_pass <- function(nodes, ring, budget, pairs)
+# Updated 20.07.2026
+# `pair_rows`/`pair_cols`/`pair_counts` are the flattened form of `pairs`
+# (see `build_pairs`), computed once by the caller since they don't change
+# across the `shuffles` loop in `proxswap_lattice`
+proximity_pass <- function(nodes, ring, budget, pair_rows, pair_cols, pair_counts)
 {
 
   # # Remaining edges to assign per node
@@ -357,11 +367,6 @@ proximity_pass <- function(nodes, ring, budget, pairs)
   #
   # # Return ring and total absolute degree error
   # return(list(ring = ring, budget = budget, total_budget = total_budget))
-
-  # Flatten the pairs list-of-matrices into three parallel vectors
-  pair_rows <- ulapply(pairs, function(p) p[, "row"])
-  pair_cols  <- ulapply(pairs, function(p) p[, "col"])
-  pair_counts <- lengths(lapply(pairs, function(p) p[, "row"]))
 
   # Coerce logical ring matrix to integer storage before any .Call
   storage.mode(ring) <- "integer"

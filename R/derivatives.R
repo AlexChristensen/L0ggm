@@ -9,10 +9,13 @@ atan_derivative <- function(x, lambda, gamma = 0.01, ...)
   # return(lambda * (gamma * (gamma + 2 / pi)) / (gamma^2 + x^2))
 
   # Return derivative
+  # `x` is passed as-is (not `as.numeric(x)`): the C side only reads via
+  # `REAL()`/`length()`, which don't care about a `dim` attribute, so
+  # stripping it first would only force an unneeded copy of `x`
   return(
     .Call(
       "atan_derivative_c",
-      as.numeric(x), lambda_ = lambda, gamma_ = gamma,
+      x, lambda_ = lambda, gamma_ = gamma,
       PACKAGE = "L0ggm"
     )
   )
@@ -25,11 +28,11 @@ exp_derivative <- function(x, lambda, gamma = 0.01, ...)
 {
   # return(lambda * (1 / gamma) * exp(-(abs(x) / gamma)))
 
-  # Return derivative
+  # Return derivative (see `atan_derivative` for why `x` isn't coerced here)
   return(
     .Call(
       "exp_derivative_c",
-      as.numeric(x), lambda_ = lambda, gamma_ = gamma,
+      x, lambda_ = lambda, gamma_ = gamma,
       PACKAGE = "L0ggm"
     )
   )
@@ -47,11 +50,11 @@ gumbel_derivative <- function(x, lambda, gamma = 0.01, ...)
   # # Return derivative
   # return((lambda / gamma) * (exp(-gamma_x - exp(-gamma_x)) + exp(gamma_x - exp(gamma_x))))
 
-  # Return derivative
+  # Return derivative (see `atan_derivative` for why `x` isn't coerced here)
   return(
     .Call(
       "gumbel_derivative_c",
-      as.numeric(x), lambda_ = lambda, gamma_ = gamma,
+      x, lambda_ = lambda, gamma_ = gamma,
       PACKAGE = "L0ggm"
     )
   )
@@ -64,11 +67,11 @@ log_derivative <- function(x, lambda, gamma = 0.10, ...)
 {
   # return(lambda / ((gamma + abs(x)) * log(1 + 1 / gamma)))
 
-  # Return derivative
+  # Return derivative (see `atan_derivative` for why `x` isn't coerced here)
   return(
     .Call(
       "log_derivative_c",
-      as.numeric(x), lambda_ = lambda, gamma_ = gamma,
+      x, lambda_ = lambda, gamma_ = gamma,
       PACKAGE = "L0ggm"
     )
   )
@@ -112,11 +115,11 @@ weibull_derivative <- function(x, lambda, gamma = 0.01, shape, ...)
   # # Return derivative
   # return(lambda * (shape / gamma) * x_gamma^(shape - 1) * exp(-x_gamma^shape))
 
-  # Return derivative
+  # Return derivative (see `atan_derivative` for why `x` isn't coerced here)
   return(
     .Call(
       "weibull_derivative_c",
-      as.numeric(x), lambda_ = lambda,
+      x, lambda_ = lambda,
       gamma_ = gamma, shape_ = shape,
       PACKAGE = "L0ggm"
     )

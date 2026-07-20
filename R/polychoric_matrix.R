@@ -2,9 +2,11 @@
 #'
 #' @description A fast implementation of polychoric correlations in C.
 #' Uses the Beasley-Springer-Moro algorithm (Boro & Springer, 1977; Moro, 1995)
-#' to estimate the inverse univariate normal CDF, the Drezner-Wesolosky
-#' approximation (Drezner & Wesolosky, 1990) to estimate the bivariate normal
-#' CDF, and Brent's method (Brent, 2013) for optimization of rho
+#' to estimate the inverse univariate normal CDF, Genz's approximation
+#' (Genz, 2004), a double-precision extension of Drezner and Wesolosky
+#' (1990) developed by Genz and Ge, to estimate the bivariate normal
+#' CDF, and Newton-Raphson (Fisher scoring, with an exact-Hessian
+#' arcsin-reparameterized fallback) for optimization of rho
 #'
 #' @param data Matrix or data frame.
 #' A dataset with all ordinal values
@@ -110,12 +112,16 @@
 #' The full monte.
 #' \emph{Risk 8 (February)}, 57-58.
 #'
-#' \strong{Brent optimization} \cr
-#' Brent, R. P. (2013).
-#' Algorithms for minimization without derivatives.
-#' Mineola, NY: Dover Publications, Inc.
+#' \strong{Newton-Raphson (Fisher scoring) optimization} \cr
+#' Olsson, U. (1979).
+#' Maximum likelihood estimation of the polychoric correlation coefficient.
+#' \emph{Psychometrika}, \emph{44}(4), 443-460.
 #'
-#' \strong{Drezner-Wesolowsky bivariate normal approximation} \cr
+#' \strong{Genz bivariate normal approximation} \cr
+#' Genz, A. (2004).
+#' Numerical computation of rectangular bivariate and trivariate normal and t probabilities.
+#' \emph{Statistics and Computing}, \emph{14}(3), 251-260.
+#'
 #' Drezner, Z., & Wesolowsky, G. O. (1990).
 #' On the computation of the bivariate normal integral.
 #' \emph{Journal of Statistical Computation and Simulation}, \emph{35}(1-2), 101-107.
@@ -126,7 +132,7 @@
 #' @export
 #'
 # Compute polychoric correlation matrix
-# Updated 07.03.2026
+# Updated 20.07.2026
 polychoric_matrix <- function(
     data, na_data = c("pairwise", "listwise"),
     empty_method = c("none", "zero", "all"),

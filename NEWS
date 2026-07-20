@@ -1,3 +1,47 @@
+## Version 0.1.2
+
+o UPDATE: `polychoric_matrix()` overhauled for speed and accuracy:
+
+  - Bivariate normal CDF replaced with Genz's (2004) double-precision
+    extension of Drezner & Wesolowsky (1990), translated from the Fortran
+    TVPACK `MVBVU` routine (via the pbivnorm R package). Uses a
+    variable-order (6-, 12-, or 20-point) Gauss-Legendre rule depending on
+    |rho|, with an extended tail-correction series for |rho| close to 1,
+    giving higher accuracy than the fixed 5-point rule it replaces
+  - Optimizer replaced Brent's method with Newton-Raphson (Fisher scoring
+    on rho, falling back to an exact-Hessian arcsin-reparameterized Newton
+    step to guarantee rho stays in (-1, 1), with damped step sizes to avoid
+    overshoot near the boundary), seeded from a Pearson-correlation
+    starting value
+  - Several C-level optimizations: caching bivariate CDF/density
+    evaluations across a grid of category thresholds instead of
+    recomputing each corner up to 4x redundantly; merging the
+    joint-frequency-table pass with the Pearson starting-value computation
+    into a single scan of the data; replacing per-pair heap allocations
+    with fixed-size stack buffers; replacing a from-scratch Chebyshev
+    expansion with an `erfc()`-based univariate normal CDF; and hoisting
+    rho-only quantities out of the per-cell evaluation loop
+  - Net effect: consistently faster than {bifactor}'s single-core
+    implementation and competitive with (sometimes faster than) its
+    16-core implementation, and 1.2-5.6x faster than {EGAnet}'s
+    implementation across a range of dataset sizes and category counts,
+    with results agreeing to 5-8 significant digits
+
+o FIX: removed an unnecessary `as.numeric()` copy of the (already-numeric)
+  precision matrix in `atan_derivative`, `exp_derivative`,
+  `gumbel_derivative`, `log_derivative`, and `weibull_derivative`, avoiding
+  a full matrix copy on every LLA iteration in `network_estimation()`
+
+o UPDATE: `proxswap_lattice()` no longer reflattens its (invariant)
+  node-pairs list on every shuffle pass; it is now flattened once and
+  reused across all `shuffles` passes
+
+o UPDATE: `inst/COPYRIGHTS` and `DESCRIPTION` updated to credit Alan Genz
+  for the bivariate normal CDF implementation in `polychoric_matrix.c`,
+  replacing the earlier Drezner-Wesolowsky approximation translated from
+  Alexander Robitzsch's pbv package, which is no longer present
+
+
 ## Version 0.1.1
 
 o ADD: refrences for adaptive regularization methods

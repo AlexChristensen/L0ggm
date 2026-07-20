@@ -16,16 +16,24 @@ Comment: The rmsea_ci function is derived from RMSEA confidence interval
  by Alexander P. Christensen, 01 November 2024.
 
 Files: src/polychoric_matrix.c
-Copyright: 2023 Alexander P. Christensen <alexpaulchristensen@gmail.com>
-           Alexander Robitzsch (Drezner-Wesolowsky bivariate normal CDF,
-           translated from pbv/src/pbv_rcpp_bvnorm.cpp)
+Copyright: 2023-2026 Alexander P. Christensen <alexpaulchristensen@gmail.com>
+           Alan Genz (bivariate normal CDF, translated from the Fortran
+           TVPACK `MVBVU` routine as packaged in the pbivnorm R package)
 License: GPL (>= 2)
 Comment: Implements polychoric correlations using the Beasley-Springer-Moro
- inverse normal CDF and Brent's optimization method. The Drezner-Wesolowsky
- bivariate normal CDF is translated from C++ code in the pbv R package
- (https://github.com/cran/pbv/blob/master/src/pbv_rcpp_bvnorm.cpp).
- Template developed with GPT-4 assistance.
- 
+ inverse normal CDF, Genz's (2004) bivariate normal CDF approximation
+ (a double-precision extension of Drezner & Wesolowsky, 1990, developed by
+ Genz and Ge), and Newton-Raphson (Fisher scoring, with an exact-Hessian
+ arcsin-reparameterized fallback) optimization of rho. The bivariate normal
+ CDF is translated from Alan Genz's Fortran code (TVPACK, `MVBVU`), as
+ packaged in the pbivnorm R package by Brenton Kenkel
+ (https://github.com/cran/pbivnorm/blob/master/src/pbivnorm.f). This
+ replaces an earlier version of this file that translated a
+ Drezner-Wesolowsky approximation from Alexander Robitzsch's pbv package;
+ that code is no longer present.
+ Template developed with GPT-4 assistance; Genz CDF translation and
+ Newton-Raphson optimizer developed with Claude Sonnet 5 assistance.
+
 Files: src/proxswap_lattice.c
 Copyright: 2026 Alexander P. Christensen <alexpaulchristensen@gmail.com>
 License: CC0-1.0
