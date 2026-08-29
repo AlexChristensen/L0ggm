@@ -12,22 +12,26 @@ export(simulate_smallworld)
 export(smallworldness)
 export(weibull_parameters)
 importFrom(methods,is)
-importFrom(stats,complete.cases)
-importFrom(stats,cor)
-importFrom(stats,cov2cor)
-importFrom(stats,dist)
-importFrom(stats,dnorm)
-importFrom(stats,na.omit)
-importFrom(stats,optimize)
-importFrom(stats,pchisq)
-importFrom(stats,pnorm)
-importFrom(stats,predict)
-importFrom(stats,qnorm)
-importFrom(stats,rnorm)
-importFrom(stats,sd)
-importFrom(stats,setNames)
-importFrom(stats,uniroot)
-importFrom(utils,capture.output)
-importFrom(utils,data)
-importFrom(utils,packageVersion)
+importFrom(stats,
+  complete.cases,
+  cor,
+  cov2cor,
+  dist,
+  dnorm,
+  na.omit,
+  optimize,
+  pchisq,
+  pnorm,
+  predict,
+  qnorm,
+  rnorm,
+  sd,
+  setNames,
+  uniroot
+)
+importFrom(utils,
+  capture.output,
+  data,
+  packageVersion
+)
 useDynLib(L0ggm, .registration = TRUE)
