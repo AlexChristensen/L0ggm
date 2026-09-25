@@ -28,6 +28,12 @@ The package also provides simulation tools for generating GGM data with realisti
 
 ---
 
+## Seminal Reference
+
+Christensen, A. P., Choi, J., Yang, H., & Xue, L. (2026). Adaptive regularization via extreme value distributions for Gaussian graphical models. arXiv preprint [arXiv:2609.05678](https://arxiv.org/abs/2609.05678).
+
+---
+
 ## Installation
 
 ```r
