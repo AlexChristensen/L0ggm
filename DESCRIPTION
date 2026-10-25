@@ -33,4 +33,4 @@ NeedsCompilation: yes
 Imports: igraph, glasso, glassoFast, Matrix, methods, psych, stats
 Copyright: See inst/COPYRIGHTS for details
 BugReports: https://github.com/AlexChristensen/L0ggm/issues
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
