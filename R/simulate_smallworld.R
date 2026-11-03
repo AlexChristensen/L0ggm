@@ -171,7 +171,8 @@
 #' requires \eqn{p \leq 0.50}, which is why \code{negative_proportion} is
 #' bounded at 0.50.
 #'
-#' @return A named list with four elements:
+#' @return A named list of class \code{"ggm_simulate"} with four elements
+#' (see \code{\link{add_population_error}} to add population error):
 #'
 #' \item{data}{Numeric matrix of dimension \code{sample_size x nodes}
 #' containing the simulated observations drawn from the population GGM.
@@ -430,37 +431,41 @@ simulate_smallworld <- function(
   # Estimate modularity using optimal modularity detection
   igraph_network <- convert2igraph(abs(output$network))
 
-  # Return parameters
-  return(
-    list(
-      data = data_output$data,
-      parameters = list(
-        nodes = nodes,
-        density = density,
-        neighbors = neighbors,
-        rewire = rewire,
-        negative_proportion = negative_proportion,
-        sample_size = sample_size,
-        skew = data_output$skew,
-        weibull = output$params,
-        omega = smallworldness(
-          network = output$network, lattice = pruned_lattice, method = "omega"
-        ),
-        Q = igraph::modularity(
-          igraph_network, igraph::cluster_leiden(
-            igraph_network, objective_function =  "modularity"
-          )$membership
-        )
+  # Populate results
+  results <- list(
+    data = data_output$data,
+    parameters = list(
+      nodes = nodes,
+      density = density,
+      neighbors = neighbors,
+      rewire = rewire,
+      negative_proportion = negative_proportion,
+      sample_size = sample_size,
+      skew = data_output$skew,
+      weibull = output$params,
+      omega = smallworldness(
+        network = output$network, lattice = pruned_lattice, method = "omega"
       ),
-      population = list(R = output$R, Omega = output$network),
-      convergence = list(
-        iterations = iter,
-        rejections = rejections,
-        lambda = output$lambda,
-        condition = output$condition
+      Q = igraph::modularity(
+        igraph_network, igraph::cluster_leiden(
+          igraph_network, objective_function =  "modularity"
+        )$membership
       )
+    ),
+    population = list(R = output$R, Omega = output$network),
+    convergence = list(
+      iterations = iter,
+      rejections = rejections,
+      lambda = output$lambda,
+      condition = output$condition
     )
   )
+
+  # Add class
+  class(results) <- "ggm_simulate"
+
+  # Return results
+  return(results)
 
 }
 

@@ -131,7 +131,8 @@ frequency table of rejection reasons to assist with diagnosing convergence
 failures. Defaults to \code{100}.}
 }
 \value{
-A named list with four elements:
+A named list of class \code{"ggm_simulate"} with four elements
+(see \code{\link{add_population_error}} to add population error):
 
 \item{data}{Numeric matrix of dimension \code{sample_size x sum(nodes)}
 containing the simulated observations drawn from the population GGM.

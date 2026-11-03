@@ -179,7 +179,8 @@
 #' returned \code{parameters} list (Newman-Girvan modularity) provides a
 #' post-hoc summary of the actual community contrast achieved.
 #'
-#' @return A named list with four elements:
+#' @return A named list of class \code{"ggm_simulate"} with four elements
+#' (see \code{\link{add_population_error}} to add population error):
 #'
 #' \item{data}{Numeric matrix of dimension \code{sample_size x sum(nodes)}
 #' containing the simulated observations drawn from the population GGM.
@@ -474,35 +475,39 @@ simulate_sbm <- function(
     n = sample_size, p = total_nodes, R = output$R, skew = skew, skew_range = skew_range
   )
 
-  # Return parameters
-  return(
-    list(
-      data = data_output$data,
-      parameters = list(
-        nodes = nodes,
-        blocks = blocks,
-        sample_size = sample_size,
-        skew = data_output$skew,
-        density_matrix = density_matrix,
-        negative_proportion = negative_proportion,
-        weibull = output$params,
-        diffusion = output$diffusion,
-        omega = smallworldness(network = output$network, method = "omega"),
-        Q = igraph::modularity(convert2igraph(abs(output$network)), output$membership)
-      ),
-      population = list(
-        R = output$R,
-        Omega = output$network,
-        membership = output$membership
-      ),
-      convergence = list(
-        iterations = iter,
-        rejections = rejections,
-        lambda = output$lambda,
-        condition = output$condition
-      )
+  # Populate results
+  results <- list(
+    data = data_output$data,
+    parameters = list(
+      nodes = nodes,
+      blocks = blocks,
+      sample_size = sample_size,
+      skew = data_output$skew,
+      density_matrix = density_matrix,
+      negative_proportion = negative_proportion,
+      weibull = output$params,
+      diffusion = output$diffusion,
+      omega = smallworldness(network = output$network, method = "omega"),
+      Q = igraph::modularity(convert2igraph(abs(output$network)), output$membership)
+    ),
+    population = list(
+      R = output$R,
+      Omega = output$network,
+      membership = output$membership
+    ),
+    convergence = list(
+      iterations = iter,
+      rejections = rejections,
+      lambda = output$lambda,
+      condition = output$condition
     )
   )
+
+  # Add class
+  class(results) <- "ggm_simulate"
+
+  # Return results
+  return(results)
 
 }
 
