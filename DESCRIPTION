@@ -1,16 +1,13 @@
 Package: L0ggm
 Title: Smooth L0 Penalty Approximations for Gaussian Graphical Models
-Version: 0.1.3
+Version: 0.2.0
 Date: 2026-11-03
 Authors@R: c(
     person("Alexander", "Christensen", email = "alexpaulchristensen@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9798-7037")),
     person("Jeongwon", "Choi", email = "jungwon799@gmail.com", role = "ctb", comment = c(ORCID = "0000-0001-6087-2124")),
     person("John", "Fox", role = c("cph", "ctb"), comment = "Original implementation of polyserial correlations in auto_correlate.R"),
     person("Yves", "Rosseel", role = c("cph", "ctb"), comment = "Original implementation of rmsea_ci in network_fit.R"),
-    person("Alan", "Genz", role = c("cph", "ctb"), comment = "Fortran implementation of the bivariate normal CDF (TVPACK MVBVU) in polychoric_matrix.c, translated via the pbivnorm R package"),
-    person("David", "Blackman", role = "ctb", comment = "Original xoshiro.c implementation"),
-    person("Sebastiano", "Vigna", role = "ctb", comment = "Original xoshiro.c implementation"),
-    person("John", "Burkardt", role = c("cph", "ctb"), comment = "Original ziggurat.c implementation")
+    person("Alan", "Genz", role = c("cph", "ctb"), comment = "Fortran implementation of the bivariate normal CDF (TVPACK MVBVU) in polychoric_matrix.c, translated via the pbivnorm R package")
    )
 Description: Provides smooth approximations to the L0 norm penalty for
     estimating sparse Gaussian graphical models (GGMs). Network estimation
@@ -23,14 +20,14 @@ Description: Provides smooth approximations to the L0 norm penalty for
     and Weibull. Adaptive penalty parameters for EXP, Gumbel, and Weibull
     are estimated via maximum likelihood, and model selection uses
     information criteria including AIC, BIC, and EBIC (Extended BIC).
-    Simulation functions generate multivariate normal data from GGMs with
-    stochastic block model or small-world (Watts-Strogatz) network structures.
+    Data simulation from GGMs is provided by the companion package
+    'psychNetwoRk'.
 Depends: R (>= 3.5.0)
 License: AGPL (>= 3.0)
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: yes
-Imports: igraph, glasso, glassoFast, Matrix, methods, psych, stats
+Imports: glasso, glassoFast, Matrix, methods, stats, utils
 Copyright: See inst/COPYRIGHTS for details
 BugReports: https://github.com/AlexChristensen/L0ggm/issues
 Config/roxygen2/version: 8.1.1

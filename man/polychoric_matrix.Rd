@@ -96,9 +96,11 @@ CDF, and Newton-Raphson (Fisher scoring, with an exact-Hessian
 arcsin-reparameterized fallback) for optimization of rho
 }
 \examples{
-# Categorize data
+# Categorize data (5 equal-frequency categories)
 basic_categorized <- apply(
-  basic_smallworld, 2, categorize, categories = 5
+  basic_smallworld, 2, function(x){
+    as.numeric(cut(x, breaks = quantile(x, probs = 0:5 / 5), include.lowest = TRUE))
+  }
 )
 
 # Compute polychoric correlation matrix

@@ -24,7 +24,7 @@ This package estimates **Gaussian graphical models** (GGMs) using regularization
 
 The package implements five continuous, differentiable approximations to the $L_0$ norm as regularization penalties, applied through a Local Linear Approximation (LLA) framework that wraps the graphical LASSO solver. The **adaptive Weibull** penalty is the default, and is the primary methodological contribution of the package.
 
-The package also provides simulation tools for generating GGM data with realistic psychometric network structure. Two topology generators are included: `simulate_smallworld()` produces small-world networks via degree-weighted Watts-Strogatz rewiring, and `simulate_sbm()` produces community-structured networks via a stochastic block model. Both are calibrated to edge weight distributions empirically observed across 194 psychometric networks (Huth et al., 2025) through `weibull_parameters()`, a Seemingly Unrelated Regression model that predicts Weibull shape and scale from network size, sample size, and signal-to-noise ratio.
+To simulate data from GGMs with realistic psychometric network structure (small-world and stochastic block model topologies), see the companion package [{psychNetwoRk}](https://github.com/AlexChristensen/psychNetwoRk).
 
 ---
 
@@ -54,29 +54,25 @@ remotes::install_github("AlexChristensen/L0ggm")
 # Load package
 library(L0ggm)
 
-# Simulate smallworld data
-basic_smallworld <- simulate_smallworld(
-  nodes = 20, # 20 nodes in the network
-  density = 0.30, # moderate initial lattice connectivity
-  rewire = 0.20, # 20% rewiring probability
-  sample_size = 1000 # number of cases = 1000
-)
+# Load example data (500 cases, 20 variables; simulated small-world network)
+# To simulate your own data, see {psychNetwoRk}::simulate_smallworld()
+data("basic_smallworld")
 
 # Estimate network with default adaptive Weibull penalty
 # with full LLA (iterate to convergence; recommended)
-weibull_network <- network_estimation(data = basic_smallworld$data, LLA = TRUE)
+weibull_network <- network_estimation(data = basic_smallworld, LLA = TRUE)
 
 # Get full output (network, precision matrix, selected lambda, etc.)
-weibull_full <- network_estimation(data = basic_smallworld$data, network_only = FALSE)
+weibull_full <- network_estimation(data = basic_smallworld, network_only = FALSE)
 
 # Use the Arctangent penalty
 atan_network <- network_estimation(
-  data = basic_smallworld$data, penalty = "atan", LLA = TRUE
+  data = basic_smallworld, penalty = "atan", LLA = TRUE
 )
 
 # Use the EXP penalty with fixed (non-adaptive) gamma
 exp_network <- network_estimation(
-  data = basic_smallworld$data, penalty = "exp", LLA = TRUE, adaptive = FALSE
+  data = basic_smallworld, penalty = "exp", LLA = TRUE, adaptive = FALSE
 )
 ```
 
@@ -227,123 +223,6 @@ The same structure governs the LLA derivative. For $k > 1$, the piecewise deriva
 
 ---
 
-## Simulation
-
-{L0ggm} provides two functions for generating GGM data with realistic psychometric network structure. Both are calibrated to edge weight distributions observed across 194 empirical psychometric networks (Huth et al., 2025) via `weibull_parameters()`, with shared support for skewed data generation, positive-definiteness conditioning, and reproducible rejection diagnostics.
-
-<details>
-<summary><strong><code>simulate_smallworld()</code> — Small-world network structure</strong></summary>
-
-Generates GGM data from a small-world topology via a three-stage process closely aligned with empirical psychometric network properties.
-
-**Stage 1 — Ring lattice.** A ring lattice is constructed with `neighbors + 1` nearest-neighbor connections per node, where `neighbors` is derived from `nodes` and `density`. The extra neighbor ensures the lattice always has more edges than the target, guaranteeing pruning can proceed.
-
-**Stage 2 — Pruning.** The lattice is randomly pruned to the target `density` by removing edges uniformly at random while maintaining graph connectivity. This creates degree heterogeneity before any rewiring, providing a non-uniform prior for the next stage.
-
-**Stage 3 — Degree-weighted rewiring.** Each edge is independently rewired with probability `rewire`. Unlike standard Watts-Strogatz, the new endpoint is selected proportionally to $\sqrt{d_i + d_k}$ (combined degree of the candidate pair), moderating the extreme hubs of linear preferential attachment while still producing realistic degree heterogeneity.
-
-**Edge weights.** Retained lattice edges receive weights by neighbor-distance priority (nearer = stronger); rewired edges receive lowest priority. Absolute weights are drawn from a Weibull distribution via `weibull_parameters()`.
-
-| Argument | Description |
-|---|---|
-| `nodes` | Number of nodes (8–54 recommended) |
-| `density` | Target edge density after pruning |
-| `rewire` | Rewiring probability (small-world regime: ~0.01–0.30) |
-| `snr` | Signal-to-noise ratio $\bar{\lvert w \rvert} / \mathrm{SD}(\lvert w \rvert)$; default `1` |
-| `negative_proportion` | Fraction of edges signed negative; default drawn from empirical distribution |
-| `sample_size` | Number of observations to generate |
-| `skew` / `skew_range` | Per-variable skew in $[-2, 2]$; default `0` |
-
-**Returns:** a named list with `data`, `parameters` (including `omega` smallworldness), `population` (`R`, `Omega`), and `convergence`.
-
-```r
-result <- simulate_smallworld(
-  nodes = 20, density = 0.30, rewire = 0.20, sample_size = 500
-)
-```
-
-</details>
-
-<details>
-<summary><strong><code>simulate_sbm()</code> — Stochastic block model structure</strong></summary>
-
-Generates GGM data with explicit community (block) structure, where edge density is controlled separately within and between communities via a `blocks × blocks` density matrix.
-
-**Structure.** Nodes are partitioned into `blocks` communities of size `nodes` (scalar or per-block vector). For each pair of communities $(i, j)$, edges are included independently with probability `density_matrix[i, j]`. The resulting graph is required to be connected; disconnected draws are rejected and resampled.
-
-**Edge weights and diffusion.** Absolute weights are drawn from a Weibull distribution via `weibull_parameters()`. The `diffusion` parameter controls the minimum fraction of high-weight edges reserved for within-community positions: `1 - diffusion` of within-community slots are filled from the top-ranked weight draws, with the remaining slots drawn randomly. Because random draws can also land within communities by chance, the actual within-community weight advantage typically exceeds `1 - diffusion`. Newman-Girvan modularity $Q$ (returned in `parameters`) summarizes the community contrast actually achieved.
-
-**Between-community sign.** Each between-community edge is independently signed negative with probability `negative_proportion`, modeling inhibitory connections. Within-community edges are always positive.
-
-| Argument | Description |
-|---|---|
-| `nodes` | Nodes per block (scalar or length-`blocks` vector; min 3 per block) |
-| `blocks` | Number of community blocks |
-| `density_matrix` | `blocks × blocks` symmetric matrix of edge probabilities |
-| `snr` | Signal-to-noise ratio; default `1` |
-| `negative_proportion` | Fraction of between-community edges signed negative; default from empirical distribution |
-| `diffusion` | Minimum proportion of top edges placed outside communities; default `0.30` |
-| `diffusion_range` | If provided, `diffusion` is drawn uniformly from this interval each call |
-| `sample_size` | Number of observations to generate |
-| `skew` / `skew_range` | Per-variable skew in $[-2, 2]$; default `0` |
-
-**Returns:** a named list with `data`, `parameters` (including `Q` modularity and `weibull` edge weight parameters), `population` (`R`, `Omega`, `membership`), and `convergence`.
-
-```r
-dm <- matrix(0.20, nrow = 3, ncol = 3)
-diag(dm) <- 0.90
-
-result <- simulate_sbm(
-  nodes = 6, blocks = 3, density_matrix = dm, sample_size = 500
-)
-```
-
-</details>
-
-<details>
-<summary><strong><code>weibull_parameters()</code> — Empirically calibrated edge weight distribution</strong></summary>
-
-Predicts the Weibull shape $k$ and scale $\lambda_W$ that characterize absolute partial correlation edge weights for a network of given size and sample size. Predictions come from a Seemingly Unrelated Regression (SUR) model fitted to 194 empirical psychometric networks (Huth et al., 2025), where absolute partial correlations were found to follow a Weibull distribution more consistently than Beta, Gamma, or log-normal alternatives.
-
-**Predictors.** The two SUR equations have an asymmetric structure:
-
-- **Shape** is predicted from `snr` and `rlp` $= 1/\log(p)$, capturing the diminishing marginal effect of network size on weight concentration. Shape governs the spread of the edge weight distribution and is not affected by sampling precision.
-- **Scale** is predicted from `snr`, `rlp`, and `scaling` $= \sqrt{1/(n - p - 2)}$ (the standard error of partial correlations). Scale governs the typical magnitude of edge weights and is directly affected by estimation precision.
-
-**Model fit.** Shape: $R^2 = 0.887$, RMSE $= 0.048$. Scale: $R^2 = 0.885$, RMSE $= 0.011$. Residual correlation between equations: $0.261$ (motivating SUR). Empirical ranges: shape $\in [0.72, 1.63]$ (M $= 1.07$, SD $= 0.14$); scale $\in [0.03, 0.19]$ (M $= 0.10$, SD $= 0.03$).
-
-| Argument | Description |
-|---|---|
-| `nodes` | Number of nodes (8–54 to stay within empirical training range) |
-| `sample_size` | Sample size of the dataset |
-| `snr` | Signal-to-noise ratio $\bar{\lvert w \rvert} / \mathrm{SD}(\lvert w \rvert)$; default `1` |
-| `bootstrap` | If `TRUE`, adds a sampled SUR residual — use in simulation for replication-to-replication variability |
-
-```r
-# Predicted parameters for a 15-node network, n = 300
-weibull_parameters(nodes = 15, sample_size = 300)
-
-# With bootstrapped residuals for Monte Carlo simulation
-weibull_parameters(nodes = 15, sample_size = 300, bootstrap = TRUE)
-```
-
-</details>
-
-<details>
-<summary><strong>Simulation internals (<code>helpers_simulation</code>)</strong></summary>
-
-The shared simulation pipeline is implemented in `helpers_simulation.R` and handles tasks common to both `simulate_smallworld()` and `simulate_sbm()`.
-
-**`generate_edges()`** draws absolute edge weights from a Weibull distribution parameterized by `weibull_parameters()`. Draws are repeated until no weight exceeds the empirical maximum ($\approx 0.845$), and are then sampled proportionally to $w^2$ (preferring larger weights for occupied edges). The Weibull parameters are restricted to empirical bounds (shape $\in [0.70, 1.70]$, scale $\in [0.03, 0.19]$); draws outside these bounds are discarded.
-
-**`condition_network()`** recovers positive definiteness by adding a minimal ridge penalty $\lambda$ to the diagonal of the precision matrix via `uniroot()`, targeting a user-specified condition number. Maximum shrinkage is capped at approximately 23% following Peeters et al. (2020).
-
-**`simulate_data()`** generates multivariate normal observations via a Cholesky decomposition of the population correlation matrix $\mathbf{R}$, then applies variable-level skew transformations. Skew values are rounded to the nearest 0.05 increment within $[-2, 2]$; if `skew_range` is provided, per-variable skew is drawn uniformly from the interval.
-
-</details>
-
----
-
 ## References
 
 Candes, E. J., Wakin, M. B., & Boyd, S. P. (2008). Enhancing sparsity by reweighted l1 minimization. *Journal of Fourier Analysis and Applications*, *14*(5), 877&ndash;905. https://doi.org/10.1007/s00041-008-9045-x
@@ -357,10 +236,6 @@ Dicker, L., Huang, B., & Lin, X. (2013). Variable selection and estimation with 
 Fan, J., & Li, R. (2001). Variable selection via nonconcave penalized likelihood and its oracle properties. *Journal of the American Statistical Association*, *96*(456), 1348&ndash;1360. https://doi.org/10.1198/016214501753382273
 
 Friedman, J., Hastie, T., & Tibshirani, R. (2008). Sparse inverse covariance estimation with the graphical lasso. *Biostatistics*, *9*(3), 432&ndash;441. https://doi.org/10.1093/biostatistics/kxm045
-
-Huth, K. B. S., Haslbeck, J. M. B., Keetelaar, S., Van Holst, R. J., & Marsman, M. (2025). Statistical evidence in psychological networks. *Nature Human Behaviour*.
-
-Peeters, C. F., van de Wiel, M. A., & van Wieringen, W. N. (2020). The spectral condition number plot for regularization parameter evaluation. *Computational Statistics*, *35*(2), 629&ndash;646. https://doi.org/10.1007/s00180-019-00912-z
 
 Wang, Y., Fan, Q., & Zhu, L. (2018). Variable selection and estimation using a continuous approximation to the $L_0$ penalty. *Annals of the Institute of Statistical Mathematics*, *70*(1), 191&ndash;214. https://doi.org/10.1007/s10463-016-0588-3
 

@@ -13,8 +13,8 @@
 #' @keywords datasets
 #'
 #' @examples
-#' # Generated using:
-#' # basic_smallworld <- simulate_smallworld(
+#' # Generated using the {psychNetwoRk} package:
+#' # basic_smallworld <- psychNetwoRk::simulate_smallworld(
 #' #  nodes = 20, # 20 nodes in the network
 #' #  density = 0.30, # moderate initial lattice connectivity
 #' #  rewire = 0.20, # 20% rewiring probability

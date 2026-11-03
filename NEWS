@@ -1,3 +1,14 @@
+## Version 0.2.0
+
+o BREAKING: {L0ggm} now focuses exclusively on L0 network estimation. All
+  simulation tools were moved to the new {psychNetwoRk} package:
+  `simulate_sbm()`, `simulate_smallworld()`, `add_population_error()`,
+  `smallworldness()`, `proxswap_lattice()`, `categorize()`, and
+  `weibull_parameters()` (along with the `weibull_weights` and `skew_tables`
+  datasets and the xoshiro/ziggurat random number generators)
+
+o UPDATE: `igraph` and `psych` are no longer dependencies
+
 ## Version 0.1.2
 
 o NEW: `add_population_error()` adds population (model) error to `simulate_sbm()` and
