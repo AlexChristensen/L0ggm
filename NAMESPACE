@@ -3,7 +3,6 @@
 export(auto_correlate)
 export(edge_confusion)
 export(network_estimation)
-export(network_fit)
 export(polychoric_matrix)
 importFrom(methods,is)
 importFrom(stats,
